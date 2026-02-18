@@ -337,6 +337,26 @@ const TOOLS = [
   },
 ];
 
+const TOOL_LABELS = {
+  list_channels: 'Reading server channels...',
+  list_roles: 'Reading server roles...',
+  get_server_info: 'Reading server info...',
+  read_channel_messages: 'Reading channel messages...',
+  ask_question: 'Asking a question...',
+  propose_plan: 'Proposing a plan...',
+  create_category: 'Creating category...',
+  edit_channel: 'Editing channel...',
+  create_channel: 'Creating channel...',
+  delete_channel: 'Deleting channel...',
+  create_role: 'Creating role...',
+  edit_role: 'Editing role...',
+  send_message: 'Sending message...',
+  edit_message: 'Editing message...',
+  pin_message: 'Pinning message...',
+  unpin_message: 'Unpinning message...',
+  set_channel_permissions: 'Setting permissions...',
+};
+
 const INTERACTIVE_TOOLS = new Set(['ask_question', 'propose_plan']);
 const EXECUTION_TOOLS = new Set([
   'create_category', 'edit_channel', 'create_channel', 'delete_channel',
@@ -872,12 +892,20 @@ export async function runAdminLoop(guild, interaction, userPrompt) {
     messages.push({ role: 'user', content: toolResults });
 
     // Status update on the deferred reply
+    const toolNames = response.content
+      .filter(b => b.type === 'tool_use')
+      .map(b => TOOL_LABELS[b.name] || b.name);
+    const statusLines = toolNames.map(t => `> ${t}`).join('\n');
+    const progressLines = state.actions.length > 0
+      ? '\n\n**Done so far:**\n' + state.actions.map(a => `- ${a}`).join('\n')
+      : '';
     await interaction.editReply({
       embeds: [
         new EmbedBuilder()
           .setTitle('Admin Assistant')
-          .setDescription(`Working... (turn ${turn + 1}/${config.maxAdminTurns})`)
-          .setColor(0x5865f2),
+          .setDescription(`${statusLines}${progressLines}`)
+          .setColor(0x5865f2)
+          .setFooter({ text: `Turn ${turn + 1}/${config.maxAdminTurns}` }),
       ],
     }).catch(() => {});
   }
