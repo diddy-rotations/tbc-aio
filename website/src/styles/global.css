@@ -8,6 +8,9 @@
   --text-faint: #787892;
   --accent: #6c63ff;
   --accent-hover: #8078ff;
+  --accent-dark: #6058f0;
+  --accent-bg: #141327;
+  --accent-border: #211f47;
   --green: #34d399;
   --druid: #ff7d0a;
   --hunter: #abd473;
@@ -84,8 +87,8 @@ h3 { font-size: 1.1rem; }
 .hero h1 span { color: var(--accent); }
 .hero .tagline { font-size: 0.95rem; color: var(--text-dim); margin-bottom: 1.25rem; }
 .hero .version {
-  display: inline-block; background: #141327;
-  border: 1px solid #211f47; color: var(--accent-hover);
+  display: inline-block; background: var(--accent-bg);
+  border: 1px solid var(--accent-border); color: var(--accent-hover);
   padding: 0.15rem 0.6rem; border-radius: 999px;
   font-size: 0.75rem; font-weight: 600; margin-bottom: 1rem;
 }
@@ -96,7 +99,7 @@ h3 { font-size: 1.1rem; }
   padding: 0.5rem 1rem; border-radius: 6px;
   font-weight: 500; font-size: 0.8rem; transition: all 0.15s;
 }
-.btn-primary { background: #6058f0; color: #fff; }
+.btn-primary { background: var(--accent-dark); color: #fff; }
 .btn-primary:hover { background: var(--accent); color: #fff; }
 .btn-secondary { background: var(--bg-raised); color: var(--text); border: 1px solid var(--border); }
 .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
@@ -167,7 +170,7 @@ a.card:hover { color: var(--text); border-color: var(--accent); }
 }
 .steps li::before {
   content: counter(step); position: absolute; left: -0.6rem; top: 0.6rem;
-  width: 1.1rem; height: 1.1rem; background: #6058f0; color: #fff;
+  width: 1.1rem; height: 1.1rem; background: var(--accent-dark); color: #fff;
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   font-size: 0.65rem; font-weight: 700;
 }
@@ -244,7 +247,7 @@ code {
   display: inline-block; font-size: 0.65rem; font-weight: 600;
   padding: 0.1rem 0.45rem; border-radius: 3px; margin-bottom: 0.75rem;
 }
-.tag-major { background: #141327; border: 1px solid #211f47; color: var(--accent-hover); }
+.tag-major { background: var(--accent-bg); border: 1px solid var(--accent-border); color: var(--accent-hover); }
 .tag-minor { background: #131316; border: 1px solid var(--border); color: var(--text-dim); }
 
 /* FAQ */
