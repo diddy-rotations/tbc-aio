@@ -106,11 +106,9 @@ h3 { font-size: 1.1rem; }
 .card {
   background: var(--bg-raised); border: 1px solid var(--border);
   border-radius: 8px; padding: 1rem;
-  transition: border-color 0.15s;
 }
-a.card { color: var(--text); }
-a.card:hover { color: var(--text); }
-.card:hover { border-color: var(--accent); }
+a.card { color: var(--text); transition: border-color 0.15s; }
+a.card:hover { color: var(--text); border-color: var(--accent); }
 .card h3 { margin-bottom: 0.25rem; font-size: 0.95rem; }
 .card p { color: var(--text-dim); font-size: 0.8rem; }
 
@@ -136,9 +134,7 @@ a.card:hover { color: var(--text); }
 .spec {
   background: var(--bg-raised); border: 1px solid var(--border);
   border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem;
-  transition: border-color 0.15s;
 }
-.spec:hover { border-color: var(--accent); }
 .spec h3 { font-size: 1.1rem; margin-bottom: 0.35rem; }
 .spec h4 { font-size: 0.85rem; color: var(--text); margin: 0.75rem 0 0.25rem; font-weight: 600; }
 .talent-req {
