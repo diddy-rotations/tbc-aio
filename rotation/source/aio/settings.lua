@@ -548,7 +548,7 @@ local function create_main_frame()
 
     local title_icon_txt = title_icon:CreateFontString(nil, "OVERLAY")
     title_icon_txt:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
-    title_icon_txt:SetPoint("CENTER", 0, 0)
+    title_icon_txt:SetPoint("CENTER", 1, 0)
     title_icon_txt:SetText("D")
     title_icon_txt:SetTextColor(THEME.accent[1], THEME.accent[2], THEME.accent[3])
 
