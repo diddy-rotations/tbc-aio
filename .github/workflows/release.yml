@@ -29,7 +29,9 @@ jobs:
       - name: Get tag annotation
         id: tag_msg
         run: |
+          git fetch origin tag "${{ github.ref_name }}" --force
           MSG=$(git tag -l --format='%(contents)' "${{ github.ref_name }}" 2>/dev/null || echo "")
+          echo "--- DEBUG: tag msg is: $MSG"
           echo "body<<EOF" >> "$GITHUB_OUTPUT"
           echo "${MSG:-Release ${{ github.ref_name }}}" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
