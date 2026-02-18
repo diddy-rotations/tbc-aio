@@ -17,6 +17,10 @@ header() { echo -e "\n${BOLD}$*${NC}"; }
 
 SERVICE_NAME="diddy-bot"
 
+# Load nvm if present (needed for non-interactive SSH sessions)
+export NVM_DIR="${HOME}/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$BOT_DIR/.." && pwd)"
