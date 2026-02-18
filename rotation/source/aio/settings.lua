@@ -34,7 +34,7 @@ local CLASS_TITLE_COLORS = { Druid = "ff7d0a", Hunter = "abd473" }
 local class_hex = CLASS_TITLE_COLORS[class_name] or "6c63ff"
 local addon_title = class_name .. " AIO"
 local addon_title_colored = format("|cff%s%s|r |cff6c63ffAIO|r", class_hex, class_name)
-local version = cc and cc.version or "v2.5.0"
+local version = cc and cc.version or "v1.0.0"
 
 -- ============================================================================
 -- THEME

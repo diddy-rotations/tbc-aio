@@ -292,7 +292,7 @@ Each class module registers via `rotation_registry:register_class(config)`:
 ```lua
 rotation_registry:register_class({
    name = "Druid",
-   version = "v2.5.0",
+   version = "v1.0.0",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
    get_active_playstyle = function(context) ... end,
