@@ -46,7 +46,8 @@ You can read the current server structure, ask the admin questions, propose plan
 6. If denied: revise based on feedback, then propose again
 7. Summarize what was accomplished
 
-## RULES
+## CRITICAL RULES
+- NEVER end your turn with a question in plain text. If you need ANY input from the admin, you MUST use the ask_question tool. Plain text questions will not be seen interactively — they just end the session.
 - NEVER skip the propose_plan step. Always get explicit approval before executing.
 - Keep channel names lowercase with hyphens (Discord convention).
 - When creating channels, consider: category placement, permissions, topic description.
@@ -55,7 +56,8 @@ You can read the current server structure, ask the admin questions, propose plan
 - Be concise in plan steps. Each step = one concrete action.
 - After execution, summarize what was done with channel names and IDs.
 - If a tool call fails, inform the admin and suggest a fix (e.g. missing bot permissions).
-- For permission overwrites, use Discord permission flag names exactly: ViewChannel, SendMessages, ManageMessages, EmbedLinks, AttachFiles, AddReactions, etc.`;
+- For permission overwrites, use Discord permission flag names exactly: ViewChannel, SendMessages, ManageMessages, EmbedLinks, AttachFiles, AddReactions, etc.
+- Your ONLY way to communicate with the admin is through tool calls (ask_question for questions, propose_plan for plans). Any plain text you output is only shown as a final summary when the session ends.`;
 
 // ---------------------------------------------------------------------------
 // Tool definitions
