@@ -33,9 +33,15 @@ You can read the current server structure, ask the admin questions, propose plan
 
 ### Execution (requires prior approval via propose_plan)
 - create_category: Create a channel category
-- edit_channel: Edit an existing channel (rename, change topic, move to a different category)
+- edit_channel: Edit an existing channel (rename, topic, position, slowmode, move category)
 - create_channel: Create a text or voice channel
+- delete_channel: Delete a channel or category
+- create_role: Create a new role with name, color, and permissions
+- edit_role: Edit an existing role (name, color, permissions)
 - send_message: Send a message or embed to a channel
+- edit_message: Edit a message previously sent by the bot
+- pin_message: Pin a message in a channel
+- unpin_message: Unpin a message in a channel
 - set_channel_permissions: Set permission overwrites on a channel
 
 ## WORKFLOW (STRICT — follow this order)
@@ -141,7 +147,7 @@ const TOOLS = [
   },
   {
     name: 'edit_channel',
-    description: 'Edit an existing channel (rename, change topic, move to a different category).',
+    description: 'Edit an existing channel (rename, topic, position, slowmode, move to a different category).',
     input_schema: {
       type: 'object',
       properties: {
@@ -149,6 +155,8 @@ const TOOLS = [
         name: { type: 'string', description: 'New channel name (optional)' },
         topic: { type: 'string', description: 'New channel topic (optional, text channels only)' },
         parent_id: { type: 'string', description: 'New category ID to move under (optional)' },
+        position: { type: 'number', description: 'New position in the channel list (optional)' },
+        slowmode: { type: 'number', description: 'Slowmode in seconds, 0 to disable (optional)' },
       },
       required: ['channel_id'],
     },
@@ -223,10 +231,119 @@ const TOOLS = [
       required: ['channel_id', 'target_id', 'target_type'],
     },
   },
+  {
+    name: 'delete_channel',
+    description: 'Delete a channel or category. Use with caution.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        channel_id: { type: 'string', description: 'The channel or category ID to delete' },
+      },
+      required: ['channel_id'],
+    },
+  },
+  {
+    name: 'create_role',
+    description: 'Create a new role in the server.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Role name' },
+        color: { type: 'string', description: 'Hex color (e.g. "#ff7d0a")' },
+        permissions: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Permission flags to grant (e.g. ["ViewChannel", "SendMessages"]). Omit for no special permissions.',
+        },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'edit_role',
+    description: 'Edit an existing role (name, color, permissions).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        role_id: { type: 'string', description: 'The role ID to edit' },
+        name: { type: 'string', description: 'New role name (optional)' },
+        color: { type: 'string', description: 'New hex color (optional)' },
+        permissions: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'New permission flags (replaces existing). Omit to keep current permissions.',
+        },
+      },
+      required: ['role_id'],
+    },
+  },
+  {
+    name: 'edit_message',
+    description: 'Edit a message previously sent by the bot in a channel.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        channel_id: { type: 'string', description: 'Channel containing the message' },
+        message_id: { type: 'string', description: 'The message ID to edit' },
+        content: { type: 'string', description: 'New plain text content (optional if embed provided)' },
+        embed: {
+          type: 'object',
+          description: 'New embed (optional, replaces existing embed)',
+          properties: {
+            title: { type: 'string' },
+            description: { type: 'string' },
+            color: { type: 'number' },
+            fields: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  value: { type: 'string' },
+                  inline: { type: 'boolean' },
+                },
+                required: ['name', 'value'],
+              },
+            },
+          },
+        },
+      },
+      required: ['channel_id', 'message_id'],
+    },
+  },
+  {
+    name: 'pin_message',
+    description: 'Pin a message in a channel.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        channel_id: { type: 'string', description: 'Channel containing the message' },
+        message_id: { type: 'string', description: 'The message ID to pin' },
+      },
+      required: ['channel_id', 'message_id'],
+    },
+  },
+  {
+    name: 'unpin_message',
+    description: 'Unpin a message in a channel.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        channel_id: { type: 'string', description: 'Channel containing the message' },
+        message_id: { type: 'string', description: 'The message ID to unpin' },
+      },
+      required: ['channel_id', 'message_id'],
+    },
+  },
 ];
 
 const INTERACTIVE_TOOLS = new Set(['ask_question', 'propose_plan']);
-const EXECUTION_TOOLS = new Set(['create_category', 'edit_channel', 'create_channel', 'send_message', 'set_channel_permissions']);
+const EXECUTION_TOOLS = new Set([
+  'create_category', 'edit_channel', 'create_channel', 'delete_channel',
+  'create_role', 'edit_role',
+  'send_message', 'edit_message', 'pin_message', 'unpin_message',
+  'set_channel_permissions',
+]);
 
 // ---------------------------------------------------------------------------
 // Interactive tool handlers (pause loop, show Discord UI, await response)
@@ -472,8 +589,74 @@ async function handleEditChannel(guild, input) {
   if (input.name) opts.name = input.name;
   if (input.topic != null) opts.topic = input.topic;
   if (input.parent_id) opts.parent = input.parent_id;
+  if (input.position != null) opts.position = input.position;
+  if (input.slowmode != null) opts.rateLimitPerUser = input.slowmode;
   await channel.edit(opts);
   return `Updated #${channel.name}: ${Object.keys(opts).join(', ')}`;
+}
+
+async function handleDeleteChannel(guild, input) {
+  const channel = guild.channels.cache.get(input.channel_id);
+  if (!channel) throw new Error('Channel not found.');
+  const name = channel.name;
+  await channel.delete();
+  return `Deleted channel #${name}`;
+}
+
+async function handleCreateRole(guild, input) {
+  const opts = { name: input.name };
+  if (input.color) opts.color = input.color;
+  if (input.permissions && input.permissions.length > 0) {
+    const flags = input.permissions.map(p => PermissionsBitField.Flags[p]).filter(Boolean);
+    if (flags.length > 0) opts.permissions = flags;
+  }
+  const role = await guild.roles.create(opts);
+  return JSON.stringify({ id: role.id, name: role.name, color: role.hexColor });
+}
+
+async function handleEditRole(guild, input) {
+  const role = guild.roles.cache.get(input.role_id);
+  if (!role) throw new Error('Role not found.');
+  const opts = {};
+  if (input.name) opts.name = input.name;
+  if (input.color) opts.color = input.color;
+  if (input.permissions && input.permissions.length > 0) {
+    const flags = input.permissions.map(p => PermissionsBitField.Flags[p]).filter(Boolean);
+    if (flags.length > 0) opts.permissions = flags;
+  }
+  await role.edit(opts);
+  return `Updated role "${role.name}": ${Object.keys(opts).join(', ')}`;
+}
+
+async function handleEditMessage(guild, input) {
+  const channel = guild.channels.cache.get(input.channel_id);
+  if (!channel || !channel.isTextBased()) throw new Error('Channel not found or not text-based.');
+  const msg = await channel.messages.fetch(input.message_id);
+  if (!msg) throw new Error('Message not found.');
+  if (msg.author.id !== guild.client.user.id) throw new Error('Can only edit messages sent by the bot.');
+  const payload = {};
+  if (input.content) payload.content = input.content;
+  if (input.embed) payload.embeds = [input.embed];
+  await msg.edit(payload);
+  return `Edited message ${input.message_id} in #${channel.name}`;
+}
+
+async function handlePinMessage(guild, input) {
+  const channel = guild.channels.cache.get(input.channel_id);
+  if (!channel || !channel.isTextBased()) throw new Error('Channel not found or not text-based.');
+  const msg = await channel.messages.fetch(input.message_id);
+  if (!msg) throw new Error('Message not found.');
+  await msg.pin();
+  return `Pinned message ${input.message_id} in #${channel.name}`;
+}
+
+async function handleUnpinMessage(guild, input) {
+  const channel = guild.channels.cache.get(input.channel_id);
+  if (!channel || !channel.isTextBased()) throw new Error('Channel not found or not text-based.');
+  const msg = await channel.messages.fetch(input.message_id);
+  if (!msg) throw new Error('Message not found.');
+  await msg.unpin();
+  return `Unpinned message ${input.message_id} in #${channel.name}`;
 }
 
 async function handleCreateCategory(guild, input) {
@@ -574,10 +757,46 @@ async function dispatchTool(name, input, guild, interaction, state) {
       state.actions.push(`Sent message to <#${input.channel_id}>`);
       return res;
     }
+    case 'delete_channel': {
+      state.executionCount++;
+      const res = await handleDeleteChannel(guild, input);
+      state.actions.push(res);
+      return res;
+    }
+    case 'create_role': {
+      state.executionCount++;
+      const res = await handleCreateRole(guild, input);
+      state.actions.push(`Created role "${input.name}"`);
+      return res;
+    }
+    case 'edit_role': {
+      state.executionCount++;
+      const res = await handleEditRole(guild, input);
+      state.actions.push(`Edited role ${input.role_id}`);
+      return res;
+    }
     case 'set_channel_permissions': {
       state.executionCount++;
       const res = await handleSetPermissions(guild, input);
       state.actions.push(`Set permissions on <#${input.channel_id}> for ${input.target_type} ${input.target_id}`);
+      return res;
+    }
+    case 'edit_message': {
+      state.executionCount++;
+      const res = await handleEditMessage(guild, input);
+      state.actions.push(res);
+      return res;
+    }
+    case 'pin_message': {
+      state.executionCount++;
+      const res = await handlePinMessage(guild, input);
+      state.actions.push(res);
+      return res;
+    }
+    case 'unpin_message': {
+      state.executionCount++;
+      const res = await handleUnpinMessage(guild, input);
+      state.actions.push(res);
       return res;
     }
 
