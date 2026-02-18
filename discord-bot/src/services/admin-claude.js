@@ -337,6 +337,11 @@ const TOOLS = [
   },
 ];
 
+// Add cache_control to last tool for prompt caching (90% discount on repeated input tokens)
+const TOOLS_CACHED = TOOLS.map((tool, i) =>
+  i === TOOLS.length - 1 ? { ...tool, cache_control: { type: 'ephemeral' } } : tool
+);
+
 const TOOL_LABELS = {
   list_channels: 'Reading server channels...',
   list_roles: 'Reading server roles...',
@@ -868,8 +873,8 @@ export async function runAdminLoop(guild, interaction, userPrompt) {
     const response = await client.messages.create({
       model: config.adminModel,
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      tools: TOOLS,
+      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+      tools: TOOLS_CACHED,
       messages,
     });
 
