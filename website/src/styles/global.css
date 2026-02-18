@@ -51,7 +51,7 @@ h3 { font-size: 1.1rem; }
 
 .nav-links { display: flex; gap: 1.25rem; list-style: none; align-items: center; }
 .nav-links a { color: var(--text-dim); font-size: 0.8rem; font-weight: 500; }
-.nav-links a:hover { color: var(--text); }
+.nav-links a:hover { color: var(--accent); }
 
 /* Nav dropdown */
 .nav-more { position: relative; display: none; }
@@ -60,7 +60,7 @@ h3 { font-size: 1.1rem; }
   color: var(--text-dim); font-size: 0.7rem; padding: 0.15rem 0.4rem;
   border-radius: 3px; transition: border-color 0.15s, color 0.15s;
 }
-.nav-more-btn:hover { border-color: var(--accent); color: var(--text); }
+.nav-more-btn:hover { border-color: var(--accent); color: var(--accent); }
 .nav-dropdown {
   display: none; position: absolute; right: 0; top: calc(100% + 8px);
   background: var(--bg-raised); border: 1px solid var(--border);
@@ -72,7 +72,7 @@ h3 { font-size: 1.1rem; }
   display: block; padding: 0.35rem 0.6rem; border-radius: 4px;
   color: var(--text-dim); font-size: 0.8rem; white-space: nowrap;
 }
-.nav-dropdown a:hover { background: var(--bg-hover); color: var(--text); }
+.nav-dropdown a:hover { background: var(--bg-hover); color: var(--accent); }
 
 /* Layout */
 .container { max-width: 960px; margin: 0 auto; padding: 1.25rem; }
