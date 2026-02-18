@@ -655,7 +655,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.1.0",
+   version = "v1.1.1",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 

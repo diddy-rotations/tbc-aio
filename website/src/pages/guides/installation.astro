@@ -27,28 +27,28 @@ import { config, url } from '../../config';
       <h2>Steps</h2>
       <ol class="steps">
         <li>
-          <h4>Download the compiled profile</h4>
+          <h3>Download the compiled profile</h3>
           <p>Get the latest <code>TellMeWhen.lua</code> from the <a href={config.releasesUrl}>GitHub Releases</a> page.</p>
         </li>
         <li>
-          <h4>Locate your SavedVariables folder</h4>
+          <h3>Locate your SavedVariables folder</h3>
           <p>Find your WoW installation's SavedVariables directory:<br>
           <code>WoW/WTF/Account/YOURNAME/SavedVariables/</code></p>
         </li>
         <li>
-          <h4>Backup your existing TellMeWhen profile</h4>
+          <h3>Backup your existing TellMeWhen profile</h3>
           <p>Copy <code>TellMeWhen.lua</code> to a safe location before making changes.</p>
         </li>
         <li>
-          <h4>Import the profile</h4>
+          <h3>Import the profile</h3>
           <p>Replace the <code>TellMeWhen.lua</code> in your SavedVariables folder with the downloaded file. It contains pre-configured TMW profiles for each class (e.g., "Diddy Druid", "Diddy Hunter").</p>
         </li>
         <li>
-          <h4>Reload in-game</h4>
+          <h3>Reload in-game</h3>
           <p>Log into your character and type <code>/reload</code>. Select the appropriate Diddy profile from TellMeWhen's profile menu.</p>
         </li>
         <li>
-          <h4>Configure settings</h4>
+          <h3>Configure settings</h3>
           <p>Open the Diddy AIO settings UI (minimap button or TMW options) to customize thresholds, toggles, and rotation behavior for your spec.</p>
         </li>
       </ol>
@@ -59,15 +59,15 @@ import { config, url } from '../../config';
       <p class="section-sub">For developers who want to modify and rebuild the rotation.</p>
       <ol class="steps">
         <li>
-          <h4>Clone the repository</h4>
+          <h3>Clone the repository</h3>
           <p><code>git clone {config.cloneUrl}</code></p>
         </li>
         <li>
-          <h4>Build the compiled output</h4>
+          <h3>Build the compiled output</h3>
           <p>Run <code>cd rotation && node build.js</code> to generate <code>output/TellMeWhen.lua</code>.</p>
         </li>
         <li>
-          <h4>Auto-sync during development</h4>
+          <h3>Auto-sync during development</h3>
           <p>Copy <code>rotation/dev.ini.example</code> to <code>rotation/dev.ini</code>, set your SavedVariables path, then run <code>node dev-watch.js</code> for automatic rebuild and sync on save.</p>
         </li>
       </ol>

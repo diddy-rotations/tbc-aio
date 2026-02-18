@@ -15,10 +15,20 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.1.1 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-minor">Patch</span>
+
+      <h3>Settings UI</h3>
+      <ul class="features">
+        <li>Darkened background colors in the in-game settings panel for improved contrast and readability</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.1.0 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-minor">Minor</span>
 
-      <h4>Bear Form</h4>
+      <h3>Bear Form</h3>
       <ul class="features">
         <li>Fixed Off-Tank mode tooltip &mdash; correctly states it disables Growl and Challenging Roar (Maul was never affected)</li>
       </ul>
@@ -28,7 +38,7 @@ import { url } from '../config';
       <h2>v1.0.0 <span class="changelog-date">2025</span></h2>
       <span class="changelog-tag tag-major">Major Release</span>
 
-      <h4>Multi-Class Architecture</h4>
+      <h3>Multi-Class Architecture</h3>
       <ul class="features">
         <li>Rewritten as a multi-class AIO supporting <strong class="c-druid">Druid</strong> and <strong class="c-hunter">Hunter</strong></li>
         <li>New strategy registry pattern &mdash; middleware (shared) + per-playstyle strategies</li>
@@ -36,7 +46,7 @@ import { url } from '../config';
         <li>Schema-driven settings &mdash; one schema generates the UI, framework backing store, and cached runtime access</li>
       </ul>
 
-      <h4>Druid</h4>
+      <h3>Druid</h3>
       <ul class="features">
         <li>5 playstyles: Cat DPS, Bear Tank, Balance Moonkin, Resto Tree, and Caster recovery</li>
         <li>Per-spell cat strategies with energy pooling, combo point tracking, and powershift support</li>
@@ -47,7 +57,7 @@ import { url } from '../config';
         <li>Form-aware automation &mdash; rotation respects current form, suggestion icon recommends shifts</li>
       </ul>
 
-      <h4>Hunter</h4>
+      <h3>Hunter</h3>
       <ul class="features">
         <li>Full ranged DPS rotation with auto-shot clip tracking</li>
         <li>Shot weaving: Steady Shot, Arcane Shot, Multi-Shot with proper clipping prevention</li>
@@ -58,7 +68,7 @@ import { url } from '../config';
         <li>Optional debug overlay for auto-shot timing visualization</li>
       </ul>
 
-      <h4>Infrastructure</h4>
+      <h3>Infrastructure</h3>
       <ul class="features">
         <li>Monorepo restructure: rotation, website, and Discord bot as separate packages</li>
         <li>New Node.js build system &mdash; auto-discovers class modules, manages load order, compiles to single TMW profile</li>

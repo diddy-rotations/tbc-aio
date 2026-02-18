@@ -1,8 +1,8 @@
 :root {
-  --bg: #111114;
-  --bg-raised: #19191e;
-  --bg-hover: #222228;
-  --border: #2c2c34;
+  --bg: #0d0d10;
+  --bg-raised: #151519;
+  --bg-hover: #1e1e24;
+  --border: #282830;
   --text: #dcdce4;
   --text-dim: #9494a8;
   --text-faint: #5c5c70;
@@ -37,7 +37,7 @@ h3 { font-size: 1.1rem; }
 /* Nav */
 .nav {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(17,17,20,0.92);
+  background: rgba(13,13,16,0.96);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
@@ -170,7 +170,7 @@ h3 { font-size: 1.1rem; }
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
   font-size: 0.65rem; font-weight: 700;
 }
-.steps li h4 { font-size: 0.85rem; margin-bottom: 0.1rem; }
+.steps li h3 { font-size: 0.85rem; margin-bottom: 0.1rem; }
 .steps li p { color: var(--text-dim); font-size: 0.8rem; }
 
 /* Code */
@@ -236,7 +236,7 @@ code {
 .talent-tip .td { color: var(--text); font-size: 0.72rem; line-height: 1.35; }
 
 /* Changelog */
-.changelog-entry h4 { font-size: 0.9rem; margin: 1rem 0 0.25rem; color: var(--text); }
+.changelog-entry h3 { font-size: 0.9rem; margin: 1rem 0 0.25rem; color: var(--text); }
 .changelog-entry h2 { margin-bottom: 0.5rem; }
 .changelog-date { font-size: 0.8rem; font-weight: 400; color: var(--text-dim); }
 .changelog-tag {
