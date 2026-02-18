@@ -682,7 +682,8 @@ if (require.main === module) {
     }
 
     // Apply class exclusions from package.json (ignored by dev-watch.js)
-    const pkg = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, 'package.json'), 'utf8'));
+    const pkgPath = path.join(PROJECT_ROOT, 'package.json');
+    const pkg = fs.existsSync(pkgPath) ? JSON.parse(fs.readFileSync(pkgPath, 'utf8')) : {};
     const excludeClasses = pkg.excludeClasses || [];
     const classes = excludeClasses.length > 0
         ? allClasses.filter(c => !excludeClasses.includes(c))
