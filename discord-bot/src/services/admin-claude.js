@@ -89,7 +89,7 @@ const TOOLS = [
   },
   {
     name: 'read_channel_messages',
-    description: 'Read the most recent messages in a channel.',
+    description: 'Read the most recent messages in a channel. Returns message IDs, content, and full embed data (title, description, color, fields). Use message IDs with edit_message to modify bot messages.',
     input_schema: {
       type: 'object',
       properties: {
@@ -594,11 +594,33 @@ async function handleReadMessages(guild, input) {
   if (!channel || !channel.isTextBased()) return 'Channel not found or not text-based.';
   const limit = Math.min(Math.max(input.limit || 10, 1), 25);
   const messages = await channel.messages.fetch({ limit });
-  const formatted = messages.map(m => ({
-    author: m.author.tag,
-    content: m.content.slice(0, 500),
-    timestamp: m.createdAt.toISOString(),
-  }));
+  const formatted = messages.map(m => {
+    const entry = {
+      id: m.id,
+      author: m.author.tag,
+      is_bot: m.author.bot,
+      content: m.content.slice(0, 2000),
+      timestamp: m.createdAt.toISOString(),
+    };
+    if (m.embeds.length > 0) {
+      entry.embeds = m.embeds.map(e => {
+        const embed = {};
+        if (e.title) embed.title = e.title;
+        if (e.description) embed.description = e.description;
+        if (e.color != null) embed.color = e.color;
+        if (e.fields?.length > 0) embed.fields = e.fields.map(f => ({
+          name: f.name,
+          value: f.value,
+          inline: f.inline || false,
+        }));
+        if (e.footer?.text) embed.footer = e.footer.text;
+        if (e.author?.name) embed.author = e.author.name;
+        return embed;
+      });
+    }
+    if (m.pinned) entry.pinned = true;
+    return entry;
+  });
   return JSON.stringify(formatted, null, 2);
 }
 
