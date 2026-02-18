@@ -85,7 +85,7 @@ Add these to your `discord-bot/.env`:
 ```env
 WEBHOOK_PORT=3000                # Port for the HTTP server (default: 3000)
 WEBHOOK_SECRET=your-secret-here  # Shared secret for signature verification
-RELEASE_CHANNEL=releases         # Discord channel name to post to (without #)
+RELEASE_CHANNEL=1234567890       # Discord channel ID to post to
 ```
 
 If `WEBHOOK_SECRET` or `RELEASE_CHANNEL` are not set, the webhook server won't start (the bot still works normally).
@@ -139,7 +139,7 @@ You should see `OK` and a formatted embed in your Discord channel.
 | `ANTHROPIC_API_KEY` | Yes | — | Claude API key |
 | `WEBHOOK_PORT` | No | `3000` | Port for the GitHub webhook HTTP server |
 | `WEBHOOK_SECRET` | No | — | Shared secret for webhook signature verification |
-| `RELEASE_CHANNEL` | No | — | Discord channel name for release announcements |
+| `RELEASE_CHANNEL` | No | — | Discord channel ID for release announcements |
 
 ## Project Structure
 
