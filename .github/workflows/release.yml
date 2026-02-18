@@ -24,11 +24,19 @@ jobs:
       - name: Build rotation
         run: node rotation/build.js
 
+      - name: Get tag annotation
+        id: tag_msg
+        run: |
+          MSG=$(git tag -l --format='%(contents)' "${{ github.ref_name }}" 2>/dev/null || echo "")
+          echo "body<<EOF" >> "$GITHUB_OUTPUT"
+          echo "${MSG:-Release ${{ github.ref_name }}}" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         id: release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body: ${{ steps.tag_msg.outputs.body }}
           files: rotation/output/diddy aio.lua
 
       - name: Notify Discord
@@ -37,15 +45,13 @@ jobs:
         env:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
-          GH_TOKEN: ${{ github.token }}
         run: |
-          NOTES=$(gh api "repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" --jq '.body // empty' 2>/dev/null || echo "")
           BODY=$(jq -nc \
             --arg tag "${{ github.ref_name }}" \
             --arg repo "${{ github.repository }}" \
             --arg actor "${{ github.actor }}" \
             --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg notes "${NOTES:-Release ${{ github.ref_name }} is now available.}" \
+            --arg notes "${{ steps.tag_msg.outputs.body }}" \
             '{
               action: "published",
               release: {
