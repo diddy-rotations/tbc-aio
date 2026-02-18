@@ -188,7 +188,7 @@ You have unlimited stamina. The human does not. Use your persistence wisely—lo
 This is a monorepo with three packages:
 - **rotation/** — The core WoW rotation addon (Lua source + Node.js build system)
 - **website/** — Static site for distributing scripts and documentation (Astro)
-- **bot/** — Discord bot that lets users request personalized rotation tweaks via Claude AI
+- **discord-bot/** — Discord bot that lets users request personalized rotation tweaks via Claude AI
 
 ## Project Structure
 
@@ -229,8 +229,8 @@ GG Rotations/
 ├── website/                          # Static distribution site (Astro)
 │   └── (see website/package.json)
 │
-├── bot/                              # Discord bot for personalized rotations
-│   └── (see bot/package.json)
+├── discord-bot/                      # Discord bot for personalized rotations
+│   └── (see discord-bot/package.json)
 │
 ├── docs/                             # API docs, type stubs, reference
 │   ├── api/                          # Lua type stubs for IDE IntelliSense
@@ -260,7 +260,7 @@ Or via npm scripts: `npm run build -w rotation`, `npm run watch -w rotation`
 
 **File naming convention**: Lowercase single words only — no underscores, hyphens, or spaces (e.g. `cat.lua`, `cliptracker.lua`).
 
-**Environment override**: Set `ROTATION_ROOT` env var to override the project root (used by the bot for temp builds).
+**Environment override**: Set `ROTATION_ROOT` env var to override the project root (used by the discord-bot for temp builds).
 
 ## Module Load Order
 
