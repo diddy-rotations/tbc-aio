@@ -1,0 +1,77 @@
+---
+import Base from '../layouts/Base.astro';
+import { config, url } from '../config';
+---
+
+<Base title="Home">
+  <div class="hero">
+    <span class="version">v2.5.0</span>
+    <h1>Diddy <span>AIO</span></h1>
+    <p class="tagline">Intelligent WoW TBC rotation automation. Druid &amp; Hunter.</p>
+    <div class="btn-group">
+      <a href={config.downloadUrl} class="btn btn-primary">Download Latest</a>
+      <a href={url('/guides/installation')} class="btn btn-secondary">Installation Guide</a>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <section class="section">
+      <h2>Supported Classes</h2>
+      <p class="section-sub">Full rotation logic, configurable settings, and intelligent decision-making.</p>
+      <div class="card-grid">
+        <a href={url('/classes/druid')} class="card">
+          <h3 class="c-druid">Druid</h3>
+          <p>5 playstyles: Cat DPS, Bear Tank, Balance Moonkin, Resto Tree, and Caster recovery. Powershifting, energy tick tracking, smart healing, and form-aware automation.</p>
+        </a>
+        <a href={url('/classes/hunter')} class="card">
+          <h3 class="c-hunter">Hunter</h3>
+          <p>Full ranged DPS rotation with auto-shot clip tracking, shot weaving, pet management, sting priority, and mana-aware aspect switching.</p>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Key Features</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>Smart Rotations</h3>
+          <p>Priority-based strategy system that adapts to your current form, resources, target state, and group composition in real time.</p>
+        </div>
+        <div class="card">
+          <h3>Configurable Settings</h3>
+          <p>Per-spec settings UI with sliders and toggles. Customize thresholds, enable/disable abilities, and tune the rotation to your playstyle.</p>
+        </div>
+        <div class="card">
+          <h3>Form-Aware</h3>
+          <p>Respects your current form during combat. No unwanted form-shifting. A suggestion icon shows when a form change would be beneficial.</p>
+        </div>
+        <div class="card">
+          <h3>Resource Management</h3>
+          <p>Intelligent energy pooling, rage gating, mana conservation tiers, and powershift optimization with Wolfshead Helm detection.</p>
+        </div>
+        <div class="card">
+          <h3>Consumable Automation</h3>
+          <p>Auto-uses Healthstones, healing potions, mana potions, and Dark Runes at configurable thresholds. Form-aware casting for Druid.</p>
+        </div>
+        <div class="card">
+          <h3>Open Source</h3>
+          <p>Fully open source. Read the code, suggest improvements, or request personalized versions through our Discord bot.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>How It Works</h2>
+      <p class="section-sub">Built on the GGL Action framework with a modular strategy registry architecture.</p>
+      <ul class="features">
+        <li>Middleware layer handles recovery items, cooldowns, self-buffs, and dispels across all specs</li>
+        <li>Playstyle strategies execute in priority order based on your current form and combat state</li>
+        <li>Context object rebuilt every frame with player state, target info, positioning, and settings</li>
+        <li>Schema-driven settings &mdash; one schema generates the UI, backing store, and cached runtime access</li>
+        <li>Spell rank selection for Classic/TBC downranking based on HP deficit and mana efficiency</li>
+      </ul>
+    </section>
+
+  </div>
+</Base>

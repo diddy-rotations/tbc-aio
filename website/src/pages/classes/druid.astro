@@ -1,0 +1,188 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../config';
+---
+
+<Base title="Druid" description="Diddy AIO Druid rotation - Cat DPS, Bear Tank, Balance Moonkin, Resto Tree, and Caster recovery.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/druid')}>Druid</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--druid);">Druid</h1>
+      <p class="section-sub">5 playstyles with form-aware automation. The rotation follows your current form and suggests optimal shifts.</p>
+    </section>
+
+    <section class="section">
+      <h2>Playstyles</h2>
+      <div class="card-grid">
+        <a href="#cat" class="card"><h3>Cat (Feral DPS)</h3><p>Energy pooling, powershifting, bleed management, and combo point optimization.</p></a>
+        <a href="#bear" class="card"><h3>Bear (Feral Tank)</h3><p>Rage management, threat generation, lacerate stacking, and emergency cooldowns.</p></a>
+        <a href="#balance" class="card"><h3>Balance (Moonkin)</h3><p>Mana-tiered casting, DoT maintenance, Hurricane AoE, and Force of Nature.</p></a>
+        <a href="#resto" class="card"><h3>Resto (Tree of Life)</h3><p>Lifebloom rolling, party healing, emergency burst, and smart dispels.</p></a>
+        <a href="#caster" class="card"><h3>Caster (Recovery)</h3><p>Self-healing, buff maintenance, consumable automation, and mana recovery.</p></a>
+      </div>
+    </section>
+
+    <section class="section" id="cat">
+      <div class="spec">
+        <h3 style="color: var(--druid);">Cat (Feral DPS)</h3>
+        <span class="talent-req">Recommended: 41pt Feral (Mangle)</span>
+        <a href={url('/guides/druid-talents#feral')} class="btn-build">View Build</a>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Shred (behind) or Mangle as primary combo point builder</li>
+          <li>Rip maintenance with configurable CP threshold and TTD gating</li>
+          <li>Rake DoT upkeep with refresh window</li>
+          <li>Ferocious Bite as execute finisher or when Rip is healthy</li>
+          <li>Mangle debuff tracking (30% bleed damage bonus)</li>
+          <li>Faerie Fire maintenance (armor reduction + 3% hit)</li>
+        </ul>
+
+        <h4>Energy Management</h4>
+        <ul class="features">
+          <li>Automatic powershifting with mana cost tracking</li>
+          <li>Wolfshead Helm auto-detection (60 energy on shift vs 40)</li>
+          <li>Energy tick tracking for optimal shift timing</li>
+          <li>Rake/Bite tricks at 35-39 energy before powershift</li>
+          <li>Clearcasting (Omen of Clarity) proc detection</li>
+        </ul>
+
+        <h4>Stealth Openers</h4>
+        <ul class="features">
+          <li>Ravage (behind target, highest damage)</li>
+          <li>Shred fallback (behind, no stealth requirement bug)</li>
+          <li>Mangle fallback (not behind, configurable)</li>
+          <li>Auto-Prowl on focus target within range</li>
+        </ul>
+
+        <h4>AoE</h4>
+        <ul class="features">
+          <li>Rake spreading to multiple targets (configurable max)</li>
+          <li>Configurable enemy count threshold for AoE mode</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="bear">
+      <div class="spec">
+        <h3 style="color: var(--druid);">Bear (Feral Tank)</h3>
+        <span class="talent-req">Recommended: 41pt Feral (Mangle)</span>
+        <a href={url('/guides/druid-talents#feral')} class="btn-build">View Build</a>
+
+        <h4>Threat &amp; Rotation</h4>
+        <ul class="features">
+          <li>Mangle on cooldown (highest threat/damage ability)</li>
+          <li>Lacerate 5-stack building with urgent refresh tracking</li>
+          <li>Maul queuing with configurable rage threshold</li>
+          <li>Swipe as AoE filler with CC safety checks</li>
+          <li>Demoralizing Roar with smart enemy-count thresholds (boss/elite/trash)</li>
+        </ul>
+
+        <h4>Taunts</h4>
+        <ul class="features">
+          <li>Auto-Growl when losing aggro (skips CC'd mobs)</li>
+          <li>Challenging Roar for emergency multi-target aggro loss</li>
+          <li>Configurable scan range and minimum loose enemy thresholds</li>
+          <li>Off-Tank mode: disables Growl, Challenging Roar, and Maul</li>
+        </ul>
+
+        <h4>Rage Management</h4>
+        <ul class="features">
+          <li>Per-ability rage thresholds prevent starvation</li>
+          <li>Mangle hold window: delays filler when Mangle ready within 1s</li>
+          <li>Swipe priority at 3+ enemies (total AoE damage exceeds Mangle)</li>
+        </ul>
+
+        <h4>Emergency</h4>
+        <ul class="features">
+          <li>Frenzied Regeneration (rage to health conversion)</li>
+          <li>Enrage for rage generation (armor penalty, smart boss gating)</li>
+          <li>Barkskin for damage reduction</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="balance">
+      <div class="spec">
+        <h3 style="color: var(--druid);">Balance (Moonkin)</h3>
+        <span class="talent-req">Required: 41pt Balance (Moonkin Form)</span>
+        <a href={url('/guides/druid-talents#balance')} class="btn-build">View Build</a>
+
+        <h4>Mana Tier System</h4>
+        <ul class="features">
+          <li>Tier 1 (40%+ mana): Full rotation &mdash; Moonfire + Insect Swarm + Starfire</li>
+          <li>Tier 2 (20-40%): Drop Moonfire, focus Insect Swarm + Starfire</li>
+          <li>Tier 3 (&lt;20%): Minimal casting, refresh expiring DoTs only</li>
+        </ul>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Starfire as primary nuke</li>
+          <li>Moonfire and Insect Swarm DoT maintenance</li>
+          <li>Force of Nature (Treants) with TTD gating</li>
+          <li>Hurricane AoE with Barkskin protection</li>
+          <li>Magic immunity detection (Divine Shield, Ice Block, etc.)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="resto">
+      <div class="spec">
+        <h3 style="color: var(--druid);">Resto (Tree of Life)</h3>
+        <span class="talent-req">Required: 41pt Resto (Tree of Life)</span>
+        <a href={url('/guides/druid-talents#resto')} class="btn-build">View Build</a>
+
+        <h4>Core Healing</h4>
+        <ul class="features">
+          <li>Lifebloom 3-stack rolling on tank (core Tree mechanic)</li>
+          <li>Rejuvenation spreading on proactively injured targets</li>
+          <li>Regrowth for standard healing (mana-gated)</li>
+          <li>Smart rank selection for downranking efficiency</li>
+        </ul>
+
+        <h4>Emergency Healing</h4>
+        <ul class="features">
+          <li>Swiftmend instant burst (requires active HoT)</li>
+          <li>Nature's Swiftness + Regrowth combo</li>
+          <li>Tranquility for emergency group-wide healing</li>
+          <li>Barkskin self-protection under heavy damage</li>
+        </ul>
+
+        <h4>Utility</h4>
+        <ul class="features">
+          <li>Auto Remove Curse on party members</li>
+          <li>Auto Abolish Poison on party members</li>
+          <li>Tank prioritization with role detection</li>
+          <li>Mana conservation mode (skip Regrowth, focus Lifebloom + Rejuv)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="caster">
+      <div class="spec">
+        <h3 style="color: var(--druid);">Caster (Recovery)</h3>
+        <span class="talent-req">Idle playstyle &mdash; active when in caster form</span>
+
+        <ul class="features">
+          <li>Self-healing: Rejuvenation, Regrowth, emergency Healing Touch</li>
+          <li>Auto Remove Curse and Abolish Poison</li>
+          <li>Consumable automation: Healthstone, potions, Dark Rune (with HP safety)</li>
+          <li>Innervate self-cast when low mana (solo)</li>
+          <li>Out-of-combat buff maintenance: Mark of the Wild, Thorns, Omen of Clarity</li>
+          <li>Trinket and racial cooldown usage</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Talent Guides</h2>
+      <div class="btn-group" style="justify-content: flex-start;">
+        <a href={url('/guides/druid-talents')} class="btn btn-secondary">Druid Talent Specs</a>
+      </div>
+    </section>
+
+  </div>
+</Base>

@@ -1,0 +1,14 @@
+[paths]
+; Full path to TellMeWhen SavedVariables (per-dev, required for --sync)
+savedvariables = C:\Path\To\WoW\WTF\Account\YOURNAME\SavedVariables\TellMeWhen.lua
+
+; TMW profile template (icons, groups, bars) — used for new profiles
+template = tmw-template.lua
+
+; Directory containing class modules (default: Source/aio)
+watchdir = Source/aio
+
+[profiles]
+; Override profile names per class (optional)
+; Default: "Chancity <ClassName>" (e.g., "Chancity Druid")
+; druid = Chancity Druid

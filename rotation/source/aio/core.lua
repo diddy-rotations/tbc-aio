@@ -1,0 +1,823 @@
+-- Diddy AIO - Core Module
+-- Generic rotation engine: namespace, settings, utilities, registry
+-- Class-agnostic: class files register via rotation_registry:register_class()
+
+-- ============================================================================
+-- FRAMEWORK VALIDATION
+-- ============================================================================
+local _G, setmetatable, pairs, ipairs, tostring, type = _G, setmetatable, pairs, ipairs, tostring, type
+local tinsert, tremove, tconcat, tsort = table.insert, table.remove, table.concat, table.sort
+local floor = math.floor
+local format = string.format
+local GetTime = _G.GetTime
+local UnitAffectingCombat = _G.UnitAffectingCombat
+local A = _G.Action
+
+if not A then
+   print("|cFFFF0000[Diddy AIO]|r Action/Textfiles framework not loaded!")
+   return
+end
+
+if not A.Data.ProfileEnabled[A.CurrentProfile] then
+   print("|cFFFF0000[Diddy AIO]|r WARNING: ProfileEnabled is not set!")
+   print("|cFFFF0000[Diddy AIO]|r Did you install the schema snippet first?")
+   return
+end
+
+-- ============================================================================
+-- GLOBAL NAMESPACE CREATION
+-- ============================================================================
+_G.DiddyAIO = _G.DiddyAIO or {}
+local NS = _G.DiddyAIO
+
+-- Base framework references (available before class Actions are defined)
+local Player = A.Player
+local Unit = A.Unit
+local GetToggle = A.GetToggle
+
+NS.A_base = A       -- base Action table (before class metatable)
+NS.Player = Player
+NS.Unit = Unit
+NS.GetToggle = GetToggle
+
+-- ============================================================================
+-- UNIT CONSTANTS
+-- ============================================================================
+local PLAYER_UNIT = "player"
+local TARGET_UNIT = "target"
+local RACE_TROLL = "Troll"
+local RACE_ORC = "Orc"
+
+NS.PLAYER_UNIT = PLAYER_UNIT
+NS.TARGET_UNIT = TARGET_UNIT
+NS.RACE_TROLL = RACE_TROLL
+NS.RACE_ORC = RACE_ORC
+
+-- ============================================================================
+-- PRIORITY REGISTRY (Middleware Only)
+-- Higher number = runs FIRST (descending order)
+-- ============================================================================
+local Priority = {
+   MIDDLEWARE = {
+      FORM_RESHIFT = 500,
+      EMERGENCY_HEAL = 400,
+      PROACTIVE_HEAL = 390,
+      DISPEL_CURSE = 350,
+      DISPEL_POISON = 340,
+      RECOVERY_ITEMS = 300,
+      INNERVATE = 290,
+      MANA_RECOVERY = 280,
+      SELF_BUFF_MOTW = 150,
+      SELF_BUFF_THORNS = 145,
+      SELF_BUFF_OOC = 140,
+      OFFENSIVE_COOLDOWNS = 100,
+   },
+}
+
+NS.Priority = Priority
+
+-- ============================================================================
+-- SPELL COST UTILITIES
+-- ============================================================================
+-- TBC power types: 0=Mana, 1=Rage, 2=Focus, 3=Energy
+local function get_spell_mana_cost(spell)
+   local cost, power_type = spell:GetSpellPowerCostCache()
+   return (cost and cost > 0 and power_type == 0) and cost or 0
+end
+
+local function get_spell_rage_cost(spell)
+   local cost, power_type = spell:GetSpellPowerCostCache()
+   return (cost and cost > 0 and power_type == 1) and cost or 0
+end
+
+local function get_spell_energy_cost(spell)
+   local cost, power_type = spell:GetSpellPowerCostCache()
+   return (cost and cost > 0 and power_type == 3) and cost or 0
+end
+
+local function get_spell_focus_cost(spell)
+   local cost, power_type = spell:GetSpellPowerCostCache()
+   return (cost and cost > 0 and power_type == 2) and cost or 0
+end
+
+NS.get_spell_mana_cost = get_spell_mana_cost
+NS.get_spell_rage_cost = get_spell_rage_cost
+NS.get_spell_energy_cost = get_spell_energy_cost
+NS.get_spell_focus_cost = get_spell_focus_cost
+
+-- ============================================================================
+-- IMMUNITY SPELL IDS (from LibAuraTypes.lua TBC section)
+-- ============================================================================
+local IMMUNITY_TOTAL = { 642, 1020, 45438, 11958, 1022, 5599, 10278, 31224, 33786, 710, 18647, 498, 19263 }
+local IMMUNITY_PHYS = { 1022, 5599, 10278, 642, 1020, 45438, 11958, 33786, 710, 18647, 3169, 19263 }
+local IMMUNITY_MAGIC = { 31224, 8178, 642, 1020, 45438, 11958, 33786 }
+local IMMUNITY_CC = { 19574, 34471, 18499, 1719, 31224, 642, 1020, 45438, 11958, 33786, 6346, 12328 }
+local IMMUNITY_STUN = { 19574, 34471, 18499, 642, 1020, 45438, 11958, 33786, 6615, 24364 }
+local IMMUNITY_KICK = { 31224, 642, 1020, 45438, 11958, 33786 }
+
+local function has_immunity_buff(target, buff_ids)
+   if not target or not _G.UnitExists(target) then return false end
+   local duration = Unit(target):HasBuffs(buff_ids, nil, true) or 0
+   return duration > 0
+end
+
+local function has_phys_immunity(target)
+   return has_immunity_buff(target or TARGET_UNIT, IMMUNITY_PHYS)
+end
+
+local function has_magic_immunity(target)
+   return has_immunity_buff(target or TARGET_UNIT, IMMUNITY_MAGIC)
+end
+
+local function has_cc_immunity(target)
+   return has_immunity_buff(target or TARGET_UNIT, IMMUNITY_CC)
+end
+
+local function has_stun_immunity(target)
+   return has_immunity_buff(target or TARGET_UNIT, IMMUNITY_STUN)
+end
+
+local function has_kick_immunity(target)
+   return has_immunity_buff(target or TARGET_UNIT, IMMUNITY_KICK)
+end
+
+local function has_total_immunity(target)
+   return has_immunity_buff(target or TARGET_UNIT, IMMUNITY_TOTAL)
+end
+
+NS.has_phys_immunity = has_phys_immunity
+NS.has_magic_immunity = has_magic_immunity
+NS.has_cc_immunity = has_cc_immunity
+NS.has_stun_immunity = has_stun_immunity
+NS.has_kick_immunity = has_kick_immunity
+NS.has_total_immunity = has_total_immunity
+
+-- ============================================================================
+-- SETTINGS SYSTEM
+-- ============================================================================
+local cached_settings = {}
+local last_settings_update = 0
+local SETTINGS_CACHE_DURATION = 1.0
+local settings_changed_list = {}
+
+NS.cached_settings = cached_settings
+
+local function update_setting(key, value, changed_list, debug_mode)
+   local old_value = cached_settings[key]
+   cached_settings[key] = value
+
+   if debug_mode and old_value ~= nil and old_value ~= value then
+      changed_list[#changed_list + 1] = key .. ": " .. tostring(old_value) .. " -> " .. tostring(value)
+   end
+end
+
+NS.update_setting = update_setting
+
+-- ============================================================================
+-- SPELL VALIDATION SYSTEM
+-- ============================================================================
+local unavailable_spells = {}
+
+NS.unavailable_spells = unavailable_spells
+
+local function is_spell_known(spell)
+   if not spell then return false, "nil" end
+   local spell_id = spell.ID
+   if not spell_id then return false, "no ID" end
+   local spell_name = _G.GetSpellInfo(spell_id)
+   if not spell_name then return false, "ID:" .. tostring(spell_id) end
+   if _G.IsSpellKnown then
+      return _G.IsSpellKnown(spell_id), spell_name
+   end
+   return spell:IsExists() == true, spell_name
+end
+
+local function check_spell_availability(entries, missing_spells, optional_missing)
+   for _, entry in ipairs(entries) do
+      local known, name = is_spell_known(entry.spell)
+      if not known then
+         if entry.spell then
+            unavailable_spells[entry.spell] = true
+         end
+         if entry.required then
+            tinsert(missing_spells, entry.name .. (entry.note and " (" .. entry.note .. ")" or ""))
+         else
+            tinsert(optional_missing, entry.name .. (entry.note and " (" .. entry.note .. ")" or ""))
+         end
+      else
+         if entry.spell then
+            unavailable_spells[entry.spell] = nil
+         end
+      end
+   end
+end
+
+local function is_spell_available(spell)
+   if not spell then return false end
+   return not unavailable_spells[spell]
+end
+
+NS.is_spell_known = is_spell_known
+NS.check_spell_availability = check_spell_availability
+NS.is_spell_available = is_spell_available
+
+-- ============================================================================
+-- REFRESH SETTINGS (schema-driven)
+-- ============================================================================
+local SETTINGS_SCHEMA = _G.DiddyAIO_SETTINGS_SCHEMA
+
+local function refresh_settings()
+   local now = GetTime()
+   if now - last_settings_update < SETTINGS_CACHE_DURATION then return end
+
+   local debug_mode = GetToggle(2, "debug_mode")
+   local changed_list = settings_changed_list
+   for i = 1, #changed_list do changed_list[i] = nil end
+
+   for _, tab_def in pairs(SETTINGS_SCHEMA) do
+      for _, section in ipairs(tab_def.sections) do
+         for _, s in ipairs(section.settings) do
+            local raw = GetToggle(2, s.key)
+            local value
+            if s.type == "checkbox" then
+               if s.default == true then
+                  value = raw ~= false
+               else
+                  value = raw == true
+               end
+            else
+               value = raw or s.default
+            end
+            update_setting(s.key, value, changed_list, debug_mode)
+         end
+      end
+   end
+
+   if debug_mode and #changed_list > 0 then
+      print("|cFF00FFFF[Diddy AIO]|r Settings changed at " .. format("%.1f", now))
+      for _, change in ipairs(changed_list) do
+         print("|cFF00FFFF[Diddy AIO]|r   " .. change)
+      end
+   end
+
+   last_settings_update = now
+end
+
+NS.refresh_settings = refresh_settings
+
+-- ============================================================================
+-- DEBUG SYSTEM
+-- ============================================================================
+local DebugLogFrame
+local debug_log_lines = {}
+local MAX_LOG_LINES = 500
+
+local DBG_THEME = {
+   bg          = { 0.067, 0.067, 0.078, 0.75 },    -- #111114
+   bg_widget   = { 0.118, 0.118, 0.141, 1 },       -- #1e1e24
+   bg_hover    = { 0.133, 0.133, 0.157, 1 },       -- #222228
+   border      = { 0.173, 0.173, 0.204, 1 },       -- #2c2c34
+   accent      = { 0.424, 0.388, 1.0, 1 },         -- #6c63ff
+   text        = { 0.863, 0.863, 0.894, 1 },       -- #dcdce4
+   text_dim    = { 0.580, 0.580, 0.659, 1 },       -- #9494a8
+}
+local DBG_BACKDROP = {
+   bgFile = "Interface\\Buttons\\WHITE8X8",
+   edgeFile = "Interface\\Buttons\\WHITE8X8",
+   edgeSize = 1,
+}
+
+local function create_debug_button(parent, text, width)
+   local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
+   btn:SetSize(width, 22)
+   btn:SetBackdrop(DBG_BACKDROP)
+   btn:SetBackdropColor(DBG_THEME.bg_widget[1], DBG_THEME.bg_widget[2], DBG_THEME.bg_widget[3], 1)
+   btn:SetBackdropBorderColor(DBG_THEME.border[1], DBG_THEME.border[2], DBG_THEME.border[3], 1)
+
+   local label = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+   label:SetPoint("CENTER")
+   label:SetText(text)
+   label:SetTextColor(DBG_THEME.text[1], DBG_THEME.text[2], DBG_THEME.text[3])
+
+   btn:SetScript("OnEnter", function()
+      btn:SetBackdropColor(DBG_THEME.bg_hover[1], DBG_THEME.bg_hover[2], DBG_THEME.bg_hover[3], 1)
+      btn:SetBackdropBorderColor(DBG_THEME.accent[1], DBG_THEME.accent[2], DBG_THEME.accent[3], 1)
+   end)
+   btn:SetScript("OnLeave", function()
+      btn:SetBackdropColor(DBG_THEME.bg_widget[1], DBG_THEME.bg_widget[2], DBG_THEME.bg_widget[3], 1)
+      btn:SetBackdropBorderColor(DBG_THEME.border[1], DBG_THEME.border[2], DBG_THEME.border[3], 1)
+   end)
+   return btn
+end
+
+local function CreateDebugLogFrame()
+   if DebugLogFrame then return DebugLogFrame end
+
+   local f = CreateFrame("Frame", "DiddyAIODebugFrame", UIParent, "BackdropTemplate")
+   f:SetSize(500, 300)
+   f:SetPoint("TOPLEFT", 50, -100)
+   f:SetBackdrop(DBG_BACKDROP)
+   f:SetBackdropColor(DBG_THEME.bg[1], DBG_THEME.bg[2], DBG_THEME.bg[3], DBG_THEME.bg[4])
+   f:SetBackdropBorderColor(DBG_THEME.border[1], DBG_THEME.border[2], DBG_THEME.border[3], DBG_THEME.border[4])
+   f:SetMovable(true)
+   f:SetResizable(true)
+   f:EnableMouse(true)
+   f:SetClampedToScreen(true)
+   f:RegisterForDrag("LeftButton")
+   f:SetScript("OnDragStart", f.StartMoving)
+   f:SetScript("OnDragStop", f.StopMovingOrSizing)
+
+   -- Title
+   local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+   title:SetPoint("TOPLEFT", 12, -8)
+   title:SetText("Diddy AIO Debug Log")
+   title:SetTextColor(DBG_THEME.accent[1], DBG_THEME.accent[2], DBG_THEME.accent[3])
+
+   -- Close button
+   local closeBtn = CreateFrame("Button", nil, f)
+   closeBtn:SetSize(22, 22)
+   closeBtn:SetPoint("TOPRIGHT", -6, -6)
+   local closeX = closeBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+   closeX:SetPoint("CENTER")
+   closeX:SetText("x")
+   closeX:SetTextColor(0.6, 0.6, 0.6)
+   closeBtn:SetScript("OnClick", function() f:Hide() end)
+   closeBtn:SetScript("OnEnter", function() closeX:SetTextColor(1, 0.3, 0.3) end)
+   closeBtn:SetScript("OnLeave", function() closeX:SetTextColor(0.6, 0.6, 0.6) end)
+
+   -- Separator
+   local sep = f:CreateTexture(nil, "ARTWORK")
+   sep:SetPoint("TOPLEFT", 1, -28)
+   sep:SetPoint("TOPRIGHT", -1, -28)
+   sep:SetHeight(1)
+   sep:SetColorTexture(DBG_THEME.border[1], DBG_THEME.border[2], DBG_THEME.border[3], 1)
+
+   -- Action buttons
+   local copyBtn = create_debug_button(f, "Copy", 60)
+   copyBtn:SetPoint("TOPRIGHT", -70, -5)
+
+   local clearBtn = create_debug_button(f, "Clear", 60)
+   clearBtn:SetPoint("TOPRIGHT", -6, -5)
+
+   -- Scroll frame
+   local scrollFrame = CreateFrame("ScrollFrame", nil, f)
+   scrollFrame:SetPoint("TOPLEFT", 8, -32)
+   scrollFrame:SetPoint("BOTTOMRIGHT", -8, 28)
+   scrollFrame:EnableMouseWheel(true)
+   f.scrollFrame = scrollFrame
+
+   local contentFrame = CreateFrame("Frame", nil, scrollFrame)
+   contentFrame:SetWidth(scrollFrame:GetWidth() or 460)
+   contentFrame:SetHeight(1)
+   scrollFrame:SetScrollChild(contentFrame)
+   f.contentFrame = contentFrame
+
+   scrollFrame:SetScript("OnMouseWheel", function(self, delta)
+      local cur = self:GetVerticalScroll()
+      local mx = self:GetVerticalScrollRange()
+      self:SetVerticalScroll(math.max(0, math.min(mx, cur - delta * 30)))
+   end)
+
+   local textDisplay = contentFrame:CreateFontString(nil, "OVERLAY")
+   textDisplay:SetFont("Fonts\\FRIZQT__.TTF", 8, "")
+   textDisplay:SetPoint("TOPLEFT", 4, 0)
+   textDisplay:SetPoint("TOPRIGHT", -4, 0)
+   textDisplay:SetJustifyH("LEFT")
+   textDisplay:SetJustifyV("TOP")
+   textDisplay:SetWordWrap(true)
+   textDisplay:SetSpacing(2)
+   textDisplay:SetTextColor(DBG_THEME.text[1], DBG_THEME.text[2], DBG_THEME.text[3])
+   f.textDisplay = textDisplay
+
+   -- Copy popup
+   local copyPopup = CreateFrame("Frame", "DiddyAIOCopyPopup", UIParent, "BackdropTemplate")
+   copyPopup:SetSize(450, 200)
+   copyPopup:SetPoint("CENTER")
+   copyPopup:SetBackdrop(DBG_BACKDROP)
+   copyPopup:SetBackdropColor(DBG_THEME.bg[1], DBG_THEME.bg[2], DBG_THEME.bg[3], 0.98)
+   copyPopup:SetBackdropBorderColor(DBG_THEME.border[1], DBG_THEME.border[2], DBG_THEME.border[3], 1)
+   copyPopup:SetFrameStrata("DIALOG")
+   copyPopup:EnableMouse(true)
+   copyPopup:Hide()
+   f.copyPopup = copyPopup
+
+   local copyTitle = copyPopup:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+   copyTitle:SetPoint("TOP", 0, -10)
+   copyTitle:SetText("Press Ctrl+C to copy, then Escape to close")
+   copyTitle:SetTextColor(DBG_THEME.accent[1], DBG_THEME.accent[2], DBG_THEME.accent[3])
+
+   local copyCloseBtn = CreateFrame("Button", nil, copyPopup)
+   copyCloseBtn:SetSize(22, 22)
+   copyCloseBtn:SetPoint("TOPRIGHT", -6, -6)
+   local copyCloseX = copyCloseBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+   copyCloseX:SetPoint("CENTER")
+   copyCloseX:SetText("x")
+   copyCloseX:SetTextColor(0.6, 0.6, 0.6)
+   copyCloseBtn:SetScript("OnClick", function() copyPopup:Hide() end)
+   copyCloseBtn:SetScript("OnEnter", function() copyCloseX:SetTextColor(1, 0.3, 0.3) end)
+   copyCloseBtn:SetScript("OnLeave", function() copyCloseX:SetTextColor(0.6, 0.6, 0.6) end)
+
+   local copySep = copyPopup:CreateTexture(nil, "ARTWORK")
+   copySep:SetPoint("TOPLEFT", 1, -28)
+   copySep:SetPoint("TOPRIGHT", -1, -28)
+   copySep:SetHeight(1)
+   copySep:SetColorTexture(DBG_THEME.border[1], DBG_THEME.border[2], DBG_THEME.border[3], 1)
+
+   local copyScrollFrame = CreateFrame("ScrollFrame", nil, copyPopup)
+   copyScrollFrame:SetPoint("TOPLEFT", 8, -32)
+   copyScrollFrame:SetPoint("BOTTOMRIGHT", -8, 8)
+   copyScrollFrame:EnableMouseWheel(true)
+
+   copyScrollFrame:SetScript("OnMouseWheel", function(self, delta)
+      local cur = self:GetVerticalScroll()
+      local mx = self:GetVerticalScrollRange()
+      self:SetVerticalScroll(math.max(0, math.min(mx, cur - delta * 30)))
+   end)
+
+   local copyEditBox = CreateFrame("EditBox", nil, copyScrollFrame)
+   copyEditBox:SetMultiLine(true)
+   copyEditBox:SetFont("Fonts\\FRIZQT__.TTF", 8, "")
+   copyEditBox:SetWidth(420)
+   copyEditBox:SetAutoFocus(false)
+   copyEditBox:EnableMouse(true)
+   copyEditBox:SetTextColor(DBG_THEME.text[1], DBG_THEME.text[2], DBG_THEME.text[3])
+   copyEditBox:SetScript("OnEscapePressed", function() copyPopup:Hide() end)
+   copyScrollFrame:SetScrollChild(copyEditBox)
+   f.copyEditBox = copyEditBox
+
+   copyBtn:SetScript("OnClick", function()
+      local logText = tconcat(debug_log_lines, "\n")
+      copyEditBox:SetText(logText)
+      copyPopup:Show()
+      copyEditBox:SetFocus()
+      copyEditBox:HighlightText()
+   end)
+
+   clearBtn:SetScript("OnClick", function()
+      debug_log_lines = {}
+      textDisplay:SetText("")
+      contentFrame:SetHeight(1)
+   end)
+
+   -- Resize grip
+   local resizeBtn = CreateFrame("Button", nil, f)
+   resizeBtn:SetSize(12, 12)
+   resizeBtn:SetPoint("BOTTOMRIGHT", -2, 2)
+   local resizeTex = resizeBtn:CreateTexture(nil, "OVERLAY")
+   resizeTex:SetAllPoints()
+   resizeTex:SetColorTexture(DBG_THEME.border[1], DBG_THEME.border[2], DBG_THEME.border[3], 0.6)
+   resizeBtn:SetScript("OnEnter", function()
+      resizeTex:SetColorTexture(DBG_THEME.accent[1], DBG_THEME.accent[2], DBG_THEME.accent[3], 0.8)
+   end)
+   resizeBtn:SetScript("OnLeave", function()
+      resizeTex:SetColorTexture(DBG_THEME.border[1], DBG_THEME.border[2], DBG_THEME.border[3], 0.6)
+   end)
+   resizeBtn:SetScript("OnMouseDown", function() f:StartSizing("BOTTOMRIGHT") end)
+   resizeBtn:SetScript("OnMouseUp", function()
+      f:StopMovingOrSizing()
+      contentFrame:SetWidth(scrollFrame:GetWidth() - 10)
+      textDisplay:SetWidth(scrollFrame:GetWidth() - 10)
+   end)
+   f:SetResizeBounds(300, 150, 800, 600)
+
+   -- Hint text
+   local hint = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+   hint:SetPoint("BOTTOMLEFT", 8, 8)
+   hint:SetText("/diddylog to toggle")
+   hint:SetTextColor(DBG_THEME.text_dim[1], DBG_THEME.text_dim[2], DBG_THEME.text_dim[3])
+
+   f:Hide()
+   DebugLogFrame = f
+   NS.DebugLogFrame = f
+   return f
+end
+
+local function AddDebugLogLine(text)
+   tinsert(debug_log_lines, text)
+   while #debug_log_lines > MAX_LOG_LINES do
+      tremove(debug_log_lines, 1)
+   end
+
+   if DebugLogFrame and DebugLogFrame:IsShown() then
+      local logText = tconcat(debug_log_lines, "\n")
+      DebugLogFrame.textDisplay:SetText(logText)
+      local textHeight = DebugLogFrame.textDisplay:GetStringHeight() or 1
+      DebugLogFrame.contentFrame:SetHeight(textHeight + 10)
+      C_Timer.After(0.01, function()
+         if DebugLogFrame and DebugLogFrame.scrollFrame then
+            DebugLogFrame.scrollFrame:SetVerticalScroll(DebugLogFrame.scrollFrame:GetVerticalScrollRange())
+         end
+      end)
+   end
+end
+
+local function RefreshDebugLogFrame()
+   if DebugLogFrame and DebugLogFrame.textDisplay then
+      local logText = tconcat(debug_log_lines, "\n")
+      DebugLogFrame.textDisplay:SetText(logText)
+      local textHeight = DebugLogFrame.textDisplay:GetStringHeight() or 1
+      DebugLogFrame.contentFrame:SetHeight(textHeight + 10)
+      C_Timer.After(0.05, function()
+         if DebugLogFrame and DebugLogFrame.scrollFrame then
+            DebugLogFrame.scrollFrame:SetVerticalScroll(DebugLogFrame.scrollFrame:GetVerticalScrollRange())
+         end
+      end)
+   end
+end
+
+NS.CreateDebugLogFrame = CreateDebugLogFrame
+NS.RefreshDebugLogFrame = RefreshDebugLogFrame
+
+-- /diddylog slash command
+SLASH_DIDDYLOG1 = "/diddylog"
+SLASH_DIDDYLOG2 = "/dlog"
+SlashCmdList["DIDDYLOG"] = function()
+   if not DebugLogFrame then
+      CreateDebugLogFrame()
+   end
+   if DebugLogFrame:IsShown() then
+      DebugLogFrame:Hide()
+   else
+      RefreshDebugLogFrame()
+      DebugLogFrame:Show()
+   end
+end
+
+local debug_print_cache = {}
+local debug_string_args = {}
+local select = select
+
+local function debug_print(...)
+   local n = select('#', ...)
+   for i = 1, n do
+      debug_string_args[i] = tostring(select(i, ...))
+   end
+   for i = n + 1, #debug_string_args do
+      debug_string_args[i] = nil
+   end
+   local key = tconcat(debug_string_args, "|")
+
+   local now = GetTime()
+   local last_print = debug_print_cache[key]
+
+   if not last_print or (now - last_print) >= 1.5 then
+      local message = format("[%.1fs] %s", now, tconcat(debug_string_args, " "))
+      AddDebugLogLine(message)
+      debug_print_cache[key] = now
+   end
+end
+
+NS.debug_print = debug_print
+NS.AddDebugLogLine = AddDebugLogLine
+
+-- ============================================================================
+-- GENERIC UTILITIES
+-- ============================================================================
+local function round_half(num)
+   if not num then return 0 end
+   return floor(num * 2 + 0.5) / 2
+end
+
+local function safe_ability_cast(ability, icon, target, debug_context)
+   if unavailable_spells[ability] then return nil end
+   if not ability:IsReady(target) then return nil end
+   return ability:Show(icon)
+end
+
+-- Pre-allocated Click table for self-targeting (safe for combat use)
+local self_target_click = { unit = "player" }
+
+local function safe_self_cast(ability, icon, _target)
+   if unavailable_spells[ability] then return nil end
+   if not ability:IsReady("player") then return nil end
+   ability.Click = self_target_click
+   return ability:Show(icon)
+end
+
+NS.round_half = round_half
+NS.safe_ability_cast = safe_ability_cast
+NS.safe_self_cast = safe_self_cast
+
+-- ============================================================================
+-- CASTING HELPERS
+-- ============================================================================
+local function try_cast(spell, icon, target, log_message)
+   if not is_spell_available(spell) then return nil end
+   if not spell:IsReady(target) then return nil end
+   local result = safe_ability_cast(spell, icon, target)
+   if result then return result, log_message end
+   return nil
+end
+
+local function try_cast_fmt(spell, icon, target, prefix, name, info_fmt, ...)
+   if not is_spell_available(spell) then return nil end
+   if not spell:IsReady(target) then return nil end
+   local result = safe_ability_cast(spell, icon, target)
+   if result then
+      if info_fmt then
+         return result, format("%s %s - " .. info_fmt, prefix, name, ...)
+      end
+      return result, format("%s %s", prefix, name)
+   end
+   return nil
+end
+
+NS.try_cast = try_cast
+NS.try_cast_fmt = try_cast_fmt
+
+-- ============================================================================
+-- DEBUFF/BUFF HELPERS
+-- ============================================================================
+local function is_debuff_active(spell, target, source)
+   if not _G.UnitExists(target) then return false end
+   return (Unit(target):HasDeBuffs(spell.ID, source) or 0) > 0
+end
+
+local function get_debuff_state(spell, target, source)
+   if not _G.UnitExists(target) then return 0, 0 end
+   return Unit(target):HasDeBuffsStacks(spell.ID, source) or 0,
+          Unit(target):HasDeBuffs(spell.ID, source) or 0
+end
+
+local function is_buff_active(spell, target, source)
+   if not _G.UnitExists(target) then return false end
+   return (Unit(target):HasBuffs(spell.ID, source) or 0) > 0
+end
+
+NS.is_debuff_active = is_debuff_active
+NS.get_debuff_state = get_debuff_state
+NS.is_buff_active = is_buff_active
+
+-- ============================================================================
+-- SWING TIMER UTILITIES
+-- ============================================================================
+local function is_swing_landing_soon(threshold)
+   threshold = threshold or 0.15
+   local swing_start = Player:GetSwingStart(1)
+   local swing_duration = Player:GetSwing(1)
+   if swing_start == 0 or swing_duration == 0 then return false end
+   local swing_end = swing_start + swing_duration
+   local time_until_swing = swing_end - _G.GetTime()
+   return time_until_swing > 0 and time_until_swing <= threshold
+end
+
+local function get_time_until_swing()
+   local swing_start = Player:GetSwingStart(1)
+   local swing_duration = Player:GetSwing(1)
+   if swing_start == 0 or swing_duration == 0 then return 0 end
+   local remaining = (swing_start + swing_duration) - _G.GetTime()
+   return remaining > 0 and remaining or 0
+end
+
+NS.is_swing_landing_soon = is_swing_landing_soon
+NS.get_time_until_swing = get_time_until_swing
+
+-- ============================================================================
+-- COMBAT UTILITIES
+-- ============================================================================
+local function get_time_to_die(unit_id)
+   unit_id = unit_id or TARGET_UNIT
+   if not _G.UnitExists(unit_id) then return 500 end
+   return Unit(unit_id):TimeToDie()
+end
+
+NS.get_time_to_die = get_time_to_die
+
+-- ============================================================================
+-- ROTATION REGISTRY INFRASTRUCTURE
+-- ============================================================================
+local function priority_desc_comparator(a, b)
+   return a.priority > b.priority
+end
+
+local rotation_registry = {
+   middleware = {},
+   strategy_maps = {},   -- populated by register_class()
+   playstyle_config = {},
+   class_config = nil,   -- set by register_class()
+}
+
+function rotation_registry:register_class(config)
+   self.class_config = config
+   for _, ps in ipairs(config.playstyles) do
+      self.strategy_maps[ps] = self.strategy_maps[ps] or {}
+   end
+end
+
+function rotation_registry:register(playstyle, strategies, config)
+   local map = self.strategy_maps[playstyle]
+   if not map then
+      print("|cFFFF0000[Diddy AIO]|r ERROR: Unknown playstyle: " .. tostring(playstyle))
+      return
+   end
+
+   if config then
+      self.playstyle_config[playstyle] = config
+   end
+
+   local is_array = strategies[1] ~= nil and strategies.name == nil and strategies.matches == nil
+
+   if is_array then
+      for i, strategy in ipairs(strategies) do
+         strategy.priority = 1000 - i
+         strategy.name = strategy.name or (playstyle .. "_" .. i)
+         map[#map + 1] = strategy
+      end
+   else
+      strategies.priority = strategies.priority or 50
+      map[#map + 1] = strategies
+   end
+
+   tsort(map, priority_desc_comparator)
+end
+
+function rotation_registry:register_middleware(middleware)
+   if not middleware.priority then
+      middleware.priority = 100
+   end
+
+   self.middleware[#self.middleware + 1] = middleware
+   tsort(self.middleware, priority_desc_comparator)
+end
+
+function rotation_registry:check_prerequisites(strategy, context)
+   if strategy.requires_combat ~= nil and strategy.requires_combat ~= context.in_combat then return false end
+   if strategy.requires_enemy ~= nil and strategy.requires_enemy ~= context.has_valid_enemy_target then return false end
+   if strategy.requires_in_range ~= nil and strategy.requires_in_range ~= context.in_melee_range then return false end
+   if strategy.requires_phys_immune ~= nil and strategy.requires_phys_immune ~= context.target_phys_immune then return false end
+   if strategy.setting_key and not context.settings[strategy.setting_key] then return false end
+   if strategy.spell then
+      if unavailable_spells[strategy.spell] then return false end
+      local target = strategy.spell_target or TARGET_UNIT
+      if not strategy.spell:IsReady(target) then return false end
+   end
+   return true
+end
+
+function rotation_registry:get_playstyle_state(playstyle, context)
+   local config = self.playstyle_config[playstyle]
+   if config and config.context_builder then
+      return config.context_builder(context)
+   end
+   return nil
+end
+
+function rotation_registry:run_strategy_list(strategies, icon, context, config)
+   local state = nil
+   local config_prereqs = config and config.check_prerequisites
+   if config and config.context_builder then
+      state = config.context_builder(context)
+   end
+   for _, strategy in ipairs(strategies) do
+      if self:check_prerequisites(strategy, context)
+         and (not config_prereqs or config_prereqs(strategy, context))
+         and (not strategy.matches or strategy.matches(context, state)) then
+         local result, log_msg = strategy.execute(icon, context, state)
+         if result then return result, log_msg end
+      end
+   end
+   return nil
+end
+
+NS.rotation_registry = rotation_registry
+
+-- ============================================================================
+-- STRATEGY FACTORY FUNCTIONS
+-- ============================================================================
+
+--- Factory for simple combat strategies (single spell, standard checks)
+local function create_combat_strategy(config)
+   local spell = config.spell
+   local target = config.target or TARGET_UNIT
+   local stance = config.stance
+   local prefix = config.prefix or "[P?]"
+   local log_name = config.log_name or config.name
+
+   return {
+      matches = function(context)
+         if stance and context.stance ~= stance then return false end
+         if not context.in_combat then return false end
+         if not context.has_valid_enemy_target then return false end
+         if config.setting_key and context.settings[config.setting_key] == false then return false end
+         if config.extra_match and not config.extra_match(context) then return false end
+         return spell:IsReady(target)
+      end,
+      execute = function(icon, context)
+         if config.log_fmt and config.log_args then
+            return try_cast_fmt(spell, icon, target, prefix, log_name, config.log_fmt, config.log_args(context))
+         end
+         return try_cast(spell, icon, target, format("%s %s", prefix, log_name))
+      end,
+   }
+end
+
+--- Name wrapper: sets strategy.name at registration site
+local function named(n, s) s.name = n; return s end
+
+NS.create_combat_strategy = create_combat_strategy
+NS.named = named
+
+-- ============================================================================
+-- MODULE LOADED
+-- ============================================================================
+print("|cFF00FF00[Diddy AIO Core]|r Module loaded")
