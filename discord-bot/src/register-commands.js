@@ -1,4 +1,4 @@
-import { REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { REST, Routes, SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 import { config } from './config.js';
 
 const commands = [
@@ -22,6 +22,16 @@ const commands = [
   new SlashCommandBuilder()
     .setName('status')
     .setDescription('Check bot status and your recent request history'),
+  new SlashCommandBuilder()
+    .setName('admin')
+    .setDescription('AI-assisted server management (Administrator only)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addStringOption(opt =>
+      opt.setName('prompt')
+        .setDescription('What do you want to do? (natural language)')
+        .setRequired(true)
+        .setMaxLength(1000)
+    ),
 ];
 
 const rest = new REST().setToken(config.discordToken);

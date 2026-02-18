@@ -26,4 +26,7 @@ export const config = {
   webhookPort: parseInt(process.env.WEBHOOK_PORT, 10) || 3000,
   webhookSecret: process.env.WEBHOOK_SECRET || null,
   releaseChannel: process.env.RELEASE_CHANNEL || null,
+  adminModel: 'claude-sonnet-4-20250514',
+  maxAdminTurns: 25,
+  maxAdminExecutions: 20,
 };

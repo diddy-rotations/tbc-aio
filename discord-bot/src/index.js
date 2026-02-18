@@ -2,6 +2,7 @@ import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { config } from './config.js';
 import { handleRequest } from './commands/request.js';
 import { handleStatus } from './commands/status.js';
+import { handleAdmin } from './commands/admin.js';
 import { cleanupStaleWorkspaces } from './services/builder.js';
 import { startWebhookServer } from './services/webhook.js';
 
@@ -20,6 +21,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     switch (interaction.commandName) {
       case 'request': return await handleRequest(interaction);
       case 'status': return await handleStatus(interaction);
+      case 'admin': return await handleAdmin(interaction);
     }
   } catch (err) {
     console.error(`Command ${interaction.commandName} failed:`, err);
