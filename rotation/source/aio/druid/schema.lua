@@ -105,7 +105,7 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
     [3] = { name = "Bear", sections = {
         { header = "Off-Tank Mode", settings = {
             { type = "checkbox", key = "bear_no_taunt", default = false, label = "Disable Taunts (Off-Tank)",
-              tooltip = "Disables Growl, Challenging Roar, and Maul. Use when off-tanking." },
+              tooltip = "Disables Growl and Challenging Roar. Use when off-tanking." },
         }},
         { header = "Debuff Maintenance", settings = {
             { type = "checkbox", key = "maintain_lacerate", default = true, label = "Maintain Lacerate", tooltip = "Keep Lacerate at 5 stacks." },
