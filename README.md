@@ -23,7 +23,7 @@ npm install
 ### Building the Rotation
 
 ```bash
-npm run build -w rotation          # Compile to rotation/output/diddy aio.lua
+npm run build -w rotation          # Compile to rotation/output/TellMeWhen.lua
 npm run build:sync -w rotation     # Build + sync to SavedVariables (requires dev.ini)
 npm run build:all -w rotation      # Build + sync
 npm run watch -w rotation          # Watch mode: auto-rebuild + sync on save

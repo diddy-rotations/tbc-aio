@@ -9,7 +9,7 @@ export const config = {
   githubIssues: `https://github.com/${GITHUB_REPO}/issues`,
 
   /** Direct download URL for the latest release asset */
-  downloadUrl: `https://github.com/${GITHUB_REPO}/releases/download/v2.5.0/diddy.aio.lua`,
+  downloadUrl: `https://github.com/${GITHUB_REPO}/releases/latest/download/TellMeWhen.lua`,
 
   /** GitHub Releases page (for browsing all releases) */
   releasesUrl: `https://github.com/${GITHUB_REPO}/releases/latest`,

@@ -47,7 +47,7 @@ export async function runBuild(workDir) {
       },
     );
 
-    const outputPath = path.join(workDir, 'output', 'diddy aio.lua');
+    const outputPath = path.join(workDir, 'output', 'TellMeWhen.lua');
     try {
       await fs.access(outputPath);
     } catch {

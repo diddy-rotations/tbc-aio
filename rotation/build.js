@@ -5,7 +5,7 @@
  * Used both as a CLI tool and as a module imported by dev-watch.
  *
  * CLI usage:
- *   node build.js              Build diddy aio.lua (default)
+ *   node build.js              Build TellMeWhen.lua (default)
  *   node build.js --sync       Sync to SavedVariables (requires dev.ini)
  *   node build.js --all        Build + sync
  *
@@ -20,7 +20,7 @@ const path = require('path');
 const PROJECT_ROOT = process.env.ROTATION_ROOT || __dirname;
 const DEFAULT_AIO_DIR = path.join(PROJECT_ROOT, 'source', 'aio');
 const TEMPLATE_PATH = path.join(PROJECT_ROOT, 'tmw-template.lua');
-const OUTPUT_PATH = path.join(PROJECT_ROOT, 'output', 'diddy aio.lua');
+const OUTPUT_PATH = path.join(PROJECT_ROOT, 'output', 'TellMeWhen.lua');
 const INI_PATH = path.join(PROJECT_ROOT, 'dev.ini');
 
 // ---------------------------------------------------------------------------
@@ -532,7 +532,7 @@ function timestamp() {
 // ---------------------------------------------------------------------------
 
 /**
- * Build the distributable output file (diddy aio.lua).
+ * Build the distributable output file (TellMeWhen.lua).
  * Clones the template for each discovered class, inserts CodeSnippets.
  */
 function buildOutput(classes, config) {

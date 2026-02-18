@@ -219,7 +219,7 @@ GG Rotations/
 │   │           ├── middleware.lua    # Shared middleware
 │   │           └── rotation.lua      # Ranged DPS rotation
 │   ├── output/                       # Compiled output (gitignored)
-│   │   └── diddy aio.lua
+│   │   └── TellMeWhen.lua
 │   ├── build.js                      # Build script: discovers modules, compiles AIO
 │   ├── dev-watch.js                  # File watcher: auto-rebuild + sync to SavedVariables
 │   ├── dev.ini                       # Local dev config (gitignored)
@@ -250,7 +250,7 @@ The build system (`rotation/build.js`) auto-discovers class modules and compiles
 
 ```bash
 cd rotation
-node build.js              # Build output/diddy aio.lua
+node build.js              # Build output/TellMeWhen.lua
 node build.js --sync       # Sync to SavedVariables (requires dev.ini)
 node build.js --all        # Build + sync
 node dev-watch.js          # Watch for changes, auto-rebuild + sync
@@ -426,7 +426,7 @@ All magic numbers are in the `Constants` table (defined in Core):
 
 ## Development Notes
 
-- **Build system**: `cd rotation && node build.js` compiles modules → `output/diddy aio.lua`. Use `node dev-watch.js` for auto-rebuild on save
+- **Build system**: `cd rotation && node build.js` compiles modules → `output/TellMeWhen.lua`. Use `node dev-watch.js` for auto-rebuild on save
 - **Lua 5.1** syntax (WoW's embedded interpreter)
 - **200 local variable limit** per function scope (Lua constraint)
 - **Frame rate sensitive** - Rotation runs every frame; avoid allocations in hot paths

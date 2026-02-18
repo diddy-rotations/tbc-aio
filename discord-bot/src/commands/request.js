@@ -93,7 +93,7 @@ export async function handleRequest(interaction) {
 
     await interaction.editReply({
       content: `**Done!** Here's your customized rotation.\n\n${summary}`,
-      files: [{ attachment: outputBuffer, name: 'diddy aio.lua' }],
+      files: [{ attachment: outputBuffer, name: 'TellMeWhen.lua' }],
     });
   } catch (err) {
     console.error('Request failed:', err);
