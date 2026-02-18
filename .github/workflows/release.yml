@@ -37,19 +37,22 @@ jobs:
         env:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          NOTES=$(gh api "repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" --jq '.body // empty' 2>/dev/null || echo "")
           BODY=$(jq -nc \
             --arg tag "${{ github.ref_name }}" \
             --arg repo "${{ github.repository }}" \
             --arg actor "${{ github.actor }}" \
             --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg notes "${NOTES:-Release ${{ github.ref_name }} is now available.}" \
             '{
               action: "published",
               release: {
                 tag_name: $tag,
                 name: $tag,
                 html_url: "https://github.com/\($repo)/releases/tag/\($tag)",
-                body: "Release \($tag) is now available.",
+                body: $notes,
                 published_at: $now,
                 author: {
                   login: $actor,
