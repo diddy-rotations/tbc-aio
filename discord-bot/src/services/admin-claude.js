@@ -288,11 +288,21 @@ const TOOLS = [
         content: { type: 'string', description: 'New plain text content. Use empty string "" to clear existing text. Optional if embed provided.' },
         embed: {
           type: 'object',
-          description: 'New embed (optional, replaces existing embed)',
+          description: 'Embed fields to update (merges with existing embed — only provided fields are changed, others are preserved)',
           properties: {
             title: { type: 'string' },
+            url: { type: 'string', description: 'URL the title links to' },
             description: { type: 'string' },
             color: { type: 'number' },
+            footer: {
+              type: 'object',
+              properties: { text: { type: 'string' }, icon_url: { type: 'string' } },
+            },
+            timestamp: { type: 'string', description: 'ISO 8601 timestamp' },
+            author: {
+              type: 'object',
+              properties: { name: { type: 'string' }, url: { type: 'string' }, icon_url: { type: 'string' } },
+            },
             fields: {
               type: 'array',
               items: {
@@ -611,6 +621,7 @@ async function handleReadMessages(guild, input) {
       entry.embeds = m.embeds.map(e => {
         const embed = {};
         if (e.title) embed.title = e.title;
+        if (e.url) embed.url = e.url;
         if (e.description) embed.description = e.description;
         if (e.color != null) embed.color = e.color;
         if (e.fields?.length > 0) embed.fields = e.fields.map(f => ({
@@ -618,8 +629,9 @@ async function handleReadMessages(guild, input) {
           value: f.value,
           inline: f.inline || false,
         }));
-        if (e.footer?.text) embed.footer = e.footer.text;
-        if (e.author?.name) embed.author = e.author.name;
+        if (e.footer) embed.footer = { text: e.footer.text, ...(e.footer.iconURL && { icon_url: e.footer.iconURL }) };
+        if (e.author) embed.author = { name: e.author.name, ...(e.author.url && { url: e.author.url }), ...(e.author.iconURL && { icon_url: e.author.iconURL }) };
+        if (e.timestamp) embed.timestamp = e.timestamp;
         return embed;
       });
     }
@@ -683,7 +695,10 @@ async function handleEditMessage(guild, input) {
   if (msg.author.id !== guild.client.user.id) throw new Error('Can only edit messages sent by the bot.');
   const payload = {};
   if (input.content != null) payload.content = input.content;
-  if (input.embed) payload.embeds = [input.embed];
+  if (input.embed) {
+    const existing = msg.embeds[0]?.data || {};
+    payload.embeds = [{ ...existing, ...input.embed }];
+  }
   await msg.edit(payload);
   return `Edited message ${input.message_id} in #${channel.name}`;
 }
