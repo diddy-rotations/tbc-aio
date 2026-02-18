@@ -1,0 +1,5 @@
+{
+  "name": "gg-rotations",
+  "private": true,
+  "workspaces": ["rotation", "website", "discord-bot"]
+}

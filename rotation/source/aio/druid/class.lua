@@ -1,0 +1,698 @@
+-- Druid Class Module
+-- Defines all Druid spells, constants, data tables, and registers Druid as a class
+
+local _G, setmetatable, pairs, ipairs, tostring = _G, setmetatable, pairs, ipairs, tostring
+local tinsert = table.insert
+local format = string.format
+local GetTime = _G.GetTime
+local A = _G.Action
+
+if not A then return end
+if A.PlayerClass ~= "DRUID" then return end
+
+local NS = _G.DiddyAIO
+if not NS then
+   print("|cFFFF0000[Diddy AIO Druid]|r Core module not loaded!")
+   return
+end
+
+-- ============================================================================
+-- ACTION DEFINITIONS
+-- ============================================================================
+local Create = A.Create
+
+Action[A.PlayerClass] = {
+   -- Self Buffs
+   SelfMarkOfTheWild = Create({ Type = "Spell", ID = 1126, useMaxRank = true, Desc = "Self Mark of the Wild", Click = { unit = "player" }}),
+   SelfThorns = Create({ Type = "Spell", ID = 467, useMaxRank = true, Desc = "Self Thorns", Click = { unit = "player" }}),
+   SelfOmenOfClarity = Create({ Type = "Spell", ID = 16864, Desc = "Self Omen of Clarity", Click = { unit = "player" }}),
+
+   -- Self-cast utility
+   SelfRemoveCurse = Create({ Type = "Spell", ID = 2782, Desc = "Self Remove Curse", Click = { unit = "player" } }),
+   SelfAbolishPoison = Create({ Type = "Spell", ID = 2893, Desc = "Self Abolish Poison", Click = { unit = "player" } }),
+   SelfInnervate = Create({ Type = "Spell", ID = 29166, Desc = "Self Innervate", Click = { unit = "player" } }),
+   SelfBarkskin = Create({ Type = "Spell", ID = 22812, Desc = "Self Barkskin", Click = { unit = "player" } }),
+
+   -- Forms
+   CatForm = Create({ Type = "Spell", ID = 768, Desc = "Fast Cat Form", Click = { macrobefore = "/cast !" .. GetSpellInfo(768) .. "\n" } }),
+   BearForm = Create({ Type = "Spell", ID = 9634, Desc = "Fast Bear Form", Click = { macrobefore = "/cast !" .. GetSpellInfo(9634) .. "\n" } }),
+   MoonkinForm = Create({ Type = "Spell", ID = 24858, Desc = "Fast Moonkin Form", Click = { macrobefore = "/cast !" .. GetSpellInfo(24858) .. "\n" } }),
+   TravelForm = Create({ Type = "Spell", ID = 783, Desc = "Fast Travel Form", Click = { macrobefore = "/cast !" .. GetSpellInfo(783) .. "\n" } }),
+
+   -- Cat Abilities
+   Rake = Create({ Type = "Spell", ID = 1822, useMaxRank = true }),
+   Rip = Create({ Type = "Spell", ID = 1079, useMaxRank = true }),
+   FerociousBite = Create({ Type = "Spell", ID = 22568, useMaxRank = true }),
+   Shred = Create({ Type = "Spell", ID = 5221, useMaxRank = true }),
+   MangleCat = Create({ Type = "Spell", ID = 33876, useMaxRank = true }),
+   TigersFury = Create({ Type = "Spell", ID = 5217, useMaxRank = true }),
+   Prowl = Create({ Type = "Spell", ID = 5215, useMaxRank = true }),
+   Ravage = Create({ Type = "Spell", ID = 6785, useMaxRank = true }),
+   Pounce = Create({ Type = "Spell", ID = 27006, useMaxRank = true }),
+   Dash = Create({ Type = "Spell", ID = 33357, useMaxRank = true }),
+   FaerieFire = Create({ Type = "Spell", ID = 16857, useMaxRank = true }),
+   Cower = Create({ Type = "Spell", ID = 8998, useMaxRank = true }),
+
+   -- Bear Abilities
+   MangleBear = Create({ Type = "Spell", ID = 33878, useMaxRank = true }),
+   Maul = Create({ Type = "Spell", ID = 6807, useMaxRank = true }),
+   Swipe = Create({ Type = "Spell", ID = 779, useMaxRank = true }),
+   Lacerate = Create({ Type = "Spell", ID = 33745, useMaxRank = true }),
+   FrenziedRegeneration = Create({ Type = "Spell", ID = 22842, useMaxRank = true }),
+   Enrage = Create({ Type = "Spell", ID = 5229 }),
+   DemoralizingRoar = Create({ Type = "Spell", ID = 99, useMaxRank = true }),
+   Growl = Create({ Type = "Spell", ID = 6795 }),
+   ChallengingRoar = Create({ Type = "Spell", ID = 5209 }),
+
+   -- Balance Abilities
+   Moonfire = Create({ Type = "Spell", ID = 8921, useMaxRank = true }),
+   Starfire = Create({ Type = "Spell", ID = 2912, useMaxRank = true }),
+   Wrath = Create({ Type = "Spell", ID = 5176, useMaxRank = true }),
+   InsectSwarm = Create({ Type = "Spell", ID = 5570, useMaxRank = true }),
+   Hurricane = Create({ Type = "Spell", ID = 16914, useMaxRank = true }),
+   ForceOfNature = Create({ Type = "Spell", ID = 33831 }),
+
+   -- Healing
+   NaturesSwiftness = Create({ Type = "Spell", ID = 17116 }),
+   Swiftmend = Create({ Type = "Spell", ID = 18562 }),
+   Lifebloom = Create({ Type = "Spell", ID = 33763, useMaxRank = true }),
+   TreeOfLifeForm = Create({ Type = "Spell", ID = 33891 }),
+   Tranquility = Create({ Type = "Spell", ID = 740, useMaxRank = true }),
+
+   -- Healing Touch ranks (13 total, high to low)
+   HealingTouch13 = Create({ Type = "Spell", ID = 26979, Desc = "Healing Touch" }),
+   HealingTouch12 = Create({ Type = "Spell", ID = 26978, Desc = "Healing Touch" }),
+   HealingTouch11 = Create({ Type = "Spell", ID = 25297, Desc = "Healing Touch" }),
+   HealingTouch10 = Create({ Type = "Spell", ID = 9889, Desc = "Healing Touch" }),
+   HealingTouch9 = Create({ Type = "Spell", ID = 9888, Desc = "Healing Touch" }),
+   HealingTouch8 = Create({ Type = "Spell", ID = 9758, Desc = "Healing Touch" }),
+   HealingTouch7 = Create({ Type = "Spell", ID = 8903, Desc = "Healing Touch" }),
+   HealingTouch6 = Create({ Type = "Spell", ID = 6778, Desc = "Healing Touch" }),
+   HealingTouch5 = Create({ Type = "Spell", ID = 5189, Desc = "Healing Touch" }),
+   HealingTouch4 = Create({ Type = "Spell", ID = 5188, Desc = "Healing Touch" }),
+   HealingTouch3 = Create({ Type = "Spell", ID = 5187, Desc = "Healing Touch" }),
+   HealingTouch2 = Create({ Type = "Spell", ID = 5186, Desc = "Healing Touch" }),
+   HealingTouch1 = Create({ Type = "Spell", ID = 5185, Desc = "Healing Touch" }),
+
+   -- Regrowth ranks (10 total)
+   Regrowth10 = Create({ Type = "Spell", ID = 26980, Desc = "Regrowth" }),
+   Regrowth9 = Create({ Type = "Spell", ID = 9858, Desc = "Regrowth" }),
+   Regrowth8 = Create({ Type = "Spell", ID = 9857, Desc = "Regrowth" }),
+   Regrowth7 = Create({ Type = "Spell", ID = 9856, Desc = "Regrowth" }),
+   Regrowth6 = Create({ Type = "Spell", ID = 9750, Desc = "Regrowth" }),
+   Regrowth5 = Create({ Type = "Spell", ID = 8941, Desc = "Regrowth" }),
+   Regrowth4 = Create({ Type = "Spell", ID = 8940, Desc = "Regrowth" }),
+   Regrowth3 = Create({ Type = "Spell", ID = 8939, Desc = "Regrowth" }),
+   Regrowth2 = Create({ Type = "Spell", ID = 8938, Desc = "Regrowth" }),
+   Regrowth1 = Create({ Type = "Spell", ID = 8936, Desc = "Regrowth" }),
+
+   -- Rejuvenation ranks (13 total)
+   Rejuvenation13 = Create({ Type = "Spell", ID = 26982, Desc = "Rejuvenation" }),
+   Rejuvenation12 = Create({ Type = "Spell", ID = 26981, Desc = "Rejuvenation" }),
+   Rejuvenation11 = Create({ Type = "Spell", ID = 25299, Desc = "Rejuvenation" }),
+   Rejuvenation10 = Create({ Type = "Spell", ID = 9841, Desc = "Rejuvenation" }),
+   Rejuvenation9 = Create({ Type = "Spell", ID = 9840, Desc = "Rejuvenation" }),
+   Rejuvenation8 = Create({ Type = "Spell", ID = 9839, Desc = "Rejuvenation" }),
+   Rejuvenation7 = Create({ Type = "Spell", ID = 8910, Desc = "Rejuvenation" }),
+   Rejuvenation6 = Create({ Type = "Spell", ID = 3627, Desc = "Rejuvenation" }),
+   Rejuvenation5 = Create({ Type = "Spell", ID = 2091, Desc = "Rejuvenation" }),
+   Rejuvenation4 = Create({ Type = "Spell", ID = 2090, Desc = "Rejuvenation" }),
+   Rejuvenation3 = Create({ Type = "Spell", ID = 1430, Desc = "Rejuvenation" }),
+   Rejuvenation2 = Create({ Type = "Spell", ID = 1058, Desc = "Rejuvenation" }),
+   Rejuvenation1 = Create({ Type = "Spell", ID = 774, Desc = "Rejuvenation" }),
+
+   -- Self-cast healing ranks
+   SelfHealingTouch13 = Create({ Type = "Spell", ID = 26979, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch12 = Create({ Type = "Spell", ID = 26978, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch11 = Create({ Type = "Spell", ID = 25297, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch10 = Create({ Type = "Spell", ID = 9889, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch9 = Create({ Type = "Spell", ID = 9888, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch8 = Create({ Type = "Spell", ID = 9758, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch7 = Create({ Type = "Spell", ID = 8903, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch6 = Create({ Type = "Spell", ID = 6778, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch5 = Create({ Type = "Spell", ID = 5189, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch4 = Create({ Type = "Spell", ID = 5188, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch3 = Create({ Type = "Spell", ID = 5187, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch2 = Create({ Type = "Spell", ID = 5186, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+   SelfHealingTouch1 = Create({ Type = "Spell", ID = 5185, Desc = "Self Healing Touch", Click = { unit = "player" } }),
+
+   SelfRegrowth10 = Create({ Type = "Spell", ID = 26980, Desc = "Self Regrowth", Click = { unit = "player" } }),
+   SelfRegrowth9 = Create({ Type = "Spell", ID = 9858, Desc = "Self Regrowth", Click = { unit = "player" } }),
+   SelfRegrowth8 = Create({ Type = "Spell", ID = 9857, Desc = "Self Regrowth", Click = { unit = "player" } }),
+   SelfRegrowth7 = Create({ Type = "Spell", ID = 9856, Desc = "Self Regrowth", Click = { unit = "player" } }),
+   SelfRegrowth6 = Create({ Type = "Spell", ID = 9750, Desc = "Self Regrowth", Click = { unit = "player" } }),
+   SelfRegrowth5 = Create({ Type = "Spell", ID = 8941, Desc = "Self Regrowth", Click = { unit = "player" } }),
+   SelfRegrowth4 = Create({ Type = "Spell", ID = 8940, Desc = "Self Regrowth", Click = { unit = "player" } }),
+   SelfRegrowth3 = Create({ Type = "Spell", ID = 8939, Desc = "Self Regrowth", Click = { unit = "player" } }),
+   SelfRegrowth2 = Create({ Type = "Spell", ID = 8938, Desc = "Self Regrowth", Click = { unit = "player" } }),
+   SelfRegrowth1 = Create({ Type = "Spell", ID = 8936, Desc = "Self Regrowth", Click = { unit = "player" } }),
+
+   SelfRejuvenation13 = Create({ Type = "Spell", ID = 26982, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation12 = Create({ Type = "Spell", ID = 26981, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation11 = Create({ Type = "Spell", ID = 25299, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation10 = Create({ Type = "Spell", ID = 9841, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation9 = Create({ Type = "Spell", ID = 9840, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation8 = Create({ Type = "Spell", ID = 9839, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation7 = Create({ Type = "Spell", ID = 8910, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation6 = Create({ Type = "Spell", ID = 3627, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation5 = Create({ Type = "Spell", ID = 2091, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation4 = Create({ Type = "Spell", ID = 2090, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation3 = Create({ Type = "Spell", ID = 1430, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation2 = Create({ Type = "Spell", ID = 1058, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+   SelfRejuvenation1 = Create({ Type = "Spell", ID = 774, Desc = "Self Rejuvenation", Click = { unit = "player" } }),
+
+   -- Utility
+   RemoveCurse = Create({ Type = "Spell", ID = 2782, Desc = "Remove Curse" }),
+   AbolishPoison = Create({ Type = "Spell", ID = 2893, Desc = "Abolish Poison" }),
+   Innervate = Create({ Type = "Spell", ID = 29166, Desc = "Innervate" }),
+   Barkskin = Create({ Type = "Spell", ID = 22812, Desc = "Barkskin" }),
+   EntanglingRoots = Create({ Type = "Spell", ID = 339, useMaxRank = true }),
+
+   -- Health Recovery Items
+   HealthstoneMaster = Create({ Type = "Item", ID = 22105, Desc = "Healthstone Master" }),
+   HealthstoneMajor = Create({ Type = "Item", ID = 22104, Desc = "Healthstone Major" }),
+   SuperHealingPotion = Create({ Type = "Item", ID = 22829, Desc = "Super Healing Potion" }),
+   MajorHealingPotion = Create({ Type = "Item", ID = 13446, Desc = "Major Healing Potion" }),
+
+   -- Mana Recovery Items
+   SuperManaPotion = Create({ Type = "Item", ID = 22832, Desc = "Super Mana Potion" }),
+   DarkRune = Create({ Type = "Item", ID = 20520, Desc = "Dark Rune" }),
+   DemonicRune = Create({ Type = "Item", ID = 12662, Desc = "Demonic Rune" }),
+
+   -- Form-aware consumables (Cat Form variants)
+   HealthstoneMasterCat = Create({ Type = "Spell", ID = 768, Desc = "Healthstone Master Cat Shift", Click = { macrobefore = "/use item:22105\n" } }),
+   HealthstoneMajorCat = Create({ Type = "Spell", ID = 768, Desc = "Healthstone Major Cat Shift", Click = { macrobefore = "/use item:22104\n" } }),
+   SuperHealingPotionCat = Create({ Type = "Spell", ID = 768, Desc = "Super Healing Potion Cat Shift", Click = { macrobefore = "/use item:22829\n" } }),
+   MajorHealingPotionCat = Create({ Type = "Spell", ID = 768, Desc = "Major Healing Potion Cat Shift", Click = { macrobefore = "/use item:13446\n" } }),
+   SuperManaPotionCat = Create({ Type = "Spell", ID = 768, Desc = "Super Mana Potion Cat Shift", Click = { macrobefore = "/use item:22832\n" } }),
+   DarkRuneCat = Create({ Type = "Spell", ID = 768, Desc = "Dark Rune Cat Shift", Click = { macrobefore = "/use item:20520\n" } }),
+   DemonicRuneCat = Create({ Type = "Spell", ID = 768, Desc = "Demonic Rune Cat Shift", Click = { macrobefore = "/use item:12662\n" } }),
+
+   -- Form-aware consumables (Bear Form variants)
+   HealthstoneMasterBear = Create({ Type = "Spell", ID = 9634, Desc = "Healthstone Master Bear Shift", Click = { macrobefore = "/use item:22105\n" } }),
+   HealthstoneMajorBear = Create({ Type = "Spell", ID = 9634, Desc = "Healthstone Major Bear Shift", Click = { macrobefore = "/use item:22104\n" } }),
+   SuperHealingPotionBear = Create({ Type = "Spell", ID = 9634, Desc = "Super Healing Potion Bear Shift", Click = { macrobefore = "/use item:22829\n" } }),
+   MajorHealingPotionBear = Create({ Type = "Spell", ID = 9634, Desc = "Major Healing Potion Bear Shift", Click = { macrobefore = "/use item:13446\n" } }),
+   SuperManaPotionBear = Create({ Type = "Spell", ID = 9634, Desc = "Super Mana Potion Bear Shift", Click = { macrobefore = "/use item:22832\n" } }),
+   DarkRuneBear = Create({ Type = "Spell", ID = 9634, Desc = "Dark Rune Bear Shift", Click = { macrobefore = "/use item:20520\n" } }),
+   DemonicRuneBear = Create({ Type = "Spell", ID = 9634, Desc = "Demonic Rune Bear Shift", Click = { macrobefore = "/use item:12662\n" } }),
+
+   -- Trinkets
+   Trinket1 = Create({ Type = "Trinket", ID = 13 }),
+   Trinket2 = Create({ Type = "Trinket", ID = 14 }),
+
+   -- Racials
+   Berserking = Create({ Type = "Spell", ID = 26297 }),
+   BloodFury = Create({ Type = "Spell", ID = 33697 }),
+
+   -- CC / Utility
+   Cyclone = Create({ Type = "Spell", ID = 33786 }),
+   Bash = Create({ Type = "Spell", ID = 8983 }),
+   FeralChargeBear = Create({ Type = "Spell", ID = 16979 }),
+   Maim = Create({ Type = "Spell", ID = 22570 }),
+   NaturesGrasp = Create({ Type = "Spell", ID = 27009 }),
+   Hibernate = Create({ Type = "Spell", ID = 18658 }),
+}
+
+-- ============================================================================
+-- CLASS-SPECIFIC FRAMEWORK REFERENCES
+-- ============================================================================
+local A = setmetatable(Action[A.PlayerClass], { __index = Action })
+NS.A = A
+
+local Player = NS.Player
+local Unit = NS.Unit
+local rotation_registry = NS.rotation_registry
+local get_spell_mana_cost = NS.get_spell_mana_cost
+local try_cast = NS.try_cast
+local try_cast_fmt = NS.try_cast_fmt
+local is_spell_known = NS.is_spell_known
+local check_spell_availability = NS.check_spell_availability
+local unavailable_spells = NS.unavailable_spells
+local PLAYER_UNIT = NS.PLAYER_UNIT
+local TARGET_UNIT = NS.TARGET_UNIT
+
+-- ============================================================================
+-- GAME CONSTANTS
+-- ============================================================================
+local Constants = {
+   STANCE = {
+      CASTER = 0,
+      BEAR = 1,
+      CAT = 3,
+      TRAVEL = 4,
+      MOONKIN = 5,
+      TREE = 5,
+   },
+
+   BUFF_ID = {
+      CLEARCASTING = 16870,
+      NATURES_GRACE = 16886,
+   },
+
+   TTD = {
+      RIP_MIN = 10,
+      RAKE_MIN = 6,
+      BITE_EXECUTE = 6,
+      SHORT_FIGHT = 10,
+      FORCE_OF_NATURE_MIN = 20,
+   },
+
+   ENERGY = {
+      CRITICAL = 10,
+      CRITICAL_SHIFT = 15,
+      MANGLE_POOL = 20,
+      BITE_TRICK_MAX = 39,
+      RAKE_TRICK_MIN = 35,
+      EARLY_SHIFT = 20,
+      EARLY_SHIFT_WOLFSHEAD = 25,
+   },
+
+   POWERSHIFT = {
+      FUROR_ENERGY = 40,
+      WOLFSHEAD_BONUS = 20,
+      MIN_SHIFT_ENERGY_GAIN = 20,
+   },
+
+   HP = {
+      EXECUTE = 25,
+   },
+
+   DURATION = {
+      BITE_MIN_RIP = 3,
+   },
+
+   AOE = {
+      RAKE_SPREAD_NEARBY = 8,
+      HURRICANE_MIN_TARGETS = 3,
+   },
+
+   BALANCE = {
+      FAERIE_FIRE_REFRESH = 3,
+      MANA_TIER1 = 40,
+      MANA_TIER2 = 20,
+      MANA_LOW = 20,
+   },
+
+   BEAR = {
+      MANGLE_CD = 6,
+      LACERATE_MAX_STACKS = 5,
+      LACERATE_DURATION = 15,
+      LACERATE_URGENT_REFRESH = 3,
+      LACERATE_SWIPE_THRESHOLD = 3,
+      DEMO_ROAR_DURATION = 30,
+      DEMO_ROAR_REFRESH = 5,
+      DEFAULT_MAUL_RAGE = 40,
+      DEFAULT_SWIPE_RAGE = 15,
+      DEFAULT_SWIPE_TARGETS = 3,
+      ENRAGE_RAGE_THRESHOLD = 20,
+      DEMO_ROAR_MIN_TTD = 8,
+      GROWL_MIN_TTD = 4,
+      GROWL_CC_THRESHOLD = 2,
+      ENRAGE_HP_SAFETY = 50,
+      MAUL_AOE_EXTRA_RAGE = 15,
+      FRENZIED_PROACTIVE_HP = 50,
+      FRENZIED_PROACTIVE_RAGE = 50,
+      DEFAULT_DEMO_ROAR_RANGE = 10,
+      DEFAULT_DEMO_ROAR_MIN_BOSSES = 1,
+      DEFAULT_DEMO_ROAR_MIN_ELITES = 1,
+      DEFAULT_DEMO_ROAR_MIN_TRASH = 3,
+      DEFAULT_CROAR_RANGE = 10,
+      DEFAULT_CROAR_MIN_BOSSES = 1,
+      DEFAULT_CROAR_MIN_ELITES = 3,
+   },
+
+   RESTO = {
+      EMERGENCY_HP = 20,
+      TANK_HEAL_HP = 50,
+      STANDARD_HEAL_HP = 70,
+      PROACTIVE_HP = 85,
+      LIFEBLOOM_REFRESH = 2,
+      SWIFTMEND_HP = 40,
+   },
+}
+
+NS.Constants = Constants
+
+-- ============================================================================
+-- HEALING DATA TABLES
+-- ============================================================================
+local HEALING_TOUCH_RANKS = {
+   {spell = A.HealingTouch13, heal = 2908},
+   {spell = A.HealingTouch12, heal = 2472},
+   {spell = A.HealingTouch11, heal = 2060},
+   {spell = A.HealingTouch10, heal = 1890},
+   {spell = A.HealingTouch9, heal = 1730},
+   {spell = A.HealingTouch8, heal = 1590},
+   {spell = A.HealingTouch7, heal = 1440},
+   {spell = A.HealingTouch6, heal = 1290},
+   {spell = A.HealingTouch5, heal = 1000},
+   {spell = A.HealingTouch4, heal = 750},
+   {spell = A.HealingTouch3, heal = 450},
+   {spell = A.HealingTouch2, heal = 200},
+   {spell = A.HealingTouch1, heal = 40},
+}
+
+local REGROWTH_RANKS = {
+   {spell = A.Regrowth10, heal = 1142},
+   {spell = A.Regrowth9, heal = 1003},
+   {spell = A.Regrowth8, heal = 897},
+   {spell = A.Regrowth7, heal = 803},
+   {spell = A.Regrowth6, heal = 721},
+   {spell = A.Regrowth5, heal = 650},
+   {spell = A.Regrowth4, heal = 556},
+   {spell = A.Regrowth3, heal = 256},
+   {spell = A.Regrowth2, heal = 162},
+   {spell = A.Regrowth1, heal = 93},
+}
+
+local REJUVENATION_RANKS = {
+   {spell = A.Rejuvenation13, heal = 1344},
+   {spell = A.Rejuvenation12, heal = 1192},
+   {spell = A.Rejuvenation11, heal = 1060},
+   {spell = A.Rejuvenation10, heal = 972},
+   {spell = A.Rejuvenation9, heal = 888},
+   {spell = A.Rejuvenation8, heal = 820},
+   {spell = A.Rejuvenation7, heal = 756},
+   {spell = A.Rejuvenation6, heal = 608},
+   {spell = A.Rejuvenation5, heal = 488},
+   {spell = A.Rejuvenation4, heal = 304},
+   {spell = A.Rejuvenation3, heal = 180},
+   {spell = A.Rejuvenation2, heal = 84},
+   {spell = A.Rejuvenation1, heal = 32},
+}
+
+NS.HEALING_TOUCH_RANKS = HEALING_TOUCH_RANKS
+NS.REGROWTH_RANKS = REGROWTH_RANKS
+NS.REJUVENATION_RANKS = REJUVENATION_RANKS
+
+-- Self-cast healing rank tables
+local SELF_HEALING_TOUCH_RANKS = {
+   {spell = A.SelfHealingTouch13, heal = 2908},
+   {spell = A.SelfHealingTouch12, heal = 2472},
+   {spell = A.SelfHealingTouch11, heal = 2060},
+   {spell = A.SelfHealingTouch10, heal = 1890},
+   {spell = A.SelfHealingTouch9, heal = 1730},
+   {spell = A.SelfHealingTouch8, heal = 1590},
+   {spell = A.SelfHealingTouch7, heal = 1440},
+   {spell = A.SelfHealingTouch6, heal = 1290},
+   {spell = A.SelfHealingTouch5, heal = 1000},
+   {spell = A.SelfHealingTouch4, heal = 750},
+   {spell = A.SelfHealingTouch3, heal = 450},
+   {spell = A.SelfHealingTouch2, heal = 200},
+   {spell = A.SelfHealingTouch1, heal = 40},
+}
+local SELF_REGROWTH_RANKS = {
+   {spell = A.SelfRegrowth10, heal = 1142},
+   {spell = A.SelfRegrowth9, heal = 1003},
+   {spell = A.SelfRegrowth8, heal = 897},
+   {spell = A.SelfRegrowth7, heal = 803},
+   {spell = A.SelfRegrowth6, heal = 721},
+   {spell = A.SelfRegrowth5, heal = 650},
+   {spell = A.SelfRegrowth4, heal = 556},
+   {spell = A.SelfRegrowth3, heal = 256},
+   {spell = A.SelfRegrowth2, heal = 162},
+   {spell = A.SelfRegrowth1, heal = 93},
+}
+local SELF_REJUVENATION_RANKS = {
+   {spell = A.SelfRejuvenation13, heal = 1344},
+   {spell = A.SelfRejuvenation12, heal = 1192},
+   {spell = A.SelfRejuvenation11, heal = 1060},
+   {spell = A.SelfRejuvenation10, heal = 972},
+   {spell = A.SelfRejuvenation9, heal = 888},
+   {spell = A.SelfRejuvenation8, heal = 820},
+   {spell = A.SelfRejuvenation7, heal = 756},
+   {spell = A.SelfRejuvenation6, heal = 608},
+   {spell = A.SelfRejuvenation5, heal = 488},
+   {spell = A.SelfRejuvenation4, heal = 304},
+   {spell = A.SelfRejuvenation3, heal = 180},
+   {spell = A.SelfRejuvenation2, heal = 84},
+   {spell = A.SelfRejuvenation1, heal = 32},
+}
+
+NS.SELF_HEALING_TOUCH_RANKS = SELF_HEALING_TOUCH_RANKS
+NS.SELF_REGROWTH_RANKS = SELF_REGROWTH_RANKS
+NS.SELF_REJUVENATION_RANKS = SELF_REJUVENATION_RANKS
+
+-- Pre-computed buff ID arrays
+local REJUVENATION_BUFF_IDS = {}
+local REGROWTH_BUFF_IDS = {}
+for i, rank in ipairs(REJUVENATION_RANKS) do REJUVENATION_BUFF_IDS[i] = rank.spell.ID end
+for i, rank in ipairs(REGROWTH_RANKS) do REGROWTH_BUFF_IDS[i] = rank.spell.ID end
+
+NS.REJUVENATION_BUFF_IDS = REJUVENATION_BUFF_IDS
+NS.REGROWTH_BUFF_IDS = REGROWTH_BUFF_IDS
+
+-- Debuff ID arrays for multi-rank spells
+local FAERIE_FIRE_DEBUFF_IDS = { 16857, 17390, 17391, 17392, 27011 }
+local DEMO_ROAR_DEBUFF_IDS = { 99, 1735, 9490, 9747, 9898, 26998 }
+
+NS.FAERIE_FIRE_DEBUFF_IDS = FAERIE_FIRE_DEBUFF_IDS
+NS.DEMO_ROAR_DEBUFF_IDS = DEMO_ROAR_DEBUFF_IDS
+
+-- ============================================================================
+-- PLAYSTYLE CONSTANTS
+-- ============================================================================
+local PLAYSTYLE_CAT = "cat"
+local PLAYSTYLE_BEAR = "bear"
+local PLAYSTYLE_BALANCE = "balance"
+local PLAYSTYLE_RESTO = "resto"
+NS.PLAYSTYLE_CAT = PLAYSTYLE_CAT
+NS.PLAYSTYLE_BEAR = PLAYSTYLE_BEAR
+NS.PLAYSTYLE_BALANCE = PLAYSTYLE_BALANCE
+NS.PLAYSTYLE_RESTO = PLAYSTYLE_RESTO
+
+local PLAYSTYLE_NAMES = {
+   [PLAYSTYLE_CAT] = "Cat (Feral DPS)",
+   [PLAYSTYLE_BEAR] = "Bear (Feral Tank)",
+   [PLAYSTYLE_BALANCE] = "Balance (Moonkin)",
+   [PLAYSTYLE_RESTO] = "Resto (Healer)",
+   [1] = "Cat (Feral DPS)",
+   [2] = "Bear (Feral Tank)",
+   [3] = "Balance (Moonkin)",
+   [4] = "Resto (Healer)",
+}
+
+NS.PLAYSTYLE_NAMES = PLAYSTYLE_NAMES
+
+-- ============================================================================
+-- PLAYSTYLE SPELL VALIDATION
+-- ============================================================================
+local last_validated_playstyle = nil
+
+local function validate_playstyle_spells(playstyle)
+   if playstyle == last_validated_playstyle then return end
+   last_validated_playstyle = playstyle
+
+   for k in pairs(unavailable_spells) do
+      unavailable_spells[k] = nil
+   end
+
+   local playstyle_name = PLAYSTYLE_NAMES[playstyle] or "Unknown"
+   local missing_spells = {}
+   local optional_missing = {}
+
+   if playstyle == PLAYSTYLE_CAT then
+      local cat_core = {
+         { spell = A.CatForm, name = "Cat Form", required = true },
+         { spell = A.Shred, name = "Shred", required = true },
+         { spell = A.Rip, name = "Rip", required = true },
+         { spell = A.Rake, name = "Rake", required = true },
+         { spell = A.FerociousBite, name = "Ferocious Bite", required = true },
+         { spell = A.MangleCat, name = "Mangle (Cat)", required = false, note = "41pt Feral talent" },
+         { spell = A.TigersFury, name = "Tiger's Fury", required = false },
+         { spell = A.Prowl, name = "Prowl", required = false },
+         { spell = A.Ravage, name = "Ravage", required = false },
+         { spell = A.FaerieFire, name = "Faerie Fire (Feral)", required = false },
+      }
+      check_spell_availability(cat_core, missing_spells, optional_missing)
+
+   elseif playstyle == PLAYSTYLE_BEAR then
+      local bear_core = {
+         { spell = A.BearForm, name = "Dire Bear Form", required = true },
+         { spell = A.Maul, name = "Maul", required = true },
+         { spell = A.Swipe, name = "Swipe", required = true },
+         { spell = A.DemoralizingRoar, name = "Demoralizing Roar", required = true },
+         { spell = A.Growl, name = "Growl", required = true },
+         { spell = A.MangleBear, name = "Mangle (Bear)", required = false, note = "41pt Feral talent" },
+         { spell = A.Lacerate, name = "Lacerate", required = false, note = "requires level 66" },
+         { spell = A.FrenziedRegeneration, name = "Frenzied Regeneration", required = false },
+         { spell = A.Enrage, name = "Enrage", required = false },
+         { spell = A.ChallengingRoar, name = "Challenging Roar", required = false },
+         { spell = A.FaerieFire, name = "Faerie Fire (Feral)", required = false },
+      }
+      check_spell_availability(bear_core, missing_spells, optional_missing)
+
+   elseif playstyle == PLAYSTYLE_BALANCE then
+      local balance_core = {
+         { spell = A.MoonkinForm, name = "Moonkin Form", required = true, note = "41pt Balance talent" },
+         { spell = A.Starfire, name = "Starfire", required = true },
+         { spell = A.Moonfire, name = "Moonfire", required = true },
+         { spell = A.Wrath, name = "Wrath", required = true },
+         { spell = A.InsectSwarm, name = "Insect Swarm", required = false, note = "Balance talent" },
+         { spell = A.Hurricane, name = "Hurricane", required = false },
+         { spell = A.ForceOfNature, name = "Force of Nature", required = false, note = "41pt Balance talent" },
+         { spell = A.FaerieFire, name = "Faerie Fire", required = false },
+         { spell = A.Barkskin, name = "Barkskin", required = false },
+      }
+      check_spell_availability(balance_core, missing_spells, optional_missing)
+
+   elseif playstyle == PLAYSTYLE_RESTO then
+      local resto_core = {
+         { spell = A.Rejuvenation13, name = "Rejuvenation", required = true },
+         { spell = A.Regrowth10, name = "Regrowth", required = true },
+         { spell = A.NaturesSwiftness, name = "Nature's Swiftness", required = false, note = "21pt Resto talent" },
+         { spell = A.Swiftmend, name = "Swiftmend", required = false, note = "31pt Resto talent" },
+         { spell = A.Lifebloom, name = "Lifebloom", required = false, note = "requires level 64" },
+         { spell = A.Tranquility, name = "Tranquility", required = false },
+         { spell = A.Innervate, name = "Innervate", required = false },
+         { spell = A.Barkskin, name = "Barkskin", required = false },
+         { spell = A.RemoveCurse, name = "Remove Curse", required = false },
+         { spell = A.AbolishPoison, name = "Abolish Poison", required = false },
+      }
+      check_spell_availability(resto_core, missing_spells, optional_missing)
+
+      local has_healing_touch = false
+      for _, rank in ipairs(HEALING_TOUCH_RANKS or {}) do
+         if rank.spell and is_spell_known(rank.spell) then
+            has_healing_touch = true
+            break
+         end
+      end
+      if not has_healing_touch then
+         tinsert(missing_spells, "Healing Touch (any rank)")
+      end
+   end
+
+   print("|cFF00FF00[Diddy AIO]|r Switched to " .. playstyle_name .. " playstyle")
+
+   if #missing_spells > 0 then
+      print("|cFFFF0000[Diddy AIO]|r MISSING REQUIRED SPELLS:")
+      for _, spell_name in ipairs(missing_spells) do
+         print("|cFFFF0000[Diddy AIO]|r   - " .. spell_name)
+      end
+   end
+
+   if #optional_missing > 0 then
+      print("|cFFFF8800[Diddy AIO]|r Optional spells not available (will be skipped):")
+      for _, spell_name in ipairs(optional_missing) do
+         print("|cFFFF8800[Diddy AIO]|r   - " .. spell_name)
+      end
+   end
+
+   if #missing_spells == 0 and #optional_missing == 0 then
+      print("|cFF00FF00[Diddy AIO]|r All spells available!")
+   end
+end
+
+NS.validate_playstyle_spells = validate_playstyle_spells
+
+-- ============================================================================
+-- FORM COST UTILITIES
+-- ============================================================================
+local FORM_COST_CACHE_TTL = 5.0
+local form_cost_cache = {
+   [A.BearForm.ID]    = { cost = 0, expires = 0 },
+   [A.CatForm.ID]     = { cost = 0, expires = 0 },
+   [A.MoonkinForm.ID] = { cost = 0, expires = 0 },
+   [A.TravelForm.ID]  = { cost = 0, expires = 0 },
+}
+
+local function get_form_cost(form_spell)
+   local spell_id = form_spell.ID
+   local cached = form_cost_cache[spell_id]
+   local now = GetTime()
+   if cached and now < cached.expires then
+      return cached.cost
+   end
+   local cost = get_spell_mana_cost(form_spell)
+   local resolved = (cost and cost > 0) and cost or 0
+   if cached then
+      cached.cost = resolved
+      cached.expires = now + FORM_COST_CACHE_TTL
+   end
+   return resolved
+end
+
+NS.get_form_cost = get_form_cost
+
+-- ============================================================================
+-- FAERIE FIRE STRATEGY FACTORY (Druid-specific)
+-- ============================================================================
+local function create_faerie_fire_strategy(refresh_window)
+   return {
+      requires_combat = true,
+      requires_enemy = true,
+      requires_stealth = false,
+      requires_phys_immune = false,
+      setting_key = "maintain_faerie_fire",
+      spell = A.FaerieFire,
+      matches = function(context)
+         if A.FaerieFire:IsInRange(TARGET_UNIT) ~= true then return false end
+         local ff_duration = Unit(TARGET_UNIT):HasDeBuffs(FAERIE_FIRE_DEBUFF_IDS, nil, true) or 0
+         if ff_duration > 0 and (not refresh_window or ff_duration > refresh_window) then return false end
+         return true
+      end,
+      execute = function(icon, context)
+         local ff_duration = Unit(TARGET_UNIT):HasDeBuffs(FAERIE_FIRE_DEBUFF_IDS, nil, true) or 0
+         if ff_duration == 0 then
+            return try_cast(A.FaerieFire, icon, TARGET_UNIT, "[FF] Faerie Fire - Debuff missing")
+         end
+         return try_cast_fmt(A.FaerieFire, icon, TARGET_UNIT, "[FF]", "Faerie Fire", "Refreshing at %.1fs", ff_duration)
+      end,
+   }
+end
+
+NS.create_faerie_fire_strategy = create_faerie_fire_strategy
+
+-- ============================================================================
+-- CLASS REGISTRATION
+-- ============================================================================
+local STANCE_PLAYSTYLE = {
+   [Constants.STANCE.BEAR] = "bear",
+   [Constants.STANCE.CAT]  = "cat",
+}
+
+rotation_registry:register_class({
+   name = "Druid",
+   version = "v2.5.0",
+   playstyles = {"caster", "cat", "bear", "balance", "resto"},
+   idle_playstyle_name = "caster",
+
+   get_active_playstyle = function(context)
+      local stance = context.stance
+      if stance == 5 then
+         if _G.IsSpellKnown(24858) then return "balance" end
+         if _G.IsSpellKnown(33891) then return "resto" end
+         return nil
+      end
+      if stance == 6 then return nil end
+      return STANCE_PLAYSTYLE[stance]
+   end,
+
+   get_idle_playstyle = function(context)
+      if context.stance == Constants.STANCE.CASTER then
+         return "caster"
+      end
+      return nil
+   end,
+
+   extend_context = function(ctx)
+      ctx.stance = Player:GetStance()
+      ctx.is_stealthed = Player:IsStealthed()
+      ctx.energy = Player:Energy()
+      ctx.cp = Player:ComboPoints()
+      ctx.rage = Player:Rage()
+      ctx.is_behind = Player:IsBehind(1.5)
+      ctx.has_clearcasting = (Unit("player"):HasBuffs(Constants.BUFF_ID.CLEARCASTING) or 0) > 0
+      ctx.enemy_count = A.MultiUnits:GetByRange(8)
+      ctx._cat_valid = false
+      ctx._bear_valid = false
+      ctx._resto_valid = false
+   end,
+})
+
+-- ============================================================================
+-- MODULE LOADED
+-- ============================================================================
+print("|cFF00FF00[Diddy AIO Druid]|r Class module loaded")

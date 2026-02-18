@@ -1,0 +1,62 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../config';
+---
+
+<Base title="Changelog" description="Release history and version notes for Diddy AIO.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/changelog')}>Changelog</a>
+    </div>
+
+    <section class="section">
+      <h1>Changelog</h1>
+      <p class="section-sub">Release history and version notes.</p>
+    </section>
+
+    <section class="section changelog-entry">
+      <h2>v2.5.0 <span class="changelog-date">2025</span></h2>
+      <span class="changelog-tag tag-major">Major Release</span>
+
+      <h4>Multi-Class Architecture</h4>
+      <ul class="features">
+        <li>Rewritten as a multi-class AIO supporting <strong class="c-druid">Druid</strong> and <strong class="c-hunter">Hunter</strong></li>
+        <li>New strategy registry pattern &mdash; middleware (shared) + per-playstyle strategies</li>
+        <li>Class registration system with automatic playstyle detection based on current form/stance</li>
+        <li>Schema-driven settings &mdash; one schema generates the UI, framework backing store, and cached runtime access</li>
+      </ul>
+
+      <h4>Druid</h4>
+      <ul class="features">
+        <li>5 playstyles: Cat DPS, Bear Tank, Balance Moonkin, Resto Tree, and Caster recovery</li>
+        <li>Per-spell cat strategies with energy pooling, combo point tracking, and powershift support</li>
+        <li>Wolfshead Helm detection for automatic powershift optimization</li>
+        <li>Intelligent heal downranking based on HP deficit and mana efficiency</li>
+        <li>Resto/Tree of Life healing with tank prioritization and emergency thresholds</li>
+        <li>Balance mana tier system for sustainable Moonkin DPS</li>
+        <li>Form-aware automation &mdash; rotation respects current form, suggestion icon recommends shifts</li>
+      </ul>
+
+      <h4>Hunter</h4>
+      <ul class="features">
+        <li>Full ranged DPS rotation with auto-shot clip tracking</li>
+        <li>Shot weaving: Steady Shot, Arcane Shot, Multi-Shot with proper clipping prevention</li>
+        <li>Sting priority system (Serpent Sting management)</li>
+        <li>Pet management with auto-call, health monitoring, and Mend Pet</li>
+        <li>Mana-aware aspect switching between Hawk and Viper</li>
+        <li>Cooldown management: Bestial Wrath, Rapid Fire, Readiness, Kill Command</li>
+        <li>Optional debug overlay for auto-shot timing visualization</li>
+      </ul>
+
+      <h4>Infrastructure</h4>
+      <ul class="features">
+        <li>Monorepo restructure: rotation, website, and Discord bot as separate packages</li>
+        <li>New Node.js build system &mdash; auto-discovers class modules, manages load order, compiles to single TMW profile</li>
+        <li>File watcher (<code>dev-watch.js</code>) for auto-rebuild and SavedVariables sync during development</li>
+        <li>Static website for documentation and distribution</li>
+        <li>Discord bot for personalized rotation tweaks via AI</li>
+      </ul>
+    </section>
+
+  </div>
+</Base>

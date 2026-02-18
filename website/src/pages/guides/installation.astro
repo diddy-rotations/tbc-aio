@@ -1,0 +1,87 @@
+---
+import Base from '../../layouts/Base.astro';
+import { config, url } from '../../config';
+---
+
+<Base title="Installation Guide" description="How to install Diddy AIO rotation addon for WoW TBC.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/guides/installation')}>Installation</a>
+    </div>
+
+    <section class="section">
+      <h1>Installation Guide</h1>
+      <p class="section-sub">Get Diddy AIO running in your WoW TBC client.</p>
+    </section>
+
+    <section class="section">
+      <h2>Prerequisites</h2>
+      <ul class="features">
+        <li>WoW TBC (The Burning Crusade) client</li>
+        <li>TellMeWhen (TMW) addon installed</li>
+        <li>GGL Action framework installed and configured</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>Steps</h2>
+      <ol class="steps">
+        <li>
+          <h4>Download the compiled profile</h4>
+          <p>Get the latest <code>diddy aio.lua</code> from the <a href={config.releasesUrl}>GitHub Releases</a> page.</p>
+        </li>
+        <li>
+          <h4>Locate your SavedVariables folder</h4>
+          <p>Find your WoW installation's SavedVariables directory:<br>
+          <code>WoW/WTF/Account/YOURNAME/SavedVariables/</code></p>
+        </li>
+        <li>
+          <h4>Backup your existing TellMeWhen profile</h4>
+          <p>Copy <code>TellMeWhen.lua</code> to a safe location before making changes.</p>
+        </li>
+        <li>
+          <h4>Import the profile</h4>
+          <p>Replace or merge the downloaded <code>diddy aio.lua</code> contents into your <code>TellMeWhen.lua</code> SavedVariables file. The file contains pre-configured TMW profiles for each class (e.g., "Diddy Druid", "Diddy Hunter").</p>
+        </li>
+        <li>
+          <h4>Reload in-game</h4>
+          <p>Log into your character and type <code>/reload</code>. Select the appropriate Diddy profile from TellMeWhen's profile menu.</p>
+        </li>
+        <li>
+          <h4>Configure settings</h4>
+          <p>Open the Diddy AIO settings UI (minimap button or TMW options) to customize thresholds, toggles, and rotation behavior for your spec.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2>Building from Source</h2>
+      <p class="section-sub">For developers who want to modify and rebuild the rotation.</p>
+      <ol class="steps">
+        <li>
+          <h4>Clone the repository</h4>
+          <p><code>git clone {config.cloneUrl}</code></p>
+        </li>
+        <li>
+          <h4>Build the compiled output</h4>
+          <p>Run <code>cd rotation && node build.js</code> to generate <code>output/diddy aio.lua</code>.</p>
+        </li>
+        <li>
+          <h4>Auto-sync during development</h4>
+          <p>Copy <code>rotation/dev.ini.example</code> to <code>rotation/dev.ini</code>, set your SavedVariables path, then run <code>node dev-watch.js</code> for automatic rebuild and sync on save.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="section">
+      <h2>Troubleshooting</h2>
+      <ul class="features">
+        <li>If the rotation doesn't load, verify TMW is enabled and the correct profile is selected</li>
+        <li>Check that the GGL Action framework is properly installed</li>
+        <li>Enable Debug Mode in settings to see rotation status messages in chat</li>
+        <li>Each class module validates its dependencies on load &mdash; check chat for error messages</li>
+      </ul>
+    </section>
+
+  </div>
+</Base>

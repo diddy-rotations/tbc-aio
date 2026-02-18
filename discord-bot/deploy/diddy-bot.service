@@ -1,0 +1,38 @@
+# Diddy AIO Discord Bot — systemd unit file
+# This is a reference template. setup.sh generates the actual service
+# with correct paths for your system.
+#
+# Manual install:
+#   1. Replace __USER__, __BOT_DIR__, __NODE_PATH__ below
+#   2. sudo cp diddy-bot.service /etc/systemd/system/
+#   3. sudo systemctl daemon-reload
+#   4. sudo systemctl enable --now diddy-bot
+
+[Unit]
+Description=Diddy AIO Discord Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__BOT_DIR__
+ExecStart=__NODE_PATH__ src/index.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/tmp
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=diddy-bot
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,99 @@
+---
+interface Talent {
+  name: string;
+  icon: string;
+  maxRank: number;
+  tier: number;
+  col: number;
+  desc: string;
+}
+
+interface Tree {
+  name: string;
+  talents: Talent[];
+}
+
+interface Preset {
+  name: string;
+  slug?: string;
+  spec: string;
+  points: number[][];
+}
+
+interface Props {
+  trees: Tree[];
+  preset: Preset;
+  classColor?: string;
+}
+
+const { trees, preset, classColor = 'var(--accent)' } = Astro.props;
+const ICON_CDN = 'https://wow.zamimg.com/images/wow/icons/medium';
+
+// Build a compact tier map across ALL trees so they stay aligned
+// e.g. tiers [1,2,3,4,5,6,7,9] → rows [1,2,3,4,5,6,7,8]
+const allTiers = new Set<number>();
+trees.forEach(tree => tree.talents.forEach(t => allTiers.add(t.tier)));
+const sortedTiers = [...allTiers].sort((a, b) => a - b);
+const tierToRow = new Map<number, number>();
+sortedTiers.forEach((tier, i) => tierToRow.set(tier, i + 1));
+const totalRows = sortedTiers.length;
+---
+
+<div class="preset-label">
+  <span class="preset-name">{preset.name}</span>
+  <span class="preset-spec">{preset.spec}</span>
+</div>
+
+<div class="talent-trees">
+  {trees.map((tree, treeIdx) => {
+    const treePoints = preset.points[treeIdx];
+    const totalPts = treePoints.reduce((a, b) => a + b, 0);
+
+    return (
+      <div class="talent-tree">
+        <div class="tree-header">
+          <h4>{tree.name}</h4>
+          <span class="pts"><b>{totalPts}</b></span>
+        </div>
+        <div class="talent-grid" style={`grid-template-rows: repeat(${totalRows}, 36px);`}>
+          {tree.talents.map((talent, talentIdx) => {
+            const pts = treePoints[talentIdx] || 0;
+            const isOn = pts > 0;
+            const row = tierToRow.get(talent.tier)!;
+            return (
+              <div
+                class={`talent ${isOn ? 'on' : 'off'}`}
+                style={`grid-row: ${row}; grid-column: ${talent.col + 1}; background-image: url('${ICON_CDN}/${talent.icon}.jpg');`}
+              >
+                {isOn && <span class="tp">{pts}/{talent.maxRank}</span>}
+                <div class="talent-tip">
+                  <div class="tn">{talent.name}</div>
+                  <div class="tr">Rank {pts}/{talent.maxRank}</div>
+                  <div class="td">{talent.desc}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  })}
+</div>
+
+<style>
+  .preset-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .preset-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .preset-spec {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    font-family: monospace;
+  }
+</style>

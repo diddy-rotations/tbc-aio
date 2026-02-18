@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ─── Diddy AIO Discord Bot — Update Script ───
+# Pulls latest code, reinstalls deps, rebuilds rotation, restarts bot.
+
+BOLD='\033[1m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+info()  { echo -e "${CYAN}→${NC} $*"; }
+ok()    { echo -e "${GREEN}✓${NC} $*"; }
+err()   { echo -e "${RED}✗${NC} $*" >&2; }
+header() { echo -e "\n${BOLD}$*${NC}"; }
+
+SERVICE_NAME="diddy-bot"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_DIR="$(cd "$BOT_DIR/.." && pwd)"
+ROTATION_DIR="$REPO_DIR/rotation"
+
+header "Diddy AIO Discord Bot — Update"
+
+# ─── 1. Pull latest ───
+header "[1/4] Pulling latest code"
+cd "$REPO_DIR"
+git pull
+ok "Code updated"
+
+# ─── 2. Install deps ───
+header "[2/4] Installing dependencies"
+npm install
+ok "Dependencies up to date"
+
+# ─── 3. Rebuild rotation (so the bot has fresh source to copy) ───
+header "[3/4] Rebuilding rotation"
+cd "$ROTATION_DIR"
+node build.js
+ok "Rotation built"
+
+# ─── 4. Restart service ───
+header "[4/4] Restarting bot"
+sudo systemctl restart "$SERVICE_NAME"
+
+sleep 2
+if systemctl is-active --quiet "$SERVICE_NAME"; then
+    ok "Bot restarted successfully!"
+    echo ""
+    echo "Check logs: journalctl -u $SERVICE_NAME -f"
+else
+    err "Bot failed to start after update. Check logs:"
+    echo "  journalctl -u $SERVICE_NAME -n 30 --no-pager"
+    exit 1
+fi

@@ -1,0 +1,135 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../config';
+---
+
+<Base title="Hunter" description="Diddy AIO Hunter rotation - ranged DPS with auto-shot clip tracking, shot weaving, and pet management.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/hunter')}>Hunter</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--hunter);">Hunter</h1>
+      <p class="section-sub">Full ranged DPS rotation with shot weaving, pet management, and auto-shot clip tracking.</p>
+    </section>
+
+    <section class="section">
+      <div class="spec">
+        <h3 style="color: var(--hunter);">Ranged DPS</h3>
+        <span class="talent-req">Works with any spec &mdash; adapts to available talents</span>
+        <a href={url('/guides/hunter-talents#bm')} class="btn-build">BM Build</a>
+        <a href={url('/guides/hunter-talents#mm')} class="btn-build">MM Build</a>
+        <a href={url('/guides/hunter-talents#sv')} class="btn-build">SV Build</a>
+
+        <h4>Shot Weaving</h4>
+        <ul class="features">
+          <li>Steady Shot as primary filler between auto-shots</li>
+          <li>Arcane Shot weaving with mana threshold gating</li>
+          <li>Multi-Shot for AoE in tight weave windows</li>
+          <li>Warces haste mode: GCD + latency-adjusted timing for precise shot weaving</li>
+          <li>Standard mode: swing timer-based shot selection</li>
+        </ul>
+
+        <h4>Sting Priority</h4>
+        <ul class="features">
+          <li>Serpent Sting: DoT damage maintenance</li>
+          <li>Scorpid Sting: Boss-only AP reduction</li>
+          <li>Viper Sting: PvP mana drain with per-class targeting toggles</li>
+        </ul>
+
+        <h4>Cooldown Management</h4>
+        <ul class="features">
+          <li>Bestial Wrath (41pt BM talent, burst)</li>
+          <li>Rapid Fire (haste burst)</li>
+          <li>Readiness (reset Rapid Fire or Misdirection)</li>
+          <li>Kill Command (pet attack)</li>
+          <li>Misdirection (aggro redirect to focus target)</li>
+          <li>Burst sync with Bloodlust/Heroism/Drums</li>
+        </ul>
+
+        <h4>Pet Management</h4>
+        <ul class="features">
+          <li>Auto Mend Pet at configurable HP threshold</li>
+          <li>Call Pet and Revive Pet out of combat</li>
+          <li>Pet HP tracking and active pet detection</li>
+          <li>Experimental pet controller for auto-attack</li>
+        </ul>
+
+        <h4>Aspect Switching</h4>
+        <ul class="features">
+          <li>Aspect of the Hawk in combat (offensive)</li>
+          <li>Aspect of the Viper for mana recovery (auto-switch at threshold)</li>
+          <li>Aspect of the Cheetah out of combat (travel speed)</li>
+        </ul>
+
+        <h4>Crowd Control &amp; Utility</h4>
+        <ul class="features">
+          <li>Freezing Trap on adds (PvE toggle)</li>
+          <li>Concussive Shot for kiting</li>
+          <li>Wing Clip in melee range</li>
+          <li>Intimidation stun via pet</li>
+          <li>Silencing Shot interrupt (41pt MM talent)</li>
+          <li>Scatter Shot PvP CC</li>
+          <li>Tranquilizing Shot enrage dispel</li>
+          <li>Hunter's Mark (static or dynamic, boss-only option)</li>
+        </ul>
+
+        <h4>Immunity Detection</h4>
+        <ul class="features">
+          <li>Total immunity: Divine Shield, Ice Block, Cloak of Shadows</li>
+          <li>Physical/Magic immunity gating</li>
+          <li>Auto-protection of frozen (CC'd) targets</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="spec">
+        <h3 style="color: var(--hunter);">Auto-Shot Clip Tracker</h3>
+        <span class="talent-req">Optional debug feature</span>
+        <ul class="features">
+          <li>Tracks when your shots clip (delay) your auto-shot swing</li>
+          <li>Color-coded severity: green (&lt;125ms), yellow (&lt;250ms), orange (&lt;500ms), red (&gt;500ms)</li>
+          <li>Real-time debug overlay UI</li>
+          <li>Combat summary with total clips and average delay</li>
+          <li>Helps optimize shot weaving timing for maximum DPS</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Settings Overview</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>General</h3>
+          <p>Mouseover targeting, AoE toggle, consumable thresholds, debug mode.</p>
+        </div>
+        <div class="card">
+          <h3>Rotation</h3>
+          <p>Warces mode, weapon speed, Arcane/Multi-Shot, sting selection, trap/aggro settings.</p>
+        </div>
+        <div class="card">
+          <h3>Cooldowns</h3>
+          <p>Burst CDs, racial abilities, burst sync, aspect management, mana thresholds.</p>
+        </div>
+        <div class="card">
+          <h3>PvP</h3>
+          <p>Per-class Viper Sting toggles, Wing Clip thresholds, Scatter Shot.</p>
+        </div>
+        <div class="card">
+          <h3>Pet &amp; Diagnostics</h3>
+          <p>Mend Pet threshold, pet controller, clip tracker settings and overlay.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Talent Guides</h2>
+      <div class="btn-group" style="justify-content: flex-start;">
+        <a href={url('/guides/hunter-talents')} class="btn btn-secondary">Hunter Talent Specs</a>
+      </div>
+    </section>
+
+  </div>
+</Base>

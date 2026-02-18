@@ -1,0 +1,67 @@
+---
+import '../styles/global.css';
+import { config, url } from '../config';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Multi-class WoW TBC rotation addon.' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+  <title>{title} | Diddy AIO</title>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href={url('/')} class="nav-logo">Diddy <span>AIO</span></a>
+      <ul class="nav-links">
+        <li><a href={url('/classes/druid')}>Druid</a></li>
+        <li><a href={url('/classes/hunter')}>Hunter</a></li>
+        <li><a href={url('/guides/installation')}>Install</a></li>
+        <li><a href={config.github} target="_blank">GitHub</a></li>
+        <li class="nav-desktop"><a href={url('/changelog')}>Changelog</a></li>
+        <li class="nav-desktop"><a href={url('/faq')}>FAQ</a></li>
+        <li class="nav-desktop"><a href={config.discord} target="_blank">Discord</a></li>
+        <li class="nav-more">
+          <button class="nav-more-btn" aria-label="More links" aria-expanded="false">&#9662;</button>
+          <ul class="nav-dropdown">
+            <li><a href={url('/changelog')}>Changelog</a></li>
+            <li><a href={url('/faq')}>FAQ</a></li>
+            <li><a href={config.discord} target="_blank">Discord</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <slot />
+  </main>
+
+  <footer class="footer">
+    Diddy AIO &mdash; Open source WoW TBC rotation addon
+  </footer>
+
+  <script is:inline>
+    const btn = document.querySelector('.nav-more-btn');
+    const dropdown = document.querySelector('.nav-dropdown');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = dropdown.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open);
+    });
+    document.addEventListener('click', () => {
+      dropdown.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    });
+  </script>
+</body>
+</html>
