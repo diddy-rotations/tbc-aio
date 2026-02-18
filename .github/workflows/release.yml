@@ -32,7 +32,8 @@ jobs:
           files: rotation/output/diddy aio.lua
 
       - name: Notify Discord
-        if: success() && secrets.WEBHOOK_SECRET && secrets.VPS_HOST
+        if: success()
+        continue-on-error: true
         env:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
