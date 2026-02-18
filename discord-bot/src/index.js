@@ -3,12 +3,14 @@ import { config } from './config.js';
 import { handleRequest } from './commands/request.js';
 import { handleStatus } from './commands/status.js';
 import { cleanupStaleWorkspaces } from './services/builder.js';
+import { startWebhookServer } from './services/webhook.js';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.once(Events.ClientReady, (c) => {
   console.log(`Logged in as ${c.user.tag} (${c.guilds.cache.size} guilds)`);
   cleanupStaleWorkspaces();
+  startWebhookServer(client);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {

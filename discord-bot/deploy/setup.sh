@@ -121,12 +121,39 @@ if [ "${SKIP_ENV:-}" != "true" ]; then
         err "API key cannot be empty"
     done
 
+    echo ""
+    echo "GitHub release webhook (optional — posts release announcements to Discord):"
+    echo ""
+
+    # WEBHOOK_SECRET (optional, masked)
+    read -rsp "WEBHOOK_SECRET (optional, press Enter to skip): " WEBHOOK_SECRET
+    echo ""
+
+    # WEBHOOK_PORT (optional, numeric, default 3000)
+    WEBHOOK_PORT=""
+    if [ -n "$WEBHOOK_SECRET" ]; then
+        read -rp "WEBHOOK_PORT (default 3000): " WEBHOOK_PORT
+        if [ -n "$WEBHOOK_PORT" ] && [[ ! "$WEBHOOK_PORT" =~ ^[0-9]+$ ]]; then
+            warn "Invalid port — using default 3000"
+            WEBHOOK_PORT=""
+        fi
+    fi
+
+    # RELEASE_CHANNEL (optional)
+    RELEASE_CHANNEL=""
+    if [ -n "$WEBHOOK_SECRET" ]; then
+        read -rp "RELEASE_CHANNEL (Discord channel name, e.g. releases): " RELEASE_CHANNEL
+    fi
+
     # Write .env
     cat > "$ENV_FILE" <<EOF
 DISCORD_TOKEN=$DISCORD_TOKEN
 DISCORD_CLIENT_ID=$DISCORD_CLIENT_ID
 DISCORD_GUILD_ID=$DISCORD_GUILD_ID
 ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY
+WEBHOOK_PORT=${WEBHOOK_PORT:-3000}
+WEBHOOK_SECRET=$WEBHOOK_SECRET
+RELEASE_CHANNEL=$RELEASE_CHANNEL
 EOF
     chmod 600 "$ENV_FILE"
     ok ".env written to $ENV_FILE (permissions: 600)"

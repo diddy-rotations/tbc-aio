@@ -23,4 +23,7 @@ export const config = {
   rateLimitMs: 60_000,
   claudeModel: 'claude-haiku-4-5-20251001',
   maxTurns: 15,
+  webhookPort: parseInt(process.env.WEBHOOK_PORT, 10) || 3000,
+  webhookSecret: process.env.WEBHOOK_SECRET || null,
+  releaseChannel: process.env.RELEASE_CHANNEL || null,
 };
