@@ -495,8 +495,8 @@ async function handleProposePlan(interaction, input, state) {
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('admin_approve').setLabel('Approve').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId('admin_deny').setLabel('Deny').setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId('admin_cancel').setLabel('Cancel').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('admin_revise').setLabel('Revise').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('admin_cancel').setLabel('Cancel').setStyle(ButtonStyle.Danger),
   );
 
   const msg = await interaction.followUp({ embeds: [embed], components: [row] });
@@ -514,18 +514,18 @@ async function handleProposePlan(interaction, input, state) {
       return 'APPROVED';
     }
 
-    if (response.customId === 'admin_deny') {
-      // Open modal for optional denial reason
+    if (response.customId === 'admin_revise') {
       const modal = new ModalBuilder()
-        .setCustomId('admin_deny_modal')
-        .setTitle('Denial Reason')
+        .setCustomId('admin_revise_modal')
+        .setTitle('Revise Plan')
         .addComponents(
           new ActionRowBuilder().addComponents(
             new TextInputBuilder()
-              .setCustomId('reason')
-              .setLabel('Why? (optional)')
+              .setCustomId('feedback')
+              .setLabel('What should change?')
               .setStyle(TextInputStyle.Paragraph)
-              .setRequired(false)
+              .setPlaceholder('e.g. "skip step 3", "change #general topic to...", "also add a voice channel"')
+              .setRequired(true)
           )
         );
 
@@ -536,10 +536,10 @@ async function handleProposePlan(interaction, input, state) {
         time: 120_000,
       });
 
-      const reason = modalSubmit.fields.getTextInputValue('reason') || 'No reason given';
-      const deniedEmbed = EmbedBuilder.from(embed).setColor(0xed4245).setFooter({ text: `DENIED: ${reason}` });
-      await modalSubmit.update({ embeds: [deniedEmbed], components: [] });
-      return `DENIED: ${reason}`;
+      const feedback = modalSubmit.fields.getTextInputValue('feedback');
+      const revisedEmbed = EmbedBuilder.from(embed).setColor(0xfee75c).setFooter({ text: `REVISION REQUESTED: ${feedback}` });
+      await modalSubmit.update({ embeds: [revisedEmbed], components: [] });
+      return `REVISE: The admin wants changes to this plan. Their feedback: "${feedback}". Adjust your plan accordingly and call propose_plan again with the revised steps.`;
     }
 
     // Cancel
