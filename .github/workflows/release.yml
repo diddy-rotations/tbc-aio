@@ -38,12 +38,26 @@ jobs:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
         run: |
-          BODY=$(cat <<'PAYLOAD'
-          {"action":"published","release":{"tag_name":"${{ github.ref_name }}","name":"${{ github.ref_name }}","html_url":"https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}","body":"Release ${{ github.ref_name }} is now available.","published_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","author":{"login":"${{ github.actor }}","avatar_url":"https://github.com/${{ github.actor }}.png","html_url":"https://github.com/${{ github.actor }}"}}}
-          PAYLOAD
-          )
-          # Clean up whitespace from heredoc
-          BODY=$(echo "$BODY" | tr -d '\n' | sed 's/^[[:space:]]*//')
+          BODY=$(jq -nc \
+            --arg tag "${{ github.ref_name }}" \
+            --arg repo "${{ github.repository }}" \
+            --arg actor "${{ github.actor }}" \
+            --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              action: "published",
+              release: {
+                tag_name: $tag,
+                name: $tag,
+                html_url: "https://github.com/\($repo)/releases/tag/\($tag)",
+                body: "Release \($tag) is now available.",
+                published_at: $now,
+                author: {
+                  login: $actor,
+                  avatar_url: "https://github.com/\($actor).png",
+                  html_url: "https://github.com/\($actor)"
+                }
+              }
+            }')
           SIG="sha256=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $2}')"
           curl -s -X POST "http://${VPS_HOST}:3000/webhook/github" \
             -H "Content-Type: application/json" \
