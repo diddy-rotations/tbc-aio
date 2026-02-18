@@ -1,8 +1,8 @@
 :root {
-  --bg: #0d0d10;
-  --bg-raised: #151519;
-  --bg-hover: #1e1e24;
-  --border: #282830;
+  --bg: #08080a;
+  --bg-raised: #0c0c0f;
+  --bg-hover: #131316;
+  --border: #1e1e26;
   --text: #dcdce4;
   --text-dim: #9494a8;
   --text-faint: #5c5c70;
@@ -37,7 +37,7 @@ h3 { font-size: 1.1rem; }
 /* Nav */
 .nav {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(13,13,16,0.96);
+  background: var(--bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
