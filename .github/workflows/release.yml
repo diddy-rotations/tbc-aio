@@ -45,13 +45,14 @@ jobs:
         env:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
+          RELEASE_NOTES: ${{ steps.tag_msg.outputs.body }}
         run: |
           BODY=$(jq -nc \
             --arg tag "${{ github.ref_name }}" \
             --arg repo "${{ github.repository }}" \
             --arg actor "${{ github.actor }}" \
             --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg notes "${{ steps.tag_msg.outputs.body }}" \
+            --arg notes "$RELEASE_NOTES" \
             '{
               action: "published",
               release: {
