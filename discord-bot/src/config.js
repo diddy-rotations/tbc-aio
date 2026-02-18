@@ -27,6 +27,6 @@ export const config = {
   webhookSecret: process.env.WEBHOOK_SECRET || null,
   releaseChannel: process.env.RELEASE_CHANNEL || null,
   adminModel: 'claude-sonnet-4-20250514',
-  maxAdminTurns: 25,
+  maxAdminTurns: 50,
   maxAdminExecutions: 20,
 };
