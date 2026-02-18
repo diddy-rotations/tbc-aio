@@ -8,6 +8,8 @@ interface Props {
 }
 
 const { title, description = 'Multi-class WoW TBC rotation addon.' } = Astro.props;
+const pageTitle = `${title} | Diddy AIO`;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 ---
 
 <!doctype html>
@@ -15,8 +17,34 @@ const { title, description = 'Multi-class WoW TBC rotation addon.' } = Astro.pro
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{pageTitle}</title>
+
+  <!-- SEO -->
   <meta name="description" content={description} />
-  <title>{title} | Diddy AIO</title>
+  <meta name="author" content="Diddy AIO" />
+  <meta name="keywords" content="WoW, TBC, rotation, addon, druid, hunter, TellMeWhen, classic" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href={canonicalUrl.href} />
+  <meta name="theme-color" content="#6c63ff" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Diddy AIO" />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonicalUrl.href} />
+  <meta property="og:image" content={new URL(url('/og.svg'), Astro.site).href} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content={new URL(url('/og.svg'), Astro.site).href} />
+  <meta name="twitter:title" content={pageTitle} />
+  <meta name="twitter:description" content={description} />
 </head>
 <body>
   <nav class="nav">
