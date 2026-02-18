@@ -147,6 +147,11 @@ const TOOLS = [
   },
 ];
 
+// Add cache_control to last tool for prompt caching (90% discount on repeated input tokens)
+const TOOLS_CACHED = TOOLS.map((tool, i) =>
+  i === TOOLS.length - 1 ? { ...tool, cache_control: { type: 'ephemeral' } } : tool
+);
+
 async function handleToolCall(workDir, toolName, input) {
   const safePath = (rel) => {
     const resolved = path.resolve(workDir, rel);
@@ -226,8 +231,8 @@ export async function editRotation(workDir, userPrompt, classHint) {
       const response = await client.messages.create({
         model: config.claudeModel,
         max_tokens: 4096,
-        system: SYSTEM_PROMPT,
-        tools: TOOLS,
+        system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+        tools: TOOLS_CACHED,
         messages,
       });
 
