@@ -548,7 +548,7 @@ local function create_main_frame()
 
     local title_icon_txt = title_icon:CreateFontString(nil, "OVERLAY")
     title_icon_txt:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
-    title_icon_txt:SetPoint("CENTER", 0, 1)
+    title_icon_txt:SetPoint("CENTER", 0, 0)
     title_icon_txt:SetText("D")
     title_icon_txt:SetTextColor(THEME.accent[1], THEME.accent[2], THEME.accent[3])
 
@@ -671,13 +671,13 @@ local function create_minimap_button()
     btn:SetFrameLevel(8)
 
     local icon = btn:CreateTexture(nil, "BACKGROUND")
-    icon:SetSize(20, 20)
-    icon:SetPoint("TOPLEFT", 6, -5)
+    icon:SetSize(18, 18)
+    icon:SetPoint("CENTER", btn, 0, 1)
     icon:SetColorTexture(THEME.bg[1], THEME.bg[2], THEME.bg[3], 1)
 
     local txt = btn:CreateFontString(nil, "ARTWORK")
     txt:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
-    txt:SetPoint("CENTER", icon, 0, 1)
+    txt:SetPoint("CENTER", icon, 0, 0)
     txt:SetText("D")
     txt:SetTextColor(THEME.accent[1], THEME.accent[2], THEME.accent[3])
 
