@@ -68,13 +68,11 @@ export function startWebhookServer(client) {
       return;
     }
 
-    // Find channel by name
-    const channel = client.channels.cache.find(
-      (ch) => ch.name === config.releaseChannel && ch.isTextBased()
-    );
+    // Find channel by ID
+    const channel = client.channels.cache.get(config.releaseChannel);
 
     if (!channel) {
-      console.error(`Release channel "${config.releaseChannel}" not found in cache`);
+      console.error(`Release channel ID "${config.releaseChannel}" not found in cache`);
       res.writeHead(404);
       res.end('Channel not found');
       return;
@@ -105,7 +103,7 @@ export function startWebhookServer(client) {
         }],
       });
 
-      console.log(`Posted release ${release.tag_name} to #${config.releaseChannel}`);
+      console.log(`Posted release ${release.tag_name} to #${channel.name}`);
       res.writeHead(200);
       res.end('OK');
     } catch (err) {
