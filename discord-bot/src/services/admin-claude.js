@@ -811,7 +811,11 @@ async function dispatchTool(name, input, guild, interaction, state) {
 
 export async function runAdminLoop(guild, interaction, userPrompt) {
   const client = new Anthropic({ apiKey: config.anthropicApiKey });
-  const messages = [{ role: 'user', content: userPrompt }];
+  const channel = guild.channels.cache.get(interaction.channelId);
+  const channelContext = channel
+    ? `\n\n[Context: This command was run in #${channel.name} (ID: ${channel.id})${channel.parent ? `, under category "${channel.parent.name}"` : ''}. When the admin says "this channel" or "here", they mean #${channel.name}.]`
+    : '';
+  const messages = [{ role: 'user', content: userPrompt + channelContext }];
   const state = {
     approved: false,
     actions: [],
