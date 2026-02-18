@@ -33,6 +33,7 @@ You can read the current server structure, ask the admin questions, propose plan
 
 ### Execution (requires prior approval via propose_plan)
 - create_category: Create a channel category
+- edit_channel: Edit an existing channel (rename, change topic, move to a different category)
 - create_channel: Create a text or voice channel
 - send_message: Send a message or embed to a channel
 - set_channel_permissions: Set permission overwrites on a channel
@@ -139,6 +140,20 @@ const TOOLS = [
     },
   },
   {
+    name: 'edit_channel',
+    description: 'Edit an existing channel (rename, change topic, move to a different category).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        channel_id: { type: 'string', description: 'The channel ID to edit' },
+        name: { type: 'string', description: 'New channel name (optional)' },
+        topic: { type: 'string', description: 'New channel topic (optional, text channels only)' },
+        parent_id: { type: 'string', description: 'New category ID to move under (optional)' },
+      },
+      required: ['channel_id'],
+    },
+  },
+  {
     name: 'create_channel',
     description: 'Create a text or voice channel, optionally under a category.',
     input_schema: {
@@ -211,7 +226,7 @@ const TOOLS = [
 ];
 
 const INTERACTIVE_TOOLS = new Set(['ask_question', 'propose_plan']);
-const EXECUTION_TOOLS = new Set(['create_category', 'create_channel', 'send_message', 'set_channel_permissions']);
+const EXECUTION_TOOLS = new Set(['create_category', 'edit_channel', 'create_channel', 'send_message', 'set_channel_permissions']);
 
 // ---------------------------------------------------------------------------
 // Interactive tool handlers (pause loop, show Discord UI, await response)
@@ -450,6 +465,17 @@ async function handleReadMessages(guild, input) {
   return JSON.stringify(formatted, null, 2);
 }
 
+async function handleEditChannel(guild, input) {
+  const channel = guild.channels.cache.get(input.channel_id);
+  if (!channel) throw new Error('Channel not found.');
+  const opts = {};
+  if (input.name) opts.name = input.name;
+  if (input.topic != null) opts.topic = input.topic;
+  if (input.parent_id) opts.parent = input.parent_id;
+  await channel.edit(opts);
+  return `Updated #${channel.name}: ${Object.keys(opts).join(', ')}`;
+}
+
 async function handleCreateCategory(guild, input) {
   const opts = { name: input.name, type: ChannelType.GuildCategory };
   if (input.position != null) opts.position = input.position;
@@ -524,6 +550,12 @@ async function dispatchTool(name, input, guild, interaction, state) {
     case 'propose_plan': return await handleProposePlan(interaction, input, state);
 
     // Execution (gated)
+    case 'edit_channel': {
+      state.executionCount++;
+      const res = await handleEditChannel(guild, input);
+      state.actions.push(`Edited <#${input.channel_id}>`);
+      return res;
+    }
     case 'create_category': {
       state.executionCount++;
       const res = await handleCreateCategory(guild, input);
