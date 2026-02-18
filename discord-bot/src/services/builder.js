@@ -26,6 +26,10 @@ export async function createWorkspace() {
     path.join(rotRoot, 'tmw-template.lua'),
     path.join(tempDir, 'tmw-template.lua'),
   );
+  await fs.copyFile(
+    path.join(rotRoot, 'package.json'),
+    path.join(tempDir, 'package.json'),
+  );
   await fs.mkdir(path.join(tempDir, 'output'), { recursive: true });
 
   return tempDir;
