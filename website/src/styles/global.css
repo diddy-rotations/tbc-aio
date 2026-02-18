@@ -85,7 +85,7 @@ h3 { font-size: 1.1rem; }
 .hero .tagline { font-size: 0.95rem; color: var(--text-dim); margin-bottom: 1.25rem; }
 .hero .version {
   display: inline-block; background: #141327;
-  border: 1px solid #211f47; color: var(--accent);
+  border: 1px solid #211f47; color: var(--accent-hover);
   padding: 0.15rem 0.6rem; border-radius: 999px;
   font-size: 0.75rem; font-weight: 600; margin-bottom: 1rem;
 }
@@ -244,7 +244,7 @@ code {
   display: inline-block; font-size: 0.65rem; font-weight: 600;
   padding: 0.1rem 0.45rem; border-radius: 3px; margin-bottom: 0.75rem;
 }
-.tag-major { background: #141327; border: 1px solid #211f47; color: var(--accent); }
+.tag-major { background: #141327; border: 1px solid #211f47; color: var(--accent-hover); }
 .tag-minor { background: #131316; border: 1px solid var(--border); color: var(--text-dim); }
 
 /* FAQ */
