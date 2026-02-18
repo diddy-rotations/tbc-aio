@@ -285,7 +285,7 @@ const TOOLS = [
       properties: {
         channel_id: { type: 'string', description: 'Channel containing the message' },
         message_id: { type: 'string', description: 'The message ID to edit' },
-        content: { type: 'string', description: 'New plain text content (optional if embed provided)' },
+        content: { type: 'string', description: 'New plain text content. Use empty string "" to clear existing text. Optional if embed provided.' },
         embed: {
           type: 'object',
           description: 'New embed (optional, replaces existing embed)',
@@ -677,7 +677,7 @@ async function handleEditMessage(guild, input) {
   if (!msg) throw new Error('Message not found.');
   if (msg.author.id !== guild.client.user.id) throw new Error('Can only edit messages sent by the bot.');
   const payload = {};
-  if (input.content) payload.content = input.content;
+  if (input.content != null) payload.content = input.content;
   if (input.embed) payload.embeds = [input.embed];
   await msg.edit(payload);
   return `Edited message ${input.message_id} in #${channel.name}`;
