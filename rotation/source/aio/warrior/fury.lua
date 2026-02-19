@@ -56,20 +56,19 @@ end
 do
 
 -- [1] Rampage maintenance (Fury 41-point talent)
--- After melee crit, maintain stacks (max 5) and refresh duration
+-- Activate after melee crit, refresh when duration is low (stacks build naturally via refreshes)
 local Fury_Rampage = {
     requires_combat = true,
 
     matches = function(context, state)
         if not is_spell_available(A.Rampage) then return false end
         local threshold = context.settings.fury_rampage_threshold or 5
-        -- Refresh if not active, stacks < max, or duration running low
+        -- Activate if buff not present
         if not context.rampage_active then
-            -- Rampage requires a recent crit to activate — IsReady handles this
             return A.Rampage:IsReady(PLAYER_UNIT)
         end
-        if context.rampage_stacks < Constants.RAMPAGE_MAX_STACKS
-            or context.rampage_duration < threshold then
+        -- Refresh when duration running low (also adds a stack)
+        if context.rampage_duration < threshold then
             return A.Rampage:IsReady(PLAYER_UNIT)
         end
         return false
