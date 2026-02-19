@@ -238,7 +238,10 @@ local Fire_MovementSpell = {
     execute = function(icon, context, state)
         local result = try_cast(A.FireBlast, icon, TARGET_UNIT, "[FIRE] Fire Blast (moving)")
         if result then return result end
-        return try_cast(A.ArcaneExplosion, icon, PLAYER_UNIT, "[FIRE] Arcane Explosion (moving)")
+        if context.in_melee_range then
+            return try_cast(A.ArcaneExplosion, icon, PLAYER_UNIT, "[FIRE] Arcane Explosion (moving)")
+        end
+        return nil
     end,
 }
 
