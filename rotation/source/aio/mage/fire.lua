@@ -236,7 +236,9 @@ local Fire_MovementSpell = {
     end,
 
     execute = function(icon, context, state)
-        return try_cast(A.FireBlast, icon, TARGET_UNIT, "[FIRE] Fire Blast (moving)")
+        local result = try_cast(A.FireBlast, icon, TARGET_UNIT, "[FIRE] Fire Blast (moving)")
+        if result then return result end
+        return try_cast(A.ArcaneExplosion, icon, PLAYER_UNIT, "[FIRE] Arcane Explosion (moving)")
     end,
 }
 

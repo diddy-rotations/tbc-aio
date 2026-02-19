@@ -34,7 +34,7 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
                   { value = "arcane", text = "Arcane" },
               }},
         }},
-        { header = "Self-Buffs", settings = {
+        { header = "Armor", settings = {
             { type = "dropdown", key = "armor_type", default = "auto", label = "Armor Selection",
               tooltip = "Which armor spell to maintain. Auto = Molten Armor for all specs (best PvE).",
               options = {
@@ -43,6 +43,8 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
                   { value = "mage", text = "Mage Armor" },
                   { value = "ice", text = "Ice Armor" },
               }},
+        }},
+        { header = "Self-Buffs", settings = {
             { type = "checkbox", key = "use_arcane_intellect", default = true, label = "Arcane Intellect",
               tooltip = "Auto-buff Arcane Intellect (or Brilliance if grouped) out of combat." },
         }},

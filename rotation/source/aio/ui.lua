@@ -56,17 +56,16 @@ local function generate_profile_ui(s)
                     { E = "Header", L = { enUS = section.header }, S = 12 }
                 }
 
-                -- Group settings into rows of 2 (dropdowns get their own row)
+                -- Group settings into rows of 2
                 local settings = section.settings
                 local i = 1
                 while i <= #settings do
                     local st = settings[i]
                     local row = { build_widget(st, empty) }
 
-                    -- Add second widget to row if not wide/dropdown and another setting exists
-                    if st.type ~= "dropdown" and not st.wide and i + 1 <= #settings then
+                    if not st.wide and i + 1 <= #settings then
                         local next_st = settings[i + 1]
-                        if next_st.type ~= "dropdown" then
+                        if not next_st.wide then
                             i = i + 1
                             row[#row + 1] = build_widget(next_st, empty)
                         end

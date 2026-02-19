@@ -9,5 +9,5 @@
     "build:all": "node build.js --all",
     "watch": "node dev-watch.js"
   },
-  "excludeClasses": ["hunter","mage"]
+  "excludeClasses": ["hunter"]
 }

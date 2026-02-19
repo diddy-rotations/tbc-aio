@@ -190,14 +190,16 @@ local Frost_MovementSpell = {
 
     execute = function(icon, context, state)
         local movement_spell = context.settings.frost_movement_spell or "fire_blast"
+        local result
         if movement_spell == "fire_blast" then
-            return try_cast(A.FireBlast, icon, TARGET_UNIT, "[FROST] Fire Blast (moving)")
+            result = try_cast(A.FireBlast, icon, TARGET_UNIT, "[FROST] Fire Blast (moving)")
         elseif movement_spell == "ice_lance" then
-            return try_cast(A.IceLance, icon, TARGET_UNIT, "[FROST] Ice Lance (moving)")
+            result = try_cast(A.IceLance, icon, TARGET_UNIT, "[FROST] Ice Lance (moving)")
         elseif movement_spell == "cone_of_cold" then
-            return try_cast(A.ConeOfCold, icon, TARGET_UNIT, "[FROST] Cone of Cold (moving)")
+            result = try_cast(A.ConeOfCold, icon, TARGET_UNIT, "[FROST] Cone of Cold (moving)")
         end
-        return nil
+        if result then return result end
+        return try_cast(A.ArcaneExplosion, icon, PLAYER_UNIT, "[FROST] Arcane Explosion (moving)")
     end,
 }
 
