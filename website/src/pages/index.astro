@@ -7,7 +7,7 @@ import { config, url } from '../config';
   <div class="hero">
     <span class="version">v1.1.1</span>
     <h1>Diddy <span>AIO</span></h1>
-    <p class="tagline">Intelligent WoW TBC rotation automation. Druid &amp; Hunter.</p>
+    <p class="tagline">Intelligent WoW TBC rotation automation. Druid, Hunter &amp; Mage.</p>
     <div class="btn-group">
       <a href={config.downloadUrl} class="btn btn-primary">Download Latest</a>
       <a href={url('/guides/installation')} class="btn btn-secondary">Installation Guide</a>
@@ -27,6 +27,10 @@ import { config, url } from '../config';
         <a href={url('/classes/hunter')} class="card">
           <h3 class="c-hunter">Hunter</h3>
           <p>Full ranged DPS rotation with auto-shot clip tracking, shot weaving, pet management, sting priority, and mana-aware aspect switching.</p>
+        </a>
+        <a href={url('/classes/mage')} class="card">
+          <h3 class="c-mage">Mage</h3>
+          <p>3 specs: Fire, Frost, and Arcane. Burn/conserve phase management, scorch debuff tracking, cooldown stacking, and mana recovery automation.</p>
         </a>
       </div>
     </section>

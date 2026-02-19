@@ -14,6 +14,7 @@
   --green: #34d399;
   --druid: #ff7d0a;
   --hunter: #abd473;
+  --mage: #69ccf0;
   --gold: #fbbf24;
   --red: #f87171;
   --blue: #60a5fa;
@@ -119,6 +120,7 @@ a.card:hover { color: var(--text); border-color: var(--accent); }
 /* Class colors */
 .c-druid { color: var(--druid); }
 .c-hunter { color: var(--hunter); }
+.c-mage { color: var(--mage); }
 
 /* Section */
 .section { padding: 1rem 0; }

@@ -15,6 +15,24 @@ if not schema then return end
 -- Builds A.Data.ProfileUI[2] from the schema so the framework's built-in UI
 -- has all settings registered with correct keys, defaults, and types.
 
+local function build_widget(st, empty)
+    if st.type == "dropdown" then
+        local ot = {}
+        for j, opt in ipairs(st.options) do
+            ot[j] = { text = opt.text, value = opt.value }
+        end
+        return { E = "Dropdown", DB = st.key, DBV = st.default, OT = ot,
+            L = { ANY = st.label }, TT = { ANY = st.tooltip }, M = empty }
+    elseif st.type == "checkbox" then
+        return { E = "Checkbox", DB = st.key, DBV = st.default,
+            L = { enUS = st.label }, TT = { enUS = st.tooltip }, M = empty }
+    else
+        return { E = "Slider", DB = st.key, DBV = st.default,
+            MIN = st.min, MAX = st.max,
+            L = { enUS = st.label }, TT = { enUS = st.tooltip }, M = empty }
+    end
+end
+
 local function generate_profile_ui(s)
     local profile_ui = {}
     local empty = {}
@@ -25,7 +43,7 @@ local function generate_profile_ui(s)
     }
 
     -- Iterate all tabs in the schema
-    for _, tab_def in pairs(s) do
+    for _, tab_def in ipairs(s) do
         if tab_def.sections then
             -- Tab header
             profile_ui[#profile_ui + 1] = {
@@ -38,32 +56,19 @@ local function generate_profile_ui(s)
                     { E = "Header", L = { enUS = section.header }, S = 12 }
                 }
 
-                -- Group settings into rows of 2
+                -- Group settings into rows of 2 (dropdowns get their own row)
                 local settings = section.settings
                 local i = 1
                 while i <= #settings do
-                    local row = {}
                     local st = settings[i]
-                    if st.type == "checkbox" then
-                        row[#row + 1] = { E = "Checkbox", DB = st.key, DBV = st.default,
-                            L = { enUS = st.label }, TT = { enUS = st.tooltip }, M = empty }
-                    else
-                        row[#row + 1] = { E = "Slider", DB = st.key, DBV = st.default,
-                            MIN = st.min, MAX = st.max,
-                            L = { enUS = st.label }, TT = { enUS = st.tooltip }, M = empty }
-                    end
+                    local row = { build_widget(st, empty) }
 
-                    -- Add second widget to row if not wide and another setting exists
-                    if not st.wide and i + 1 <= #settings then
-                        i = i + 1
-                        st = settings[i]
-                        if st.type == "checkbox" then
-                            row[#row + 1] = { E = "Checkbox", DB = st.key, DBV = st.default,
-                                L = { enUS = st.label }, TT = { enUS = st.tooltip }, M = empty }
-                        else
-                            row[#row + 1] = { E = "Slider", DB = st.key, DBV = st.default,
-                                MIN = st.min, MAX = st.max,
-                                L = { enUS = st.label }, TT = { enUS = st.tooltip }, M = empty }
+                    -- Add second widget to row if not wide/dropdown and another setting exists
+                    if st.type ~= "dropdown" and not st.wide and i + 1 <= #settings then
+                        local next_st = settings[i + 1]
+                        if next_st.type ~= "dropdown" then
+                            i = i + 1
+                            row[#row + 1] = build_widget(next_st, empty)
                         end
                     end
 
