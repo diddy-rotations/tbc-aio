@@ -28,7 +28,7 @@ import { config, url } from '../../config';
       <ol class="steps">
         <li>
           <h3>Download the compiled profile</h3>
-          <p>Get the latest <code>TellMeWhen.lua</code> from the <a href={config.releasesUrl}>GitHub Releases</a> page.</p>
+          <p>Get the latest <code>TellMeWhen.lua</code> from the <a href={config.releasesUrl}>Releases</a> page or use the download button on the homepage.</p>
         </li>
         <li>
           <h3>Locate your SavedVariables folder</h3>
@@ -50,25 +50,6 @@ import { config, url } from '../../config';
         <li>
           <h3>Configure settings</h3>
           <p>Open the Diddy AIO settings UI (minimap button or TMW options) to customize thresholds, toggles, and rotation behavior for your spec.</p>
-        </li>
-      </ol>
-    </section>
-
-    <section class="section">
-      <h2>Building from Source</h2>
-      <p class="section-sub">For developers who want to modify and rebuild the rotation.</p>
-      <ol class="steps">
-        <li>
-          <h3>Clone the repository</h3>
-          <p><code>git clone {config.cloneUrl}</code></p>
-        </li>
-        <li>
-          <h3>Build the compiled output</h3>
-          <p>Run <code>cd rotation && node build.js</code> to generate <code>output/TellMeWhen.lua</code>.</p>
-        </li>
-        <li>
-          <h3>Auto-sync during development</h3>
-          <p>Copy <code>rotation/dev.ini.example</code> to <code>rotation/dev.ini</code>, set your SavedVariables path, then run <code>node dev-watch.js</code> for automatic rebuild and sync on save.</p>
         </li>
       </ol>
     </section>
