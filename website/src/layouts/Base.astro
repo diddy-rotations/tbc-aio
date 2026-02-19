@@ -47,47 +47,37 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
   <meta name="twitter:description" content={description} />
 </head>
 <body>
-  <nav class="nav">
+  <nav class="nav" id="nav">
     <div class="nav-inner">
       <a href={url('/')} class="nav-logo">Diddy <span>AIO</span></a>
-      <ul class="nav-links">
-        <li class="nav-dd nav-desktop">
-          <button class="nav-dd-btn" aria-expanded="false">Classes</button>
-          <ul class="nav-dd-menu">
-            <li><a href={url('/classes/druid')}>Druid</a></li>
-            <li><a href={url('/classes/hunter')}>Hunter</a></li>
-            <li><a href={url('/classes/mage')}>Mage</a></li>
-            <li><a href={url('/classes/paladin')}>Paladin</a></li>
-            <li><a href={url('/classes/priest')}>Priest</a></li>
-            <li><a href={url('/classes/rogue')}>Rogue</a></li>
-            <li><a href={url('/classes/shaman')}>Shaman</a></li>
-            <li><a href={url('/classes/warlock')}>Warlock</a></li>
-            <li><a href={url('/classes/warrior')}>Warrior</a></li>
-          </ul>
-        </li>
-        <li class="nav-desktop"><a href={url('/guides/installation')}>Install</a></li>
-        <li class="nav-desktop"><a href={url('/changelog')}>Changelog</a></li>
-        <li class="nav-desktop"><a href={url('/faq')}>FAQ</a></li>
-        <li class="nav-desktop"><a href={config.discord} target="_blank">Discord</a></li>
-        <li class="nav-more">
-          <button class="nav-more-btn" aria-label="More links" aria-expanded="false">&#9662;</button>
-          <ul class="nav-dropdown">
-            <li><a href={url('/classes/druid')}>Druid</a></li>
-            <li><a href={url('/classes/hunter')}>Hunter</a></li>
-            <li><a href={url('/classes/mage')}>Mage</a></li>
-            <li><a href={url('/classes/paladin')}>Paladin</a></li>
-            <li><a href={url('/classes/priest')}>Priest</a></li>
-            <li><a href={url('/classes/rogue')}>Rogue</a></li>
-            <li><a href={url('/classes/shaman')}>Shaman</a></li>
-            <li><a href={url('/classes/warlock')}>Warlock</a></li>
-            <li><a href={url('/classes/warrior')}>Warrior</a></li>
-            <li><a href={url('/guides/installation')}>Install</a></li>
-            <li><a href={url('/changelog')}>Changelog</a></li>
-            <li><a href={url('/faq')}>FAQ</a></li>
-            <li><a href={config.discord} target="_blank">Discord</a></li>
-          </ul>
-        </li>
-      </ul>
+      <button class="nav-classes-btn" aria-expanded="false">Classes</button>
+      <div class="nav-links">
+        <a href={url('/guides/installation')} class="nav-link">Install</a>
+        <a href={url('/changelog')} class="nav-link">Changelog</a>
+        <a href={url('/faq')} class="nav-link">FAQ</a>
+        <a href={config.discord} class="nav-link" target="_blank">Discord</a>
+      </div>
+      <button class="hamburger-btn" aria-label="Menu" aria-expanded="false">
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+        <span class="hamburger-bar"></span>
+      </button>
+    </div>
+    <div class="nav-panel" id="nav-panel">
+      <div class="nav-panel-inner">
+        <div class="nav-panel-label">Classes</div>
+        <div class="nav-panel-grid">
+          <a href={url('/classes/druid')} class="c-druid">Druid</a>
+          <a href={url('/classes/hunter')} class="c-hunter">Hunter</a>
+          <a href={url('/classes/mage')} class="c-mage">Mage</a>
+          <a href={url('/classes/paladin')} class="c-paladin">Paladin</a>
+          <a href={url('/classes/priest')} class="c-priest">Priest</a>
+          <a href={url('/classes/rogue')} class="c-rogue">Rogue</a>
+          <a href={url('/classes/shaman')} class="c-shaman">Shaman</a>
+          <a href={url('/classes/warlock')} class="c-warlock">Warlock</a>
+          <a href={url('/classes/warrior')} class="c-warrior">Warrior</a>
+        </div>
+      </div>
     </div>
   </nav>
 
@@ -100,23 +90,70 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
   </footer>
 
   <script is:inline>
-    document.querySelectorAll('.nav-dd-btn, .nav-more-btn').forEach(function(btn) {
-      var menu = btn.nextElementSibling;
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        // close other open menus
-        document.querySelectorAll('.nav-dd-menu.open, .nav-dropdown.open').forEach(function(m) {
-          if (m !== menu) { m.classList.remove('open'); m.previousElementSibling.setAttribute('aria-expanded', 'false'); }
-        });
-        var open = menu.classList.toggle('open');
-        btn.setAttribute('aria-expanded', open);
-      });
+    var nav = document.getElementById('nav');
+    var classesBtn = document.querySelector('.nav-classes-btn');
+    var hamburger = document.querySelector('.hamburger-btn');
+    var panel = document.getElementById('nav-panel');
+
+    // Position panel under Classes button (desktop only)
+    function positionPanel() {
+      if (window.innerWidth > 768) {
+        var btnRect = classesBtn.getBoundingClientRect();
+        var navRect = nav.getBoundingClientRect();
+        var left = btnRect.left - navRect.left + btnRect.width / 2 - 110;
+        left = Math.max(8, Math.min(left, navRect.width - 288));
+        panel.style.left = left + 'px';
+      }
+    }
+    function openPanel() {
+      panel.classList.add('open');
+      classesBtn.setAttribute('aria-expanded', 'true');
+      positionPanel();
+    }
+    function closePanel() {
+      panel.classList.remove('open');
+      classesBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    // Desktop: click toggles panel
+    classesBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (panel.classList.contains('open')) { closePanel(); } else { openPanel(); }
     });
-    document.addEventListener('click', function() {
-      document.querySelectorAll('.nav-dd-menu.open, .nav-dropdown.open').forEach(function(m) {
-        m.classList.remove('open');
-        m.previousElementSibling.setAttribute('aria-expanded', 'false');
-      });
+
+    // Desktop: hover opens/closes with small delay for cursor travel
+    var hoverTimer = null;
+    function cancelHover() { clearTimeout(hoverTimer); hoverTimer = null; }
+    classesBtn.addEventListener('mouseenter', function() {
+      if (window.innerWidth > 768) { cancelHover(); openPanel(); }
+    });
+    classesBtn.addEventListener('mouseleave', function() {
+      if (window.innerWidth > 768) { hoverTimer = setTimeout(closePanel, 150); }
+    });
+    panel.addEventListener('mouseenter', cancelHover);
+    panel.addEventListener('mouseleave', function() {
+      if (window.innerWidth > 768) { hoverTimer = setTimeout(closePanel, 150); }
+    });
+
+    // Mobile: hamburger toggles nav.open (page links) + panel
+    hamburger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var open = nav.classList.toggle('open');
+      panel.classList.toggle('open', open);
+      hamburger.classList.toggle('open', open);
+      hamburger.setAttribute('aria-expanded', open);
+      classesBtn.setAttribute('aria-expanded', open);
+    });
+
+    // Click outside closes everything
+    document.addEventListener('click', function(e) {
+      if (!nav.contains(e.target)) {
+        panel.classList.remove('open');
+        nav.classList.remove('open');
+        hamburger.classList.remove('open');
+        hamburger.setAttribute('aria-expanded', 'false');
+        classesBtn.setAttribute('aria-expanded', 'false');
+      }
     });
   </script>
 </body>

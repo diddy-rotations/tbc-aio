@@ -178,9 +178,32 @@ import { url } from '../../config';
     </section>
 
     <section class="section">
-      <h2>Talent Guides</h2>
-      <div class="btn-group" style="justify-content: flex-start;">
-        <a href={url('/guides/druid-talents')} class="btn btn-secondary">Druid Talent Specs</a>
+      <h2>Settings Overview</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>General</h3>
+          <p>Faerie Fire toggle, trinkets, racial cooldown, recovery items (Healthstone, potions, Dark Rune), Innervate self-cast, debug mode.</p>
+        </div>
+        <div class="card">
+          <h3>Cat (Feral DPS)</h3>
+          <p>Powershift toggle and mana threshold, Rip/Rake maintenance, Tiger's Fury, Ferocious Bite energy and execute thresholds, opener config, AoE settings, focus Prowl.</p>
+        </div>
+        <div class="card">
+          <h3>Bear (Feral Tank)</h3>
+          <p>Off-tank mode, Lacerate/Demo Roar maintenance, taunt config (Growl, Challenging Roar), per-ability rage thresholds, Swipe AoE and CC safety, emergency abilities.</p>
+        </div>
+        <div class="card">
+          <h3>Caster (Recovery)</h3>
+          <p>Healing thresholds (Rejuv, Regrowth, emergency), mana reserve for shifts, auto-dispels (curse, poison), self-buff maintenance.</p>
+        </div>
+        <div class="card">
+          <h3>Balance (Moonkin)</h3>
+          <p>DoT toggles (Moonfire, Insect Swarm), Force of Nature TTD gating, Hurricane AoE threshold, mana tier cutoffs.</p>
+        </div>
+        <div class="card">
+          <h3>Resto (Tree of Life)</h3>
+          <p>Healing HP thresholds (emergency, tank, standard, proactive), Lifebloom refresh, Swiftmend threshold, tank priority, mana conserve, party dispels.</p>
+        </div>
       </div>
     </section>
 

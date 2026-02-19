@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import TalentTree from '../../components/TalentTree.astro';
+import { trees, presets } from '../../data/paladin-talents.js';
+import { url } from '../../config';
+---
+
+<Base title="Paladin Talent Specs" description="Recommended talent specs for Diddy AIO Paladin rotation.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/paladin')}>Paladin</a> / <a href={url('/guides/paladin-talents')}>Talents</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--paladin);">Paladin Talent Specs</h1>
+      <p class="section-sub">The rotation adapts to your available talents. All three Paladin specs are supported.</p>
+    </section>
+
+    {presets.map((preset) => (
+      <section class="section" id={preset.slug}>
+        <TalentTree trees={trees} preset={preset} classColor="var(--paladin)" />
+      </section>
+    ))}
+
+  </div>
+</Base>

@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import TalentTree from '../../components/TalentTree.astro';
+import { trees, presets } from '../../data/warlock-talents.js';
+import { url } from '../../config';
+---
+
+<Base title="Warlock Talent Specs" description="Recommended talent specs for Diddy AIO Warlock rotation.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/warlock')}>Warlock</a> / <a href={url('/guides/warlock-talents')}>Talents</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--warlock);">Warlock Talent Specs</h1>
+      <p class="section-sub">The rotation adapts to your available talents. All three Warlock specs are supported.</p>
+    </section>
+
+    {presets.map((preset) => (
+      <section class="section" id={preset.slug}>
+        <TalentTree trees={trees} preset={preset} classColor="var(--warlock)" />
+      </section>
+    ))}
+
+  </div>
+</Base>

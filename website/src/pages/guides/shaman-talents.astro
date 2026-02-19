@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import TalentTree from '../../components/TalentTree.astro';
+import { trees, presets } from '../../data/shaman-talents.js';
+import { url } from '../../config';
+---
+
+<Base title="Shaman Talent Specs" description="Recommended talent specs for Diddy AIO Shaman rotation.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/shaman')}>Shaman</a> / <a href={url('/guides/shaman-talents')}>Talents</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--shaman);">Shaman Talent Specs</h1>
+      <p class="section-sub">The rotation adapts to your available talents. All three Shaman specs are supported.</p>
+    </section>
+
+    {presets.map((preset) => (
+      <section class="section" id={preset.slug}>
+        <TalentTree trees={trees} preset={preset} classColor="var(--shaman)" />
+      </section>
+    ))}
+
+  </div>
+</Base>

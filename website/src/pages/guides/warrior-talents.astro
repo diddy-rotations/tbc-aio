@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import TalentTree from '../../components/TalentTree.astro';
+import { trees, presets } from '../../data/warrior-talents.js';
+import { url } from '../../config';
+---
+
+<Base title="Warrior Talent Specs" description="Recommended talent specs for Diddy AIO Warrior rotation.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/warrior')}>Warrior</a> / <a href={url('/guides/warrior-talents')}>Talents</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--warrior);">Warrior Talent Specs</h1>
+      <p class="section-sub">The rotation adapts to your available talents. All three Warrior specs are supported.</p>
+    </section>
+
+    {presets.map((preset) => (
+      <section class="section" id={preset.slug}>
+        <TalentTree trees={trees} preset={preset} classColor="var(--warrior)" />
+      </section>
+    ))}
+
+  </div>
+</Base>

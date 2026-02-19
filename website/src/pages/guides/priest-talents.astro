@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import TalentTree from '../../components/TalentTree.astro';
+import { trees, presets } from '../../data/priest-talents.js';
+import { url } from '../../config';
+---
+
+<Base title="Priest Talent Specs" description="Recommended talent specs for Diddy AIO Priest rotation.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/priest')}>Priest</a> / <a href={url('/guides/priest-talents')}>Talents</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--priest);">Priest Talent Specs</h1>
+      <p class="section-sub">The rotation adapts to your available talents. All four Priest specs are supported.</p>
+    </section>
+
+    {presets.map((preset) => (
+      <section class="section" id={preset.slug}>
+        <TalentTree trees={trees} preset={preset} classColor="var(--priest)" />
+      </section>
+    ))}
+
+  </div>
+</Base>
