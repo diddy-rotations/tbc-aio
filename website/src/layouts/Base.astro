@@ -10,6 +10,9 @@ interface Props {
 const { title, description = 'Multi-class WoW TBC rotation addon.' } = Astro.props;
 const pageTitle = `${title} | Diddy AIO`;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const path = Astro.url.pathname.replace(/\/$/, '');
+const isActive = (href: string) => path === url(href).replace(/\/$/, '') || path.startsWith(url(href).replace(/\/$/, '') + '/');
+const isClassPage = path.startsWith(url('/classes').replace(/\/$/, ''));
 ---
 
 <!doctype html>
@@ -50,11 +53,11 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
   <nav class="nav" id="nav">
     <div class="nav-inner">
       <a href={url('/')} class="nav-logo">Diddy <span>AIO</span></a>
-      <button class="nav-classes-btn" aria-expanded="false">Classes</button>
+      <button class:list={["nav-classes-btn", { active: isClassPage }]} aria-expanded="false">Classes</button>
       <div class="nav-links">
-        <a href={url('/guides/installation')} class="nav-link">Install</a>
-        <a href={url('/changelog')} class="nav-link">Changelog</a>
-        <a href={url('/faq')} class="nav-link">FAQ</a>
+        <a href={url('/guides/installation')} class:list={["nav-link", { active: isActive('/guides/installation') }]}>Install</a>
+        <a href={url('/changelog')} class:list={["nav-link", { active: isActive('/changelog') }]}>Changelog</a>
+        <a href={url('/faq')} class:list={["nav-link", { active: isActive('/faq') }]}>FAQ</a>
         <a href={config.discord} class="nav-link" target="_blank">Discord</a>
       </div>
       <button class="hamburger-btn" aria-label="Menu" aria-expanded="false">
@@ -86,7 +89,12 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
   </main>
 
   <footer class="footer">
-    Diddy AIO &mdash; WoW TBC rotation addon
+    <div class="footer-links">
+      <a href={config.downloadUrl}>Download</a>
+      <a href={config.github} target="_blank">GitHub</a>
+      <a href={config.discord} target="_blank">Discord</a>
+    </div>
+    <p>Diddy AIO &mdash; WoW TBC rotation addon</p>
   </footer>
 
   <script is:inline>

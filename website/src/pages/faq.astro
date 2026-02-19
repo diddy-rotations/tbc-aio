@@ -17,35 +17,35 @@ import { config, url } from '../config';
     <section class="section">
       <h2>Setup &amp; Compatibility</h2>
 
-      <div class="faq-item">
+      <div class="faq-item" id="requirements">
         <button class="faq-q" aria-expanded="false">What do I need to run Diddy AIO?</button>
         <div class="faq-a">
           <p>You need three things: a WoW TBC (The Burning Crusade) client, the <strong>TellMeWhen</strong> (TMW) addon, and the <strong>GGL Action framework</strong>. The rotation runs as a TMW profile powered by the Action framework &mdash; it won't work without both installed. See the <a href={url('/guides/installation')}>Installation Guide</a> for step-by-step setup.</p>
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="classes-supported">
         <button class="faq-q" aria-expanded="false">Which classes are supported?</button>
         <div class="faq-a">
           <p>All 9 classes: <strong class="c-druid">Druid</strong>, <strong class="c-hunter">Hunter</strong>, <strong class="c-mage">Mage</strong>, <strong class="c-paladin">Paladin</strong>, <strong class="c-priest">Priest</strong>, <strong class="c-rogue">Rogue</strong>, <strong class="c-shaman">Shaman</strong>, <strong class="c-warlock">Warlock</strong>, and <strong class="c-warrior">Warrior</strong>. Each class has multiple spec-specific playstyles with configurable settings. See the class pages for detailed rotation breakdowns.</p>
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="servers">
         <button class="faq-q" aria-expanded="false">Which servers or clients are supported?</button>
         <div class="faq-a">
           <p>Diddy AIO works on any TBC 2.4.3 client that supports the GGL Action framework. This includes most popular private servers running the TBC patch. It does <strong>not</strong> support Classic Era (1.12), Wrath, or Retail.</p>
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="conflicts">
         <button class="faq-q" aria-expanded="false">Will it conflict with other TMW profiles or addons?</button>
         <div class="faq-a">
           <p>Diddy AIO uses its own TMW profile, so it won't overwrite your existing profiles. You can switch between them freely. It shouldn't conflict with other addons, but if you're running another rotation addon on the same Action framework, make sure only one profile is active at a time.</p>
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="updating">
         <button class="faq-q" aria-expanded="false">How do I update to a new version?</button>
         <div class="faq-a">
           <p>Download the latest <code>TellMeWhen.lua</code> from the releases page and re-import it into your SavedVariables, then <code>/reload</code> in-game. Your settings are stored separately in the Action framework's profile database, so they'll carry over between updates.</p>
@@ -56,28 +56,28 @@ import { config, url } from '../config';
     <section class="section">
       <h2>Usage &amp; Behavior</h2>
 
-      <div class="faq-item">
+      <div class="faq-item" id="ability-not-casting">
         <button class="faq-q" aria-expanded="false">Why isn't the rotation casting a specific ability?</button>
         <div class="faq-a">
           <p>Check a few things: (1) the ability might be disabled in settings &mdash; open the settings UI and verify the toggle is on, (2) resource thresholds might not be met &mdash; some abilities only fire above certain energy/mana/rage levels, (3) the target might not meet conditions like time-to-die or debuff requirements. Enable <strong>Debug Mode</strong> in settings to see what the rotation is evaluating.</p>
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="auto-shift">
         <button class="faq-q" aria-expanded="false">Why doesn't the Druid rotation auto-shift forms?</button>
         <div class="faq-a">
           <p>By design. During PVE combat, the rotation respects your current form and won't shift you out of it. This prevents disrupting your gameplay &mdash; you stay in control of form choices. The <strong>A[1] suggestion icon</strong> will recommend when a form change would be beneficial (e.g., shifting to Bear when taking damage). Out of combat, the Caster idle playstyle handles self-healing and buff maintenance.</p>
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="suggestion-icon">
         <button class="faq-q" aria-expanded="false">What does the suggestion icon (A[1]) do?</button>
         <div class="faq-a">
           <p>The suggestion icon shows abilities the rotation recommends but won't auto-cast &mdash; typically form shifts, manual cooldowns, or situational abilities. It's a visual hint, not an action. You decide whether to follow it.</p>
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="customization">
         <button class="faq-q" aria-expanded="false">Can I customize ability thresholds and toggles?</button>
         <div class="faq-a">
           <p>Yes. Open the Diddy AIO settings UI via the minimap button or TMW options. Settings are organized by category with sliders for numeric thresholds (health %, mana %, energy levels) and checkboxes for enabling/disabling individual abilities. Changes take effect immediately &mdash; no reload needed.</p>
@@ -88,14 +88,14 @@ import { config, url } from '../config';
     <section class="section">
       <h2>Community</h2>
 
-      <div class="faq-item">
+      <div class="faq-item" id="bug-report">
         <button class="faq-q" aria-expanded="false">How do I report a bug or request a feature?</button>
         <div class="faq-a">
           <p>Reach out on <a href={config.discord} target="_blank">Discord</a> with a description of the problem and steps to reproduce it. For feature requests, describe what you'd like and why.</p>
         </div>
       </div>
 
-      <div class="faq-item">
+      <div class="faq-item" id="discord-bot">
         <button class="faq-q" aria-expanded="false">What is the Discord bot?</button>
         <div class="faq-a">
           <p>The Diddy AIO Discord bot lets you request personalized rotation tweaks. Describe what you want changed (e.g., "lower the health threshold for Healing Touch to 40%") and the bot generates a custom build with your modifications. It's powered by AI and produces a ready-to-import profile.</p>
@@ -113,5 +113,18 @@ import { config, url } from '../config';
         btn.setAttribute('aria-expanded', open);
       });
     });
+    // Auto-open FAQ item if URL hash matches
+    function openHashFaq() {
+      if (location.hash) {
+        var target = document.querySelector(location.hash);
+        if (target && target.classList.contains('faq-item')) {
+          target.classList.add('open');
+          target.querySelector('.faq-q').setAttribute('aria-expanded', 'true');
+          setTimeout(function() { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
+        }
+      }
+    }
+    openHashFaq();
+    window.addEventListener('hashchange', openHashFaq);
   </script>
 </Base>
