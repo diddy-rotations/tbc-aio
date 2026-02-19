@@ -119,6 +119,8 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Health Funnel when pet HP drops below this.", format = "%d%%" },
             { type = "checkbox", key = "demo_use_fel_domination", default = true, label = "Use Fel Domination",
               tooltip = "Use Fel Domination for instant pet resummon if pet dies (requires Demo talent)." },
+            { type = "checkbox", key = "demo_use_soul_link", default = true, label = "Use Soul Link",
+              tooltip = "Maintain Soul Link buff (shares 20%% damage with pet, requires Demo talent)." },
         }},
         { header = "Demonic Sacrifice", settings = {
             { type = "checkbox", key = "demo_use_sacrifice", default = false, label = "Use Demonic Sacrifice",

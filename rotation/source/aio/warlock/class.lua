@@ -30,8 +30,7 @@ Action[A.PlayerClass] = {
 
     -- Core Damage
     ShadowBolt     = Create({ Type = "Spell", ID = 686, useMaxRank = true }),
-    Incinerate     = Create({ Type = "Spell", ID = 29722 }),   -- TBC spell, R1=29722, R2=32231
-    IncinerateR2   = Create({ Type = "Spell", ID = 32231 }),
+    Incinerate     = Create({ Type = "Spell", ID = 29722, useMaxRank = true }),   -- TBC spell, auto max rank
     SearingPain    = Create({ Type = "Spell", ID = 5676, useMaxRank = true }),
     SoulFire       = Create({ Type = "Spell", ID = 6353, useMaxRank = true }),
     Shadowburn     = Create({ Type = "Spell", ID = 17877, useMaxRank = true }),
@@ -46,7 +45,7 @@ Action[A.PlayerClass] = {
     CurseOfElements     = Create({ Type = "Spell", ID = 1490, useMaxRank = true }),
     CurseOfRecklessness = Create({ Type = "Spell", ID = 704, useMaxRank = true }),
     CurseOfTongues      = Create({ Type = "Spell", ID = 1714, useMaxRank = true }),
-    UnstableAffliction  = Create({ Type = "Spell", ID = 30108 }),  -- 41pt Affliction talent
+    UnstableAffliction  = Create({ Type = "Spell", ID = 30108, useMaxRank = true }),  -- 41pt Affliction talent
     SiphonLife          = Create({ Type = "Spell", ID = 18265, useMaxRank = true }),
     SeedOfCorruption    = Create({ Type = "Spell", ID = 27243 }),
 
@@ -59,7 +58,7 @@ Action[A.PlayerClass] = {
     -- AoE
     RainOfFire  = Create({ Type = "Spell", ID = 5740, useMaxRank = true }),
     Hellfire    = Create({ Type = "Spell", ID = 1949, useMaxRank = true }),
-    Shadowfury  = Create({ Type = "Spell", ID = 30283 }),  -- 41pt Destro talent
+    Shadowfury  = Create({ Type = "Spell", ID = 30283, useMaxRank = true }),  -- 41pt Destro talent
 
     -- Mana Management
     LifeTap   = Create({ Type = "Spell", ID = 1454, useMaxRank = true, Click = { unit = "player", type = "spell" } }),
@@ -288,7 +287,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Warlock",
-    version = "v1.2.2",
+    version = "v1.2.3",
     playstyles = { "affliction", "demonology", "destruction" },
     idle_playstyle_name = nil,
 
@@ -323,6 +322,9 @@ rotation_registry:register_class({
         -- Armor buff
         ctx.has_fel_armor = (Unit("player"):HasBuffs(Constants.BUFF_ID.FEL_ARMOR_R2) or 0) > 0
             or (Unit("player"):HasBuffs(Constants.BUFF_ID.FEL_ARMOR_R1) or 0) > 0
+
+        -- Soul Link buff
+        ctx.has_soul_link = (Unit("player"):HasBuffs(Constants.BUFF_ID.SOUL_LINK) or 0) > 0
 
         -- Soul shards
         ctx.soul_shards = _G.GetItemCount(6265) or 0

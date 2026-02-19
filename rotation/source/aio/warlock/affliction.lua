@@ -87,7 +87,12 @@ local Aff_MaintainCurse = {
 
     matches = function(context, state)
         if context.settings.curse_type == "none" then return false end
-        return state.curse_duration < 1.5
+        -- CoA has accelerating ticks — last ticks deal most damage, avoid clipping
+        local threshold = 1.5
+        if context.settings.curse_type == "agony" then
+            threshold = 0.5
+        end
+        return state.curse_duration < threshold
     end,
 
     execute = function(icon, context, state)
@@ -304,12 +309,12 @@ local Aff_LifeTap = {
 rotation_registry:register("affliction", {
     named("ShadowTrance",        Aff_ShadowTrance),
     named("MaintainCurse",       Aff_MaintainCurse),
+    named("AoE",                 Aff_AoE),
     named("MaintainUA",          Aff_MaintainUA),
     named("MaintainCorruption",  Aff_MaintainCorruption),
     named("MaintainSiphonLife",  Aff_MaintainSiphonLife),
     named("MaintainImmolate",    Aff_MaintainImmolate),
     named("DrainSoul",           Aff_DrainSoul),
-    named("AoE",                 Aff_AoE),
     named("Trinkets",            Aff_Trinkets),
     named("Racial",              Aff_Racial),
     named("ShadowBolt",          Aff_ShadowBolt),

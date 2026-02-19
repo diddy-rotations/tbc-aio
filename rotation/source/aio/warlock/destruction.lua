@@ -76,8 +76,8 @@ local Destro_Backlash = {
 
     execute = function(icon, context, state)
         -- Fire build: instant Incinerate; Shadow build: instant Shadow Bolt
-        if state.is_fire_build and is_spell_available(A.IncinerateR2) then
-            local result = try_cast(A.IncinerateR2, icon, TARGET_UNIT, "[DESTRO] Incinerate (Backlash)")
+        if state.is_fire_build and is_spell_available(A.Incinerate) then
+            local result = try_cast(A.Incinerate, icon, TARGET_UNIT, "[DESTRO] Incinerate (Backlash)")
             if result then return result end
         end
         return try_cast(A.ShadowBolt, icon, TARGET_UNIT, "[DESTRO] Shadow Bolt (Backlash)")
@@ -253,8 +253,8 @@ local Destro_PrimarySpell = {
     end,
 
     execute = function(icon, context, state)
-        if state.is_fire_build and is_spell_available(A.IncinerateR2) then
-            local result = try_cast(A.IncinerateR2, icon, TARGET_UNIT, "[DESTRO] Incinerate")
+        if state.is_fire_build and is_spell_available(A.Incinerate) then
+            local result = try_cast(A.Incinerate, icon, TARGET_UNIT, "[DESTRO] Incinerate")
             if result then return result end
         end
         return try_cast(A.ShadowBolt, icon, TARGET_UNIT, "[DESTRO] Shadow Bolt")

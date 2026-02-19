@@ -180,10 +180,10 @@ local Constants = {
     },
 
     -- All aura buff IDs for checking if any aura is active
-    AURA_BUFF_IDS = { 27149, 27150, 19746, 20218, 27151, 27152, 27153 },
+    AURA_BUFF_IDS = { 27149, 27150, 19746, 20218, 27151, 27152, 27153, 32223 },
 
     -- All blessing buff IDs for checking if any blessing is active on self
-    BLESSING_BUFF_IDS = { 27140, 27142, 20217, 1038, 27168 },
+    BLESSING_BUFF_IDS = { 27140, 27142, 20217, 1038, 27168, 27141, 27143, 25898, 25895, 27169 },
 }
 
 NS.Constants = Constants
@@ -284,7 +284,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Paladin",
-    version = "v1.2.2",
+    version = "v1.2.3",
     playstyles = { "retribution", "protection", "holy" },
     idle_playstyle_name = nil,
 
@@ -320,7 +320,7 @@ rotation_registry:register_class({
         ctx.righteous_fury_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.RIGHTEOUS_FURY) or 0) > 0
 
         -- Enemy count for AoE decisions
-        ctx.enemy_count = MultiUnits:GetByRangeInCombat(10)
+        ctx.enemy_count = MultiUnits:GetByRangeInCombat(8)
 
         -- Swing timer data (for Ret seal twisting)
         local swing_start = Player:GetSwingStart(1) or 0

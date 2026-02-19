@@ -15,6 +15,53 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.2.3 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-minor">Patch</span>
+
+      <h3><a href={url('/classes/mage')} class="class-link c-mage">Mage</a></h3>
+      <ul class="features">
+        <li>Added Freeze action for Water Elemental debuff tracking (fixes Frost nil error)</li>
+        <li>Cold Snap now checks both Icy Veins and Water Elemental cooldowns</li>
+        <li>Blast Wave and Dragon&rsquo;s Breath now require melee range</li>
+        <li>Added Ice Barrier middleware with toggle setting</li>
+      </ul>
+
+      <h3><a href={url('/classes/paladin')} class="class-link c-paladin">Paladin</a></h3>
+      <ul class="features">
+        <li>Added Greater Blessing IDs to buff tracking (no longer overwrites 30-min blessings)</li>
+        <li>Added Crusader Aura to aura detection</li>
+        <li>Fixed enemy count range to 8yd (Consecration radius)</li>
+        <li>Protection: Reordered priorities &mdash; Holy Shield and Seal before Avenger&rsquo;s Shield</li>
+      </ul>
+
+      <h3><a href={url('/classes/shaman')} class="class-link c-shaman">Shaman</a></h3>
+      <ul class="features">
+        <li>Fixed Earth Shock interrupt priority (now highest middleware priority)</li>
+        <li>Restoration: Nature&rsquo;s Swiftness now correctly marked as off-GCD</li>
+        <li>Elemental: Moved Fire Elemental to lower priority (after core rotation)</li>
+        <li>Enhancement: Earth Shock now prioritized during Stormstrike +20% nature debuff</li>
+        <li>Enhancement: Added AoE strategy (Fire Nova &gt; Magma &gt; Chain Lightning)</li>
+      </ul>
+
+      <h3><a href={url('/classes/warlock')} class="class-link c-warlock">Warlock</a></h3>
+      <ul class="features">
+        <li>Added useMaxRank to Incinerate, Unstable Affliction, and Shadowfury (fixes R1 casting)</li>
+        <li>Removed duplicate IncinerateR2 action</li>
+        <li>Affliction: Fixed Curse of Agony clipping (0.5s threshold preserves accelerating ticks)</li>
+        <li>Affliction: Moved AoE higher in priority order</li>
+        <li>Demonology: Added Fel Domination + pet resummon strategy</li>
+        <li>Demonology: Added Soul Link maintenance strategy</li>
+      </ul>
+
+      <h3><a href={url('/classes/warrior')} class="class-link c-warrior">Warrior</a></h3>
+      <ul class="features">
+        <li>Arms: Fixed Sweeping Strikes to be on-GCD (TBC behavior)</li>
+        <li>Arms/Fury: Added Thunder Clap and Demoralizing Shout maintenance strategies</li>
+        <li>Fury: Rampage now always used when stacks &lt; 5 (builds to max before refresh-only mode)</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.2.2 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-minor">Patch</span>
 

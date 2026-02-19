@@ -39,6 +39,8 @@ local arms_state = {
     target_below_20 = false,
     sunder_stacks = 0,
     sunder_duration = 0,
+    thunder_clap_duration = 0,
+    demo_shout_duration = 0,
 }
 
 local function get_arms_state(context)
@@ -50,6 +52,8 @@ local function get_arms_state(context)
     arms_state.target_below_20 = context.target_hp < 20
     arms_state.sunder_stacks = Unit(TARGET_UNIT):HasDeBuffsStacks(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     arms_state.sunder_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
+    arms_state.thunder_clap_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.THUNDER_CLAP) or 0
+    arms_state.demo_shout_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.DEMO_SHOUT) or 0
 
     return arms_state
 end
@@ -137,11 +141,10 @@ local Arms_Whirlwind = {
     end,
 }
 
--- [5] Sweeping Strikes (Battle Stance, Arms talent)
+-- [5] Sweeping Strikes (Battle Stance, Arms talent — on GCD in TBC)
 local Arms_SweepingStrikes = {
     requires_combat = true,
     requires_enemy = true,
-    is_gcd_gated = false,
 
     matches = function(context, state)
         if not context.settings.arms_use_sweeping_strikes then return false end
@@ -209,7 +212,42 @@ local Arms_SunderMaintain = {
     end,
 }
 
--- [8] Slam (filler, any stance)
+-- [8] Thunder Clap maintenance (Battle/Defensive Stance)
+local Arms_ThunderClap = {
+    requires_combat = true,
+    requires_enemy = true,
+    setting_key = "maintain_thunder_clap",
+
+    matches = function(context, state)
+        if state.thunder_clap_duration > 2 then return false end
+        -- TC requires Battle or Defensive Stance (not Berserker)
+        return A.ThunderClap:IsReady(TARGET_UNIT)
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.ThunderClap, icon, TARGET_UNIT,
+            format("[ARMS] Thunder Clap - Duration: %.1fs", state.thunder_clap_duration))
+    end,
+}
+
+-- [9] Demoralizing Shout maintenance (all stances)
+local Arms_DemoShout = {
+    requires_combat = true,
+    requires_enemy = true,
+    setting_key = "maintain_demo_shout",
+
+    matches = function(context, state)
+        if state.demo_shout_duration > 3 then return false end
+        return A.DemoralizingShout:IsReady(PLAYER_UNIT)
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.DemoralizingShout, icon, PLAYER_UNIT,
+            format("[ARMS] Demo Shout - Duration: %.1fs", state.demo_shout_duration))
+    end,
+}
+
+-- [10] Slam (filler, any stance)
 local Arms_Slam = {
     requires_combat = true,
     requires_enemy = true,
@@ -284,6 +322,8 @@ rotation_registry:register("arms", {
     named("SweepingStrikes", Arms_SweepingStrikes),
     named("Execute",         Arms_Execute),
     named("SunderMaintain",  Arms_SunderMaintain),
+    named("ThunderClap",     Arms_ThunderClap),
+    named("DemoShout",       Arms_DemoShout),
     named("Overpower",       Arms_Overpower),
     named("Slam",            Arms_Slam),
     named("VictoryRush",     Arms_VictoryRush),

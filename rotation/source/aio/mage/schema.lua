@@ -71,6 +71,8 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Ice Block when HP drops below this. Set to 0 to disable.", format = "%d%%" },
             { type = "slider", key = "mana_shield_hp", default = 0, min = 0, max = 40, label = "Mana Shield HP (%)",
               tooltip = "Use Mana Shield when HP drops below this. Set to 0 to disable.", format = "%d%%" },
+            { type = "checkbox", key = "use_ice_barrier", default = false, label = "Use Ice Barrier",
+              tooltip = "Maintain Ice Barrier absorb shield in combat (requires Frost talent)." },
         }},
         { header = "Debug", settings = {
             { type = "checkbox", key = "debug_mode", default = false, label = "Debug Mode",

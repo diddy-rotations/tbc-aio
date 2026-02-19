@@ -157,6 +157,7 @@ do
 -- [1] Nature's Swiftness Emergency — instant Healing Wave on critically low target
 local Resto_NaturesSwiftnessEmergency = {
     requires_combat = true,
+    is_gcd_gated = false,
     spell = A.NaturesSwiftness,
     setting_key = "resto_use_natures_swiftness",
 

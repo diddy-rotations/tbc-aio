@@ -30,7 +30,7 @@ local TARGET_UNIT = "target"
 -- ============================================================================
 rotation_registry:register_middleware({
     name = "Shaman_Interrupt",
-    priority = Priority.MIDDLEWARE.DISPEL_CURSE,  -- 350
+    priority = Priority.MIDDLEWARE.FORM_RESHIFT,  -- 500 (highest — TBC's only shaman interrupt)
 
     matches = function(context)
         if not context.in_combat then return false end

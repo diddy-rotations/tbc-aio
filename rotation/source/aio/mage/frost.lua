@@ -95,9 +95,10 @@ local Frost_ColdSnap = {
     setting_key = "frost_use_cold_snap",
 
     matches = function(context, state)
-        -- Only use when Icy Veins is on long CD
+        -- Use when either major frost CD is on long cooldown
         local iv_cd = A.IcyVeins:GetCooldown() or 0
-        if iv_cd < 20 then return false end
+        local we_cd = A.SummonWaterElemental:GetCooldown() or 0
+        if iv_cd < 20 and we_cd < 20 then return false end
         return true
     end,
 

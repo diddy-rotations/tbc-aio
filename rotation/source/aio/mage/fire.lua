@@ -154,7 +154,7 @@ local Fire_Racial = {
     end,
 }
 
--- [6] Blast Wave (instant AoE talent)
+-- [6] Blast Wave (instant AoE talent — melee range)
 local Fire_BlastWave = {
     requires_combat = true,
     requires_enemy = true,
@@ -162,6 +162,7 @@ local Fire_BlastWave = {
     setting_key = "fire_use_blast_wave",
 
     matches = function(context, state)
+        if not context.in_melee_range then return false end
         return true
     end,
 
@@ -170,7 +171,7 @@ local Fire_BlastWave = {
     end,
 }
 
--- [7] Dragon's Breath (instant cone talent)
+-- [7] Dragon's Breath (instant cone talent — melee range)
 local Fire_DragonsBreath = {
     requires_combat = true,
     requires_enemy = true,
@@ -178,6 +179,7 @@ local Fire_DragonsBreath = {
     setting_key = "fire_use_dragons_breath",
 
     matches = function(context, state)
+        if not context.in_melee_range then return false end
         return true
     end,
 
@@ -258,7 +260,7 @@ local Fire_MovementSpell = {
     end,
 }
 
--- [10] Primary filler spell (Fireball or Scorch)
+-- [11] Primary filler spell (Fireball or Scorch)
 local Fire_PrimarySpell = {
     requires_combat = true,
     requires_enemy = true,

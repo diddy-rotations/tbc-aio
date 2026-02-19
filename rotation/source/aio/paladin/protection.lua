@@ -338,15 +338,15 @@ local Prot_RighteousDefense = {
 -- ============================================================================
 rotation_registry:register("protection", {
     named("RighteousFuryCheck",  Prot_RighteousFuryCheck),
-    named("AvengersShield",      Prot_AvengersShield),
     named("AvengingWrath",       Prot_AvengingWrath),
     named("Trinket1",            Prot_Trinket1),
     named("Trinket2",            Prot_Trinket2),
     named("RighteousDefense",    Prot_RighteousDefense),
-    named("EstablishSeal",       Prot_EstablishSeal),
     named("HolyShield",          Prot_HolyShield),
-    named("Consecration",        Prot_Consecration),
+    named("EstablishSeal",       Prot_EstablishSeal),
     named("Judgement",           Prot_Judgement),
+    named("Consecration",        Prot_Consecration),
+    named("AvengersShield",      Prot_AvengersShield),
     named("Exorcism",            Prot_Exorcism),
     named("HolyShieldFallback",  Prot_HolyShieldFallback),
     named("HammerOfWrath",       Prot_HammerOfWrath),

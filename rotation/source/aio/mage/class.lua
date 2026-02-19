@@ -60,6 +60,7 @@ Action[A.PlayerClass] = {
     PresenceOfMind       = Create({ Type = "Spell", ID = 12043, Click = { unit = "player", type = "spell", spell = 12043 } }),
     ColdSnap             = Create({ Type = "Spell", ID = 11958, Click = { unit = "player", type = "spell", spell = 11958 } }),
     SummonWaterElemental = Create({ Type = "Spell", ID = 31687, Click = { unit = "player", type = "spell", spell = 31687 } }),
+    Freeze               = Create({ Type = "Spell", ID = 33395 }),  -- Water Elemental's Freeze (for debuff tracking)
 
     -- Utility
     Counterspell = Create({ Type = "Spell", ID = 2139 }),
@@ -241,7 +242,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Mage",
-    version = "v1.2.2",
+    version = "v1.2.3",
     playstyles = { "fire", "frost", "arcane" },
     idle_playstyle_name = nil,
 

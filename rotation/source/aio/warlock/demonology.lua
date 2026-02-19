@@ -63,7 +63,51 @@ end
 -- ============================================================================
 do
 
--- [1] Health Funnel Pet — channel heal pet below threshold (Felguard build only)
+-- [1] Fel Domination + Pet Resummon — instant resummon if pet dies mid-fight
+local Demo_FelDomResummon = {
+    requires_combat = true,
+    spell = A.FelDomination,
+    setting_key = "demo_use_fel_domination",
+
+    matches = function(context, state)
+        if context.settings.demo_use_sacrifice then return false end  -- DS/Ruin build
+        if context.pet_active then return false end  -- Pet is alive
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        -- Try Fel Domination first (makes next summon instant)
+        if is_spell_available(A.FelDomination) and A.FelDomination:IsReady(PLAYER_UNIT) then
+            local result = try_cast(A.FelDomination, icon, PLAYER_UNIT, "[DEMO] Fel Domination")
+            if result then return result end
+        end
+        -- Then summon Felguard
+        if is_spell_available(A.SummonFelguard) and A.SummonFelguard:IsReady(PLAYER_UNIT) then
+            return try_cast(A.SummonFelguard, icon, PLAYER_UNIT, "[DEMO] Summon Felguard (resummon)")
+        end
+        return nil
+    end,
+}
+
+-- [2] Soul Link — maintain pet+player damage sharing buff
+local Demo_SoulLink = {
+    requires_combat = false,
+    spell = A.SoulLink,
+    setting_key = "demo_use_soul_link",
+
+    matches = function(context, state)
+        if context.settings.demo_use_sacrifice then return false end  -- DS/Ruin build
+        if not context.pet_active then return false end
+        if context.has_soul_link then return false end  -- Already active
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.SoulLink, icon, PLAYER_UNIT, "[DEMO] Soul Link")
+    end,
+}
+
+-- [3] Health Funnel Pet — channel heal pet below threshold (Felguard build only)
 local Demo_HealthFunnel = {
     requires_combat = true,
     spell = A.HealthFunnel,
@@ -230,8 +274,8 @@ local Demo_PrimarySpell = {
 
     execute = function(icon, context, state)
         -- DS/Ruin fire build: use Incinerate when fire sacrifice buff is active
-        if context.has_ds_fire and is_spell_available(A.IncinerateR2) then
-            local result = try_cast(A.IncinerateR2, icon, TARGET_UNIT, "[DEMO] Incinerate (DS/Ruin)")
+        if context.has_ds_fire and is_spell_available(A.Incinerate) then
+            local result = try_cast(A.Incinerate, icon, TARGET_UNIT, "[DEMO] Incinerate (DS/Ruin)")
             if result then return result end
         end
         return try_cast(A.ShadowBolt, icon, TARGET_UNIT, "[DEMO] Shadow Bolt")
@@ -259,6 +303,8 @@ local Demo_LifeTap = {
 -- REGISTRATION
 -- ============================================================================
 rotation_registry:register("demonology", {
+    named("FelDomResummon",      Demo_FelDomResummon),
+    named("SoulLink",            Demo_SoulLink),
     named("HealthFunnel",        Demo_HealthFunnel),
     named("DemonicSacrifice",    Demo_DemonicSacrifice),
     named("MaintainCurse",       Demo_MaintainCurse),

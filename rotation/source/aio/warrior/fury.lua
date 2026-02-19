@@ -37,6 +37,8 @@ local fury_state = {
     target_below_20 = false,
     sunder_stacks = 0,
     sunder_duration = 0,
+    thunder_clap_duration = 0,
+    demo_shout_duration = 0,
 }
 
 local function get_fury_state(context)
@@ -46,6 +48,8 @@ local function get_fury_state(context)
     fury_state.target_below_20 = context.target_hp < 20
     fury_state.sunder_stacks = Unit(TARGET_UNIT):HasDeBuffsStacks(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     fury_state.sunder_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
+    fury_state.thunder_clap_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.THUNDER_CLAP) or 0
+    fury_state.demo_shout_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.DEMO_SHOUT) or 0
 
     return fury_state
 end
@@ -62,12 +66,16 @@ local Fury_Rampage = {
 
     matches = function(context, state)
         if not is_spell_available(A.Rampage) then return false end
-        local threshold = context.settings.fury_rampage_threshold or 5
         -- Activate if buff not present
         if not context.rampage_active then
             return A.Rampage:IsReady(PLAYER_UNIT)
         end
-        -- Refresh when duration running low (also adds a stack)
+        -- Still building stacks — always use when available
+        if context.rampage_stacks < Constants.RAMPAGE_MAX_STACKS then
+            return A.Rampage:IsReady(PLAYER_UNIT)
+        end
+        -- At max stacks, only refresh when duration running low
+        local threshold = context.settings.fury_rampage_threshold or 5
         if context.rampage_duration < threshold then
             return A.Rampage:IsReady(PLAYER_UNIT)
         end
@@ -190,7 +198,41 @@ local Fury_SunderMaintain = {
     end,
 }
 
--- [7] Slam (filler, any stance)
+-- [7] Thunder Clap maintenance (Battle/Defensive Stance)
+local Fury_ThunderClap = {
+    requires_combat = true,
+    requires_enemy = true,
+    setting_key = "maintain_thunder_clap",
+
+    matches = function(context, state)
+        if state.thunder_clap_duration > 2 then return false end
+        return A.ThunderClap:IsReady(TARGET_UNIT)
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.ThunderClap, icon, TARGET_UNIT,
+            format("[FURY] Thunder Clap - Duration: %.1fs", state.thunder_clap_duration))
+    end,
+}
+
+-- [8] Demoralizing Shout maintenance (all stances)
+local Fury_DemoShout = {
+    requires_combat = true,
+    requires_enemy = true,
+    setting_key = "maintain_demo_shout",
+
+    matches = function(context, state)
+        if state.demo_shout_duration > 3 then return false end
+        return A.DemoralizingShout:IsReady(PLAYER_UNIT)
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.DemoralizingShout, icon, PLAYER_UNIT,
+            format("[FURY] Demo Shout - Duration: %.1fs", state.demo_shout_duration))
+    end,
+}
+
+-- [9] Slam (filler, any stance)
 local Fury_Slam = {
     requires_combat = true,
     requires_enemy = true,
@@ -303,6 +345,8 @@ rotation_registry:register("fury", {
     named("BloodthirstLow",  Fury_BloodthirstLow),
     named("Execute",         Fury_Execute),
     named("SunderMaintain",  Fury_SunderMaintain),
+    named("ThunderClap",     Fury_ThunderClap),
+    named("DemoShout",       Fury_DemoShout),
     named("Slam",            Fury_Slam),
     named("Overpower",       Fury_Overpower),
     named("VictoryRush",     Fury_VictoryRush),

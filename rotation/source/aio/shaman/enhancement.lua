@@ -421,6 +421,12 @@ local Enh_Shock = {
     execute = function(icon, context, state)
         local s = context.settings
 
+        -- Stormstrike synergy: prefer Earth Shock when SS +20% nature debuff is active
+        if state.stormstrike_debuff_duration > 0 then
+            local result = try_cast(A.EarthShock, icon, TARGET_UNIT, "[ENH] Earth Shock (SS synergy)")
+            if result then return result end
+        end
+
         -- Flame Shock if weaving and DoT is down
         if s.enh_weave_flame_shock and state.flame_shock_duration <= 2 then
             local result = try_cast(A.FlameShock, icon, TARGET_UNIT,
@@ -455,6 +461,35 @@ local Enh_FireElemental = {
     end,
 }
 
+-- [10] AoE rotation (when enough enemies)
+local Enh_AoE = {
+    requires_combat = true,
+    requires_enemy = true,
+
+    matches = function(context, state)
+        local threshold = context.settings.aoe_threshold or 0
+        if threshold == 0 then return false end
+        if (context.enemy_count or 1) < threshold then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        -- Fire Nova Totem for burst AoE
+        if A.FireNovaTotem:IsReady(PLAYER_UNIT) then
+            return try_cast(A.FireNovaTotem, icon, PLAYER_UNIT, "[ENH] Fire Nova Totem (AoE)")
+        end
+        -- Magma Totem for sustained AoE
+        if A.MagmaTotem:IsReady(PLAYER_UNIT) then
+            return try_cast(A.MagmaTotem, icon, PLAYER_UNIT, "[ENH] Magma Totem (AoE)")
+        end
+        -- Chain Lightning if available
+        if A.ChainLightning:IsReady(TARGET_UNIT) then
+            return try_cast(A.ChainLightning, icon, TARGET_UNIT, "[ENH] Chain Lightning (AoE)")
+        end
+        return nil
+    end,
+}
+
 -- ============================================================================
 -- REGISTRATION
 -- ============================================================================
@@ -463,6 +498,7 @@ rotation_registry:register("enhancement", {
     named("Trinkets",            Enh_Trinkets),
     named("Racial",              Enh_Racial),
     named("TotemManagement",     Enh_TotemManagement),
+    named("AoE",                 Enh_AoE),
     named("Stormstrike",         Enh_Stormstrike),
     named("Shock",               Enh_Shock),
     named("WindfuryTwist",       Enh_WindfuryTwist),

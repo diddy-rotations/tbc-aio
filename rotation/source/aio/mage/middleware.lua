@@ -75,6 +75,29 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
+-- ICE BARRIER (Absorb shield — Frost talent)
+-- ============================================================================
+rotation_registry:register_middleware({
+    name = "Mage_IceBarrier",
+    priority = Priority.MIDDLEWARE.PROACTIVE_HEAL - 5,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.settings.use_ice_barrier then return false end
+        local has_barrier = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.ICE_BARRIER) or 0) > 0
+        if has_barrier then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        if A.IceBarrier:IsReady(PLAYER_UNIT) then
+            return A.IceBarrier:Show(icon), "[MW] Ice Barrier"
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
 -- COUNTERSPELL (Interrupt)
 -- ============================================================================
 rotation_registry:register_middleware({

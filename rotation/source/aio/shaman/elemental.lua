@@ -43,7 +43,6 @@ local ele_state = {
 
 -- Module-level LB counter for fixed_ratio mode (persists across frames, reset on CL cast)
 local lb_casts_since_cl = 0
-local last_cl_allowed = true  -- tracks whether CL was allowed on first cast (for cl_clearcast init)
 
 local function get_ele_state(context)
     if context._ele_valid then return ele_state end
@@ -344,12 +343,12 @@ rotation_registry:register("elemental", {
     named("ElementalMastery", Ele_ElementalMastery),
     named("Trinkets",         Ele_Trinkets),
     named("Racial",           Ele_Racial),
-    named("FireElemental",    Ele_FireElemental),
     named("TotemManagement",  Ele_TotemManagement),
     named("AoE",              Ele_AoE),
     named("FlameShock",       Ele_FlameShock),
     named("ChainLightning",   Ele_ChainLightning),
     named("EarthShock",       Ele_EarthShock),
+    named("FireElemental",    Ele_FireElemental),
     named("MovementSpell",    Ele_MovementSpell),
     named("LightningBolt",    Ele_LightningBolt),
 }, {
