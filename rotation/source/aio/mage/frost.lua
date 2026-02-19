@@ -199,7 +199,10 @@ local Frost_MovementSpell = {
             result = try_cast(A.ConeOfCold, icon, TARGET_UNIT, "[FROST] Cone of Cold (moving)")
         end
         if result then return result end
-        return try_cast(A.ArcaneExplosion, icon, PLAYER_UNIT, "[FROST] Arcane Explosion (moving)")
+        if context.in_melee_range then
+            return try_cast(A.ArcaneExplosion, icon, PLAYER_UNIT, "[FROST] Arcane Explosion (moving)")
+        end
+        return nil
     end,
 }
 
