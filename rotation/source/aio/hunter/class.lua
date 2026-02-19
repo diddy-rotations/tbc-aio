@@ -439,7 +439,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Hunter",
-    version = "v1.0.0",
+    version = "v1.2.0",
     playstyles = { "ranged" },
     idle_playstyle_name = nil,
 
