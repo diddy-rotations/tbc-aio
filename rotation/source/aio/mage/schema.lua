@@ -110,6 +110,16 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "fire_combustion_below_hp", default = 0, min = 0, max = 100, label = "Combustion Target HP%",
               tooltip = "Save Combustion for when target HP is below this. Set to 0 to use on CD.", format = "%d%%" },
         }},
+        { header = "Movement", settings = {
+            { type = "checkbox", key = "fire_move_fire_blast", default = true, label = "Fire Blast",
+              tooltip = "Use Fire Blast while moving." },
+            { type = "checkbox", key = "fire_move_ice_lance", default = false, label = "Ice Lance",
+              tooltip = "Use Ice Lance while moving." },
+            { type = "checkbox", key = "fire_move_cone_of_cold", default = false, label = "Cone of Cold",
+              tooltip = "Use Cone of Cold while moving." },
+            { type = "checkbox", key = "fire_move_arcane_explosion", default = true, label = "Arcane Explosion",
+              tooltip = "Use Arcane Explosion while moving (melee range)." },
+        }},
     }},
 
     -- Tab 3: Frost
@@ -123,13 +133,14 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Summon Water Elemental on cooldown (requires 41pt Frost talent)." },
         }},
         { header = "Movement", settings = {
-            { type = "dropdown", key = "frost_movement_spell", default = "fire_blast", label = "Movement Spell",
-              tooltip = "Instant spell to use while moving.",
-              options = {
-                  { value = "fire_blast", text = "Fire Blast" },
-                  { value = "ice_lance", text = "Ice Lance" },
-                  { value = "cone_of_cold", text = "Cone of Cold" },
-              }},
+            { type = "checkbox", key = "frost_move_fire_blast", default = true, label = "Fire Blast",
+              tooltip = "Use Fire Blast while moving." },
+            { type = "checkbox", key = "frost_move_ice_lance", default = true, label = "Ice Lance",
+              tooltip = "Use Ice Lance while moving." },
+            { type = "checkbox", key = "frost_move_cone_of_cold", default = false, label = "Cone of Cold",
+              tooltip = "Use Cone of Cold while moving." },
+            { type = "checkbox", key = "frost_move_arcane_explosion", default = true, label = "Arcane Explosion",
+              tooltip = "Use Arcane Explosion while moving (melee range)." },
         }},
     }},
 
@@ -155,6 +166,16 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               }},
             { type = "slider", key = "arcane_blasts_between_fillers", default = 3, min = 1, max = 4, label = "AB Stacks Before Filler",
               tooltip = "Number of Arcane Blasts to cast before switching to filler in conserve phase.", format = "%d" },
+        }},
+        { header = "Movement", settings = {
+            { type = "checkbox", key = "arcane_move_fire_blast", default = true, label = "Fire Blast",
+              tooltip = "Use Fire Blast while moving." },
+            { type = "checkbox", key = "arcane_move_ice_lance", default = false, label = "Ice Lance",
+              tooltip = "Use Ice Lance while moving." },
+            { type = "checkbox", key = "arcane_move_cone_of_cold", default = false, label = "Cone of Cold",
+              tooltip = "Use Cone of Cold while moving." },
+            { type = "checkbox", key = "arcane_move_arcane_explosion", default = true, label = "Arcane Explosion",
+              tooltip = "Use Arcane Explosion while moving (melee range)." },
         }},
         { header = "Mana Phases", settings = {
             { type = "slider", key = "arcane_start_conserve_pct", default = 35, min = 10, max = 80, label = "Start Conserve Mana%",
