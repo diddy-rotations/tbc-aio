@@ -20,12 +20,12 @@ import { url } from '../config';
 
       <h3>6 New Classes</h3>
       <ul class="features">
-        <li>Added <strong class="c-paladin">Paladin</strong> &mdash; Retribution (seal twisting), Protection (Holy Shield uptime), and Holy (smart party healing)</li>
-        <li>Added <strong class="c-priest">Priest</strong> &mdash; Shadow (DoT management), Smite (Holy Fire weaving), Holy (reactive healing), and Discipline (PW:S prevention)</li>
-        <li>Added <strong class="c-rogue">Rogue</strong> &mdash; Combat (Blade Flurry/AR), Assassination (Mutilate/Envenom), and Subtlety (Shadowstep burst)</li>
-        <li>Added <strong class="c-shaman">Shaman</strong> &mdash; Elemental (CL modes), Enhancement (totem twisting), and Restoration (Earth Shield healing)</li>
-        <li>Added <strong class="c-warlock">Warlock</strong> &mdash; Affliction (full DoT stack), Demonology (Felguard/DS:Ruin), and Destruction (Conflagrate cycle)</li>
-        <li>Added <strong class="c-warrior">Warrior</strong> &mdash; Arms (MS/Rend), Fury (BT/Rampage), and Protection (Shield Slam/Revenge tanking)</li>
+        <li>Added <a href={url('/classes/paladin')} class="class-link c-paladin">Paladin</a> &mdash; Retribution (seal twisting), Protection (Holy Shield uptime), and Holy (smart party healing)</li>
+        <li>Added <a href={url('/classes/priest')} class="class-link c-priest">Priest</a> &mdash; Shadow (DoT management), Smite (Holy Fire weaving), Holy (reactive healing), and Discipline (PW:S prevention)</li>
+        <li>Added <a href={url('/classes/rogue')} class="class-link c-rogue">Rogue</a> &mdash; Combat (Blade Flurry/AR), Assassination (Mutilate/Envenom), and Subtlety (Shadowstep burst)</li>
+        <li>Added <a href={url('/classes/shaman')} class="class-link c-shaman">Shaman</a> &mdash; Elemental (CL modes), Enhancement (totem twisting), and Restoration (Earth Shield healing)</li>
+        <li>Added <a href={url('/classes/warlock')} class="class-link c-warlock">Warlock</a> &mdash; Affliction (full DoT stack), Demonology (Felguard/DS:Ruin), and Destruction (Conflagrate cycle)</li>
+        <li>Added <a href={url('/classes/warrior')} class="class-link c-warrior">Warrior</a> &mdash; Arms (MS/Rend), Fury (BT/Rampage), and Protection (Shield Slam/Revenge tanking)</li>
       </ul>
 
       <h3>All 9 classes now supported with full rotation logic, configurable settings, and spec-specific middleware.</h3>
@@ -57,7 +57,7 @@ import { url } from '../config';
 
       <h3>Multi-Class Architecture</h3>
       <ul class="features">
-        <li>Rewritten as a multi-class AIO supporting <strong class="c-druid">Druid</strong> and <strong class="c-hunter">Hunter</strong></li>
+        <li>Rewritten as a multi-class AIO supporting <a href={url('/classes/druid')} class="class-link c-druid">Druid</a> and <a href={url('/classes/hunter')} class="class-link c-hunter">Hunter</a></li>
         <li>New strategy registry pattern &mdash; middleware (shared) + per-playstyle strategies</li>
         <li>Class registration system with automatic playstyle detection based on current form/stance</li>
         <li>Schema-driven settings &mdash; one schema generates the UI, framework backing store, and cached runtime access</li>

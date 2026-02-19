@@ -157,6 +157,15 @@ a.card:hover { color: var(--text); border-color: var(--accent); }
 .c-warlock { color: var(--warlock); }
 .c-warrior { color: var(--warrior); }
 
+/* Class links in changelog */
+a.class-link {
+  font-weight: 700;
+  text-decoration: underline;
+}
+a.class-link:hover {
+  opacity: 0.85;
+}
+
 /* Section */
 .section { padding: 1rem 0; }
 .section[id] { scroll-margin-top: 60px; }
