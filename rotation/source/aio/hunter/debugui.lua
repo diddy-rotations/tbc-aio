@@ -2,7 +2,8 @@
 -- Adapted from standalone Hunter_Debug_UI.lua
 --
 -- Visual debug panel with real-time Player/Target/Debuffs/PvP/Pet state.
--- Toggle via "Show Debug Panel" setting or /diddy debug panel.
+-- Toggle via schema setting "show_debug_panel" (Tab 5 "Pet & Diag")
+-- or /diddy debug panel.
 
 local _G, string, tostring, math =
       _G, string, tostring, math
@@ -27,6 +28,26 @@ local UnitIsDeadOrGhost     = _G.UnitIsDeadOrGhost
 local GetNumGroupMembers    = _G.GetNumGroupMembers
 local CreateFrame           = _G.CreateFrame
 local UIParent              = _G.UIParent
+
+-- ============================================================================
+-- THEME (matches settings.lua for visual consistency)
+-- ============================================================================
+local THEME = {
+    bg          = { 0.031, 0.031, 0.039, 0.97 },
+    bg_light    = { 0.047, 0.047, 0.059, 1 },
+    bg_widget   = { 0.059, 0.059, 0.075, 1 },
+    bg_hover    = { 0.075, 0.075, 0.086, 1 },
+    border      = { 0.118, 0.118, 0.149, 1 },
+    accent      = { 0.424, 0.388, 1.0, 1 },
+    text        = { 0.863, 0.863, 0.894, 1 },
+    text_dim    = { 0.580, 0.580, 0.659, 1 },
+}
+
+local BACKDROP_THIN = {
+    bgFile = "Interface\\Buttons\\WHITE8X8",
+    edgeFile = "Interface\\Buttons\\WHITE8X8",
+    edgeSize = 1,
+}
 
 -- ============================================================================
 -- STATE & CONFIG
@@ -68,9 +89,12 @@ end
 function HunterDebug:CreateFrame()
     if self.Frame then return self.Frame end
 
-    local f = CreateFrame("Frame", "HunterDebugPanel", UIParent, "BasicFrameTemplateWithInset")
+    local f = CreateFrame("Frame", "HunterDebugPanel", UIParent, "BackdropTemplate")
     f:SetSize(440, 480)
     f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 20, -200)
+    f:SetBackdrop(BACKDROP_THIN)
+    f:SetBackdropColor(THEME.bg[1], THEME.bg[2], THEME.bg[3], THEME.bg[4])
+    f:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], THEME.border[4])
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
@@ -80,19 +104,42 @@ function HunterDebug:CreateFrame()
     f:Hide()
 
     -- Title
-    f.title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    f.title:SetPoint("TOP", f, "TOP", 0, -5)
+    f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    f.title:SetPoint("TOPLEFT", 12, -8)
     f.title:SetText("Hunter Debug")
+    f.title:SetTextColor(THEME.text[1], THEME.text[2], THEME.text[3])
 
-    -- Create lines inside the inset area
+    -- Close button
+    local close = CreateFrame("Button", nil, f)
+    close:SetSize(22, 22)
+    close:SetPoint("TOPRIGHT", -6, -6)
+    local closeText = close:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    closeText:SetPoint("CENTER")
+    closeText:SetText("x")
+    closeText:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3])
+    close:SetScript("OnClick", function() f:Hide() end)
+    close:SetScript("OnEnter", function() closeText:SetTextColor(1, 0.3, 0.3) end)
+    close:SetScript("OnLeave", function() closeText:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3]) end)
+
+    -- Separator below title
+    local sep = f:CreateTexture(nil, "ARTWORK")
+    sep:SetPoint("TOPLEFT", 1, -28)
+    sep:SetPoint("TOPRIGHT", -1, -28)
+    sep:SetHeight(1)
+    sep:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 1)
+
+    -- Content starts below title + separator
+    local content_top = -32
+
+    -- Create debug lines
     self.Lines = {}
     local lineIndex = 0
 
     local function AddLine(fontTemplate)
         lineIndex = lineIndex + 1
         local line = f:CreateFontString(nil, "OVERLAY", fontTemplate or "GameFontHighlight")
-        line:SetPoint("TOPLEFT", f.InsetBg or f, "TOPLEFT", 12, -8 - (lineIndex - 1) * 15)
-        line:SetPoint("TOPRIGHT", f.InsetBg or f, "TOPRIGHT", -12, -8 - (lineIndex - 1) * 15)
+        line:SetPoint("TOPLEFT", f, "TOPLEFT", 12, content_top - 8 - (lineIndex - 1) * 15)
+        line:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, content_top - 8 - (lineIndex - 1) * 15)
         line:SetJustifyH("LEFT")
         self.Lines[lineIndex] = line
         return lineIndex
@@ -101,8 +148,8 @@ function HunterDebug:CreateFrame()
     local function AddSectionHeader()
         lineIndex = lineIndex + 1
         local line = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        line:SetPoint("TOPLEFT", f.InsetBg or f, "TOPLEFT", 12, -8 - (lineIndex - 1) * 15 - 3)
-        line:SetPoint("TOPRIGHT", f.InsetBg or f, "TOPRIGHT", -12, -8 - (lineIndex - 1) * 15 - 3)
+        line:SetPoint("TOPLEFT", f, "TOPLEFT", 12, content_top - 8 - (lineIndex - 1) * 15 - 3)
+        line:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, content_top - 8 - (lineIndex - 1) * 15 - 3)
         line:SetJustifyH("LEFT")
         self.Lines[lineIndex] = line
         return lineIndex
@@ -313,7 +360,7 @@ updateFrame:SetScript("OnUpdate", function(self, elapsed)
 end)
 
 -- ============================================================================
--- TOGGLE WATCHER (0.5s)
+-- TOGGLE WATCHER (schema key: show_debug_panel)
 -- ============================================================================
 
 local lastToggleState = nil

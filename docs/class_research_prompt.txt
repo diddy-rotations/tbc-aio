@@ -1,0 +1,29 @@
+﻿You are researching TBC (The Burning Crusade) WoW class rotations for a Lua rotation addon called Diddy AIO.
+
+READ THESE TWO FILES FIRST:
+1. docs/MAGE_RESEARCH.md — This is your FORMAT REFERENCE. Match its structure, sections, and level of detail exactly.
+2. docs/NEW_CLASS_GUIDE.md — This is the IMPLEMENTATION GUIDE for the addon. Your research output should be directly actionable against these contracts (strategy tables, context_builders, extend_context fields, settings schema format, middleware priorities, etc.).
+
+Then research and write a comprehensive TBC CLASSNAME implementation guide.
+
+Include ALL of these sections (matching MAGE_RESEARCH.md structure):
+1. Spell IDs — base IDs (for Action.Create with useMaxRank=true) AND max rank IDs. Include cast times, mana/rage/energy costs, and notes.
+2. Base Spell ID table vs single-rank TBC spells
+3. Cooldown abilities with CDs, durations, and effects
+4. Defensive & utility spells
+5. Self-buffs with durations
+6. Racial spell IDs relevant to this class
+7. Consumable item IDs (potions, runes, class-specific items)
+8. Debuff/Buff tracking IDs needed for rotation logic
+9. Per-spec single-target rotation priorities from wowsims/tbc and TBC Classic guides
+10. Core mechanic explanation per spec
+11. AoE rotation per spec
+12. State tracking needed per spec as Lua code snippets
+13. Proposed settings schema (key, type, default, label, tooltip) by tab — snake_case keys
+14. Strategy breakdown per playstyle in priority order [1], [2], etc.
+15. Shared middleware with priority numbers [MW-500], etc.
+16. Implementation notes: playstyle detection, extend_context snippets, context_builder snippets
+17. IMPORTANT: Mechanics that do NOT exist in TBC (Wrath+ only)
+
+Sources: wowsims/tbc simulator, Wowhead TBC, Icy Veins TBC Classic, wowtbc.gg.
+Output a single markdown file. Start directly with the # heading.

@@ -3,6 +3,14 @@
 --
 -- Tracks auto shot clipping: what caused each clip, how long it was,
 -- and whether it was worth it. Integrates with the Action framework.
+--
+-- Settings keys (from schema.lua Tab 5 "Pet & Diag"):
+--   clip_tracker_enabled  — master toggle for clip tracking
+--   show_clip_tracker     — show/hide the clip tracker UI window
+--   clip_print_summary    — print clip summary after combat
+--   clip_threshold_1      — green/yellow severity boundary (ms)
+--   clip_threshold_2      — yellow/orange severity boundary (ms)
+--   clip_threshold_3      — orange/red severity boundary (ms)
 
 local _G, pairs, ipairs, string, tostring, format, table, math, wipe, select =
       _G, pairs, ipairs, string, tostring, string.format, table, math, _G.wipe, select
@@ -37,6 +45,51 @@ local MeleeSpellNames = {
     ["Wing Clip"] = true,
     ["Counterattack"] = true,
 }
+
+-- ============================================================================
+-- THEME (matches settings.lua for visual consistency)
+-- ============================================================================
+local THEME = {
+    bg          = { 0.031, 0.031, 0.039, 0.97 },
+    bg_light    = { 0.047, 0.047, 0.059, 1 },
+    bg_widget   = { 0.059, 0.059, 0.075, 1 },
+    bg_hover    = { 0.075, 0.075, 0.086, 1 },
+    border      = { 0.118, 0.118, 0.149, 1 },
+    accent      = { 0.424, 0.388, 1.0, 1 },
+    text        = { 0.863, 0.863, 0.894, 1 },
+    text_dim    = { 0.580, 0.580, 0.659, 1 },
+}
+
+local BACKDROP_THIN = {
+    bgFile = "Interface\\Buttons\\WHITE8X8",
+    edgeFile = "Interface\\Buttons\\WHITE8X8",
+    edgeSize = 1,
+}
+
+local function create_theme_button(parent, width, height, text)
+    local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
+    btn:SetSize(width, height)
+    btn:SetBackdrop(BACKDROP_THIN)
+    btn:SetBackdropColor(THEME.bg_widget[1], THEME.bg_widget[2], THEME.bg_widget[3], 1)
+    btn:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], 1)
+
+    local label = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    label:SetPoint("CENTER")
+    label:SetText(text)
+    label:SetTextColor(THEME.text[1], THEME.text[2], THEME.text[3])
+    btn.label = label
+
+    btn:SetScript("OnEnter", function(self)
+        self:SetBackdropColor(THEME.bg_hover[1], THEME.bg_hover[2], THEME.bg_hover[3], 1)
+        self:SetBackdropBorderColor(THEME.accent[1], THEME.accent[2], THEME.accent[3], 1)
+    end)
+    btn:SetScript("OnLeave", function(self)
+        self:SetBackdropColor(THEME.bg_widget[1], THEME.bg_widget[2], THEME.bg_widget[3], 1)
+        self:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], 1)
+    end)
+
+    return btn
+end
 
 -- ============================================================================
 -- MODULE STATE
@@ -228,7 +281,6 @@ function ClipTracker:ResetIntervalState()
     self.WasInMeleeInterval = false
     self.WasMovingInInterval = false
     wipe(self.MeleeSpellsDuringInterval)
-    -- Don't reset MoveStartTime/IsCurrentlyMoving here — those track live state across intervals
 end
 
 function ClipTracker:OnAutoShotFired()
@@ -272,7 +324,7 @@ function ClipTracker:OnAutoShotFired()
     local causeCastTime = 0
     local hadMelee = #self.MeleeSpellsDuringInterval > 0
 
-    -- Priority 1: Melee spells were cast during interval → player was in melee, auto shot blocked
+    -- Priority 1: Melee spells were cast during interval
     if hadMelee or self.WasInMeleeInterval then
         if hadMelee then
             causeSpell = "Melee (" .. self.MeleeSpellsDuringInterval[1].name .. ")"
@@ -291,8 +343,7 @@ function ClipTracker:OnAutoShotFired()
         end
     end
 
-    -- Priority 3: Movement during interval (auto shot can't fire while moving)
-    -- Only counts if sustained movement (>= 0.25s) overlapped the expected fire time
+    -- Priority 3: Movement during interval
     local wasMoving = false
     if self.WasMovingInInterval then
         wasMoving = true
@@ -499,9 +550,12 @@ Listener:Add("CLIPTRACKER_MOVE_STOP", "PLAYER_STOPPED_MOVING", OnStopMoving)
 function ClipTracker:CreateFrame()
     if self.Frame then return self.Frame end
 
-    local f = CreateFrame("Frame", "HunterClipTrackerFrame", UIParent, "BasicFrameTemplateWithInset")
+    local f = CreateFrame("Frame", "HunterClipTrackerFrame", UIParent, "BackdropTemplate")
     f:SetSize(550, 450)
     f:SetPoint("CENTER", UIParent, "CENTER", 250, 0)
+    f:SetBackdrop(BACKDROP_THIN)
+    f:SetBackdropColor(THEME.bg[1], THEME.bg[2], THEME.bg[3], THEME.bg[4])
+    f:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], THEME.border[4])
     f:SetMovable(true)
     f:EnableMouse(true)
     f:RegisterForDrag("LeftButton")
@@ -511,9 +565,29 @@ function ClipTracker:CreateFrame()
     f:Hide()
 
     -- Title
-    f.title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    f.title:SetPoint("TOP", f, "TOP", 0, -5)
+    f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    f.title:SetPoint("TOPLEFT", 12, -8)
     f.title:SetText("Auto Shot Clip Tracker")
+    f.title:SetTextColor(THEME.text[1], THEME.text[2], THEME.text[3])
+
+    -- Close button
+    local close = CreateFrame("Button", nil, f)
+    close:SetSize(22, 22)
+    close:SetPoint("TOPRIGHT", -6, -6)
+    local closeText = close:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    closeText:SetPoint("CENTER")
+    closeText:SetText("x")
+    closeText:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3])
+    close:SetScript("OnClick", function() f:Hide() end)
+    close:SetScript("OnEnter", function() closeText:SetTextColor(1, 0.3, 0.3) end)
+    close:SetScript("OnLeave", function() closeText:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3]) end)
+
+    -- Separator below title
+    local sep = f:CreateTexture(nil, "ARTWORK")
+    sep:SetPoint("TOPLEFT", 1, -28)
+    sep:SetPoint("TOPRIGHT", -1, -28)
+    sep:SetHeight(1)
+    sep:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 1)
 
     -- Severity filter buttons
     local severities = { "GREEN", "YELLOW", "ORANGE", "RED" }
@@ -522,13 +596,18 @@ function ClipTracker:CreateFrame()
     local btnWidth = 60
 
     for i, sev in ipairs(severities) do
-        local btn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+        local btn = CreateFrame("Button", nil, f, "BackdropTemplate")
         btn:SetSize(btnWidth, 20)
-        btn:SetPoint("TOPLEFT", f, "TOPLEFT", 10 + (i - 1) * (btnWidth + 5), -25)
-        btn:SetText(sevNames[sev])
+        btn:SetPoint("TOPLEFT", f, "TOPLEFT", 10 + (i - 1) * (btnWidth + 5), -34)
+        btn:SetBackdrop(BACKDROP_THIN)
+        btn:SetBackdropColor(THEME.bg_widget[1], THEME.bg_widget[2], THEME.bg_widget[3], 1)
+        btn:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], 1)
 
+        local label = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        label:SetPoint("CENTER")
+        label:SetText(sevNames[sev])
         local color = self.SeverityColors[sev]
-        btn:GetFontString():SetTextColor(color[1], color[2], color[3])
+        label:SetTextColor(color[1], color[2], color[3])
 
         btn.severity = sev
         btn.enabled = true
@@ -549,21 +628,22 @@ function ClipTracker:CreateFrame()
 
     -- Live stats strip
     f.statsStrip = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    f.statsStrip:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -48)
-    f.statsStrip:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -48)
+    f.statsStrip:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -58)
+    f.statsStrip:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -58)
     f.statsStrip:SetJustifyH("LEFT")
+    f.statsStrip:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3])
     f.statsStrip:SetText("Clips: 0 | Avg/Shot: 0.000s | Total: 0.00s | Rate: 0.0% | Worst: 0.000s")
 
     -- Scroll frame for logs
     local sf = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
-    sf:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -65)
-    sf:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -30, 45)
+    sf:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -74)
+    sf:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -30, 38)
 
     -- Log text
     local logText = CreateFrame("EditBox", nil, sf)
     logText:SetMultiLine(true)
     logText:SetFontObject("GameFontHighlightSmall")
-    logText:SetWidth(sf:GetWidth() - 20)
+    logText:SetWidth(490)
     logText:SetAutoFocus(false)
     logText:EnableMouse(true)
     logText:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
@@ -572,26 +652,28 @@ function ClipTracker:CreateFrame()
     self.ScrollFrame = sf
     self.LogText = logText
 
-    -- Bottom buttons: Pause
-    local pauseBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    pauseBtn:SetSize(60, 22)
-    pauseBtn:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 10, 10)
-    pauseBtn:SetText("Pause")
+    -- Bottom separator
+    local sep2 = f:CreateTexture(nil, "ARTWORK")
+    sep2:SetPoint("BOTTOMLEFT", 1, 34)
+    sep2:SetPoint("BOTTOMRIGHT", -1, 34)
+    sep2:SetHeight(1)
+    sep2:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 1)
+
+    -- Bottom buttons
+    local pauseBtn = create_theme_button(f, 60, 22, "Pause")
+    pauseBtn:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 10, 8)
     pauseBtn:SetScript("OnClick", function(self)
         ClipTracker.IsPaused = not ClipTracker.IsPaused
         if ClipTracker.IsPaused then
-            self:SetText("Resume")
+            self.label:SetText("Resume")
         else
-            self:SetText("Pause")
+            self.label:SetText("Pause")
         end
     end)
     f.pauseBtn = pauseBtn
 
-    -- Clear
-    local clearBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    clearBtn:SetSize(55, 22)
+    local clearBtn = create_theme_button(f, 55, 22, "Clear")
     clearBtn:SetPoint("LEFT", pauseBtn, "RIGHT", 5, 0)
-    clearBtn:SetText("Clear")
     clearBtn:SetScript("OnClick", function()
         wipe(ClipTracker.ClipLog)
         ClipTracker:ResetCombatStats()
@@ -599,18 +681,16 @@ function ClipTracker:CreateFrame()
         ClipTracker:UpdateStatsStrip()
     end)
 
-    -- Export
-    local exportBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    exportBtn:SetSize(60, 22)
+    local exportBtn = create_theme_button(f, 60, 22, "Export")
     exportBtn:SetPoint("LEFT", clearBtn, "RIGHT", 5, 0)
-    exportBtn:SetText("Export")
     exportBtn:SetScript("OnClick", function()
         ClipTracker:ShowExportWindow()
     end)
 
     -- Log count
     f.logCount = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    f.logCount:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 15)
+    f.logCount:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 12)
+    f.logCount:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3])
     f.logCount:SetText("0 clips")
 
     self.Frame = f
@@ -726,9 +806,12 @@ function ClipTracker:ShowExportWindow()
 
     local f = _G["HunterClipTrackerExportFrame"]
     if not f then
-        f = CreateFrame("Frame", "HunterClipTrackerExportFrame", UIParent, "BasicFrameTemplateWithInset")
+        f = CreateFrame("Frame", "HunterClipTrackerExportFrame", UIParent, "BackdropTemplate")
         f:SetSize(600, 400)
         f:SetPoint("CENTER")
+        f:SetBackdrop(BACKDROP_THIN)
+        f:SetBackdropColor(THEME.bg[1], THEME.bg[2], THEME.bg[3], THEME.bg[4])
+        f:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], THEME.border[4])
         f:SetMovable(true)
         f:EnableMouse(true)
         f:RegisterForDrag("LeftButton")
@@ -736,13 +819,38 @@ function ClipTracker:ShowExportWindow()
         f:SetScript("OnDragStop", f.StopMovingOrSizing)
         f:SetFrameStrata("DIALOG")
 
-        f.title = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        f.title:SetPoint("TOP", f, "TOP", 0, -5)
-        f.title:SetText("Export Clip Data - Select All (Ctrl+A) & Copy (Ctrl+C)")
+        f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        f.title:SetPoint("TOPLEFT", 12, -8)
+        f.title:SetText("Export Clip Data")
+        f.title:SetTextColor(THEME.text[1], THEME.text[2], THEME.text[3])
+
+        local hint = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        hint:SetPoint("TOPRIGHT", -12, -12)
+        hint:SetText("Select All (Ctrl+A) & Copy (Ctrl+C)")
+        hint:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3])
+
+        -- Close button
+        local closeBtn = CreateFrame("Button", nil, f)
+        closeBtn:SetSize(22, 22)
+        closeBtn:SetPoint("TOPRIGHT", -6, -6)
+        local cx = closeBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        cx:SetPoint("CENTER")
+        cx:SetText("x")
+        cx:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3])
+        closeBtn:SetScript("OnClick", function() f:Hide() end)
+        closeBtn:SetScript("OnEnter", function() cx:SetTextColor(1, 0.3, 0.3) end)
+        closeBtn:SetScript("OnLeave", function() cx:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3]) end)
+
+        -- Separator
+        local sep = f:CreateTexture(nil, "ARTWORK")
+        sep:SetPoint("TOPLEFT", 1, -28)
+        sep:SetPoint("TOPRIGHT", -1, -28)
+        sep:SetHeight(1)
+        sep:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 1)
 
         local sf = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
-        sf:SetPoint("TOPLEFT", 10, -30)
-        sf:SetPoint("BOTTOMRIGHT", -30, 40)
+        sf:SetPoint("TOPLEFT", 10, -34)
+        sf:SetPoint("BOTTOMRIGHT", -30, 42)
 
         local eb = CreateFrame("EditBox", nil, sf)
         eb:SetMultiLine(true)
@@ -753,10 +861,15 @@ function ClipTracker:ShowExportWindow()
         sf:SetScrollChild(eb)
         f.editBox = eb
 
-        local btn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-        btn:SetSize(100, 25)
-        btn:SetPoint("BOTTOM", 0, 10)
-        btn:SetText("Close")
+        -- Bottom separator
+        local sep2 = f:CreateTexture(nil, "ARTWORK")
+        sep2:SetPoint("BOTTOMLEFT", 1, 36)
+        sep2:SetPoint("BOTTOMRIGHT", -1, 36)
+        sep2:SetHeight(1)
+        sep2:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 1)
+
+        local btn = create_theme_button(f, 100, 25, "Close")
+        btn:SetPoint("BOTTOM", 0, 8)
         btn:SetScript("OnClick", function() f:Hide() end)
     end
 
@@ -799,7 +912,7 @@ function ClipTracker:Toggle()
 end
 
 -- ============================================================================
--- AUTO SHOW/HIDE FROM TOGGLE
+-- AUTO SHOW/HIDE FROM SCHEMA TOGGLE (show_clip_tracker)
 -- ============================================================================
 
 local lastToggleState = nil

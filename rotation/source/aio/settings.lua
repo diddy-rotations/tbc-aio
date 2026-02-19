@@ -30,7 +30,7 @@ local cc = rotation_registry and rotation_registry.class_config
 
 -- Derive display name from class config
 local class_name = cc and cc.name or "Unknown"
-local CLASS_TITLE_COLORS = { Druid = "ff7d0a", Hunter = "abd473", Mage = "69ccf0" }
+local CLASS_TITLE_COLORS = { Druid = "ff7d0a", Hunter = "abd473", Mage = "69ccf0", Paladin = "f58cba", Priest = "ffffff", Rogue = "fff569", Shaman = "0070dd", Warlock = "9482c9", Warrior = "c79c6e" }
 local class_hex = CLASS_TITLE_COLORS[class_name] or "6c63ff"
 local addon_title = class_name .. " AIO"
 local addon_title_colored = format("|cff%s%s|r |cff6c63ffAIO|r", class_hex, class_name)

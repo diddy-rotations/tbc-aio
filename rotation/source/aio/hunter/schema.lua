@@ -129,7 +129,7 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "mana_viper_end", default = 30, min = 0, max = 100, label = "Viper Off Mana (%)",
               tooltip = "Switch off Viper when mana rises above this.", format = "%d%%" },
             { type = "slider", key = "mana_save", default = 30, min = 0, max = 100, label = "Mana Save (%)",
-              tooltip = "Don't spend mana on shots below this %.", format = "%d%%" },
+              tooltip = "Don't spend mana on expensive shots (Multi-Shot, Arcane Shot, Stings) below this %. Steady Shot always fires.", format = "%d%%" },
         }},
     }},
 

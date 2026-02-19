@@ -175,17 +175,17 @@ strategies[#strategies + 1] = named("CombatRotation", {
         local function EnemyRotation(unit)
             local npcID = select(6, Unit(unit):InfoGUID())
 
-            -- Stop attacking if target is immune
+            -- [R-1] Stop attacking if target is immune
             if CheckImmuneOrDoNotAttack(unit) then
                 return A.PoolResource:Show(icon)
             end
 
-            -- Tranquilizing Shot (enrage dispel)
+            -- [R-2] Tranquilizing Shot (enrage dispel)
             if A.TranquilizingShot:IsReady(unit) and AuraIsValid(unit, nil, "Enrage") then
                 return A.TranquilizingShot:Show(icon), "[RANGED] Tranq Shot"
             end
 
-            -- Misdirection on focus target
+            -- [R-3] Misdirection on focus target
             if A.Misdirection:IsReady(PLAYER_UNIT) and Unit("focus"):IsExists() and not Unit("focus"):IsDead() then
                 if context.combat_time < 6 then
                     return A.Misdirection:Show(icon), "[RANGED] Misdirection (pull)"
@@ -195,7 +195,7 @@ strategies[#strategies + 1] = named("CombatRotation", {
                 end
             end
 
-            -- Aspect of the Hawk (in combat)
+            -- [R-4] Aspect of the Hawk (in combat)
             if s.aspect_hawk then
                 local manaViperEnd = s.mana_viper_end or 30
                 local viperOff = (context.mana_pct > manaViperEnd and s.aspect_viper) or not s.aspect_viper
@@ -205,7 +205,7 @@ strategies[#strategies + 1] = named("CombatRotation", {
                 end
             end
 
-            -- Readiness controller (outside burst)
+            -- [R-5] Readiness controller (outside burst)
             if A.Readiness:IsReady(PLAYER_UNIT) then
                 if s.readiness_rapid_fire then
                     if A.RapidFire:GetCooldown() >= 120 - (30 * num(A.RapidKilling1:IsTalentLearned())) - (30 * num(A.RapidKilling2:IsTalentLearned())) then
@@ -219,23 +219,23 @@ strategies[#strategies + 1] = named("CombatRotation", {
                 end
             end
 
-            -- Protect frozen target (auto-switch)
+            -- [R-6] Protect frozen target (auto-switch)
             if s.protect_freeze and Unit("target"):HasDeBuffs(A.FreezingTrapDebuff.ID) > 0 and MultiUnits:GetActiveEnemies() >= 2 then
                 return A:Show(icon, CONST.AUTOTARGET)
             end
 
-            -- Freezing Trap on adds
+            -- [R-7] Freezing Trap on adds
             if A.FreezingTrap:IsReady(PLAYER_UNIT) and s.freezing_trap_pve and MultiUnits:GetActiveEnemies() >= 2 and MultiUnits:GetByRangeInCombat(5, 1, 5) >= 1 and not CheckCCImmune(unit) then
                 return A.FreezingTrap:Show(icon), "[RANGED] Freezing Trap"
             end
 
-            -- Mend Pet
+            -- [R-8] Mend Pet
             local mendPetHP = s.mend_pet_hp or 30
             if A.MendPet:IsReady(PLAYER_UNIT) and context.pet_hp < mendPetHP and context.pet_active and Unit("pet"):HasBuffs(A.MendPet.ID, true) == 0 then
                 return A.MendPet:Show(icon), "[RANGED] Mend Pet"
             end
 
-            -- Hunter's Mark
+            -- [R-9] Hunter's Mark
             if A.HuntersMark:IsReady(unit) and Unit(unit):HasDeBuffs(A.HuntersMark.ID) == 0
                and ((Player:GetDeBuffsUnitCount(A.HuntersMark.ID) == 0 and s.static_mark) or not s.static_mark)
                and Unit(unit):TimeToDie() > 2
@@ -244,33 +244,33 @@ strategies[#strategies + 1] = named("CombatRotation", {
                 return A.HuntersMark:Show(icon), "[RANGED] Hunter's Mark"
             end
 
-            -- Experimental pet controller
+            -- [R-10] Experimental pet controller
             if s.experimental_pet and context.pet_active then
                 if not Pet:IsAttacking() and context.pet_hp > mendPetHP - 20 then
                     return A.PetAttack:Show(icon), "[RANGED] Pet Attack"
                 end
             end
 
-            -- Kill Command
+            -- [R-11] Kill Command (off-GCD, 5s CD — highest DPS priority)
             if A.KillCommand:IsReady(unit) then
                 return A.KillCommand:Show(icon), "[RANGED] Kill Command"
             end
 
             -- ============================================
-            -- RANGED ROTATION
+            -- RANGED ROTATION (at range)
             -- ============================================
             if AtRange() then
-                -- Auto Shoot
+                -- [R-12] Auto Shoot
                 if not Player:IsShooting() then
                     return A:Show(icon, CONST.AUTOSHOOT)
                 end
 
-                -- Intimidation (PvE aggro)
+                -- [R-13] Intimidation (PvE aggro)
                 if A.Intimidation:IsReady(unit) and s.intimidation_pve and UnitIsUnit("targettarget", PLAYER_UNIT) and Unit("target"):IsControlAble("stun") and not CheckCCImmune(unit) then
                     return A.Intimidation:Show(icon), "[RANGED] Intimidation"
                 end
 
-                -- Concussive Shot (PvE)
+                -- [R-14] Concussive Shot (PvE)
                 if A.ConcussiveShot:IsReady(unit) and s.concussive_shot_pve and not Unit(unit):IsBoss()
                    and Unit("target"):IsMelee() and UnitIsUnit("targettarget", PLAYER_UNIT)
                    and A.LastPlayerCastName ~= A.Intimidation:Info()
@@ -280,7 +280,7 @@ strategies[#strategies + 1] = named("CombatRotation", {
                     return A.ConcussiveShot:Show(icon), "[RANGED] Concussive Shot (PvE)"
                 end
 
-                -- PvP Concussive Shot
+                -- [R-14b] PvP Concussive Shot
                 if A.IsInPvP and A.ConcussiveShot:IsReady(unit) and not CheckCCImmune(unit) and Unit(unit):HasDeBuffs(A.WingClip.ID) < GetGCD() then
                     local range = GetRange(unit)
                     if range > 0 and (range < 10 or range > 25) then
@@ -290,7 +290,7 @@ strategies[#strategies + 1] = named("CombatRotation", {
                     end
                 end
 
-                -- PvP Viper Sting
+                -- [R-15] PvP Viper Sting
                 if A.IsInPvP and A.ViperSting:IsReady(unit) then
                     if ShouldUseViperSting(unit) then
                         if Unit(unit):HasDeBuffs(A.ViperSting.ID, true) <= GetGCD() then
@@ -299,7 +299,7 @@ strategies[#strategies + 1] = named("CombatRotation", {
                     end
                 end
 
-                -- Burst Cooldowns
+                -- [R-16] Burst Cooldowns
                 local useAoE = s.aoe
                 local autoSyncCDs = s.auto_sync_cds
                 local BurnPhase = Unit(PLAYER_UNIT):HasBuffs(A.Heroism.ID) > 0 or Unit(PLAYER_UNIT):HasBuffs(A.Bloodlust.ID) > 0 or Unit(PLAYER_UNIT):HasBuffs(A.Drums.ID) > 0
@@ -349,7 +349,7 @@ strategies[#strategies + 1] = named("CombatRotation", {
                     end
                 end
 
-                -- Moving Arcane Shot
+                -- [R-17] Moving Arcane Shot
                 local useArcane = s.use_arcane
                 local arcaneShotMana = s.arcane_shot_mana or 15
                 local manaSave = s.mana_save or 30
@@ -358,7 +358,7 @@ strategies[#strategies + 1] = named("CombatRotation", {
                     return A.ArcaneShot:Show(icon), "[RANGED] Arcane Shot (moving)"
                 end
 
-                -- Shot Weaving
+                -- [R-18] Shot Weaving
                 local ShootTimer = context.shoot_timer
                 local speed = context.weapon_speed
                 local latency = GetLatency()
@@ -373,17 +373,23 @@ strategies[#strategies + 1] = named("CombatRotation", {
                     MultiAfterHaste = 0.5 / haste
                 end
 
+                -- Aimed Shot: post-2.3 instant, 6s CD — weave into rotation (MM only)
+                if A.AimedShot:IsReady(unit) and (Unit(unit):TimeToDie() > 6 or Unit(unit):IsBoss()) then
+                    if CT then CT:RecordSuggestion("Aimed Shot", ShootTimer) end
+                    return A.AimedShot:Show(icon), "[RANGED] Aimed Shot"
+                end
+
                 if s.warces then
                     -- Warces haste-adjusted version
                     local gcdLeft = GetCurrentGCD() or 0
                     local available = ShootTimer - gcdLeft - latency
 
                     if GetGCD() <= speed then
-                        if available >= MultiAfterHaste and available < SteadyAfterHaste and A.MultiShot:IsReady(unit) and useAoE then
+                        if available >= MultiAfterHaste and available < SteadyAfterHaste and A.MultiShot:IsReady(unit) and useAoE and context.mana_pct > manaSave then
                             if CT then CT:RecordSuggestion("Multi-Shot", ShootTimer) end
                             return A.MultiShot:Show(icon), "[RANGED] Multi-Shot (warces)"
                         end
-                        if ShootTimer > 0 and available < MultiAfterHaste and A.ArcaneShot:IsReady(unit) and useArcane and not Constants.ARCANE_IMMUNE[npcID] then
+                        if ShootTimer > 0 and available < MultiAfterHaste and A.ArcaneShot:IsReady(unit) and useArcane and not Constants.ARCANE_IMMUNE[npcID] and context.mana_pct > arcaneShotMana then
                             if CT then CT:RecordSuggestion("Arcane Shot", ShootTimer) end
                             return A.ArcaneShot:Show(icon), "[RANGED] Arcane Shot (warces)"
                         end
@@ -398,11 +404,11 @@ strategies[#strategies + 1] = named("CombatRotation", {
                     end
 
                     if GetGCD() > speed then
-                        if available >= MultiAfterHaste and available < SteadyAfterHaste and A.MultiShot:IsReady(unit) and useAoE then
+                        if available >= MultiAfterHaste and available < SteadyAfterHaste and A.MultiShot:IsReady(unit) and useAoE and context.mana_pct > manaSave then
                             if CT then CT:RecordSuggestion("Multi-Shot", ShootTimer) end
                             return A.MultiShot:Show(icon), "[RANGED] Multi-Shot (warces slow)"
                         end
-                        if ShootTimer > 0 and available < MultiAfterHaste and A.ArcaneShot:IsReady(unit) and useArcane and not Constants.ARCANE_IMMUNE[npcID] then
+                        if ShootTimer > 0 and available < MultiAfterHaste and A.ArcaneShot:IsReady(unit) and useArcane and not Constants.ARCANE_IMMUNE[npcID] and context.mana_pct > arcaneShotMana then
                             if CT then CT:RecordSuggestion("Arcane Shot", ShootTimer) end
                             return A.ArcaneShot:Show(icon), "[RANGED] Arcane Shot (warces slow)"
                         end
@@ -414,40 +420,52 @@ strategies[#strategies + 1] = named("CombatRotation", {
                 end
 
                 -- Standard version (swing timer based)
-                if not s.warces and ShootTimer < Player:Execute_Time(A.SteadyShot.ID) and (ShootTimer > Player:Execute_Time(A.MultiShot.ID) or ShootTimer <= GetLatency()) and context.mana_pct > manaSave then
-                    if A.MultiShot:IsReady(unit) and useAoE then
-                        if CT then CT:RecordSuggestion("Multi-Shot", ShootTimer) end
-                        return A.MultiShot:Show(icon), "[RANGED] Multi-Shot"
-                    end
+                -- Gate: only weave when there's a window between auto shots
+                if not s.warces then
+                    local steadyCast = Player:Execute_Time(A.SteadyShot.ID)
+                    local multiCast = Player:Execute_Time(A.MultiShot.ID)
+                    local canWeave = ShootTimer < steadyCast and (ShootTimer > multiCast or ShootTimer <= latency)
 
-                    -- Stings (priority: Serpent > Scorpid > Viper)
-                    if s.use_serpent_sting then
-                        if A.SerpentSting:IsReady(unit) and Unit(unit):HasDeBuffs(A.SerpentSting.ID, true) <= GetGCD() and Unit(unit):TimeToDie() >= 4 then
-                            if CT then CT:RecordSuggestion("Serpent Sting", ShootTimer) end
-                            return A.SerpentSting:Show(icon), "[RANGED] Serpent Sting"
+                    if canWeave then
+                        -- Multi-Shot (gated by mana_save)
+                        if A.MultiShot:IsReady(unit) and useAoE and context.mana_pct > manaSave then
+                            if CT then CT:RecordSuggestion("Multi-Shot", ShootTimer) end
+                            return A.MultiShot:Show(icon), "[RANGED] Multi-Shot"
+                        end
+
+                        -- Stings (gated by mana_save — expensive at 275 mana)
+                        if context.mana_pct > manaSave then
+                            if s.use_serpent_sting then
+                                if A.SerpentSting:IsReady(unit) and Unit(unit):HasDeBuffs(A.SerpentSting.ID, true) <= GetGCD() and Unit(unit):TimeToDie() >= 4 then
+                                    if CT then CT:RecordSuggestion("Serpent Sting", ShootTimer) end
+                                    return A.SerpentSting:Show(icon), "[RANGED] Serpent Sting"
+                                end
+                            end
+
+                            if s.use_scorpid_sting then
+                                if A.ScorpidSting:IsReady(unit) and Unit(unit):HasDeBuffs(A.ScorpidSting.ID, true) <= GetGCD() + 0.5 and Unit(unit):IsBoss() then
+                                    if CT then CT:RecordSuggestion("Scorpid Sting", ShootTimer) end
+                                    return A.ScorpidSting:Show(icon), "[RANGED] Scorpid Sting"
+                                end
+                            end
+
+                            if s.use_viper_sting_pve then
+                                if A.ViperSting:IsReady(unit) and Unit(unit):PowerType() == "MANA" and Unit(unit):Power() >= 10 then
+                                    if CT then CT:RecordSuggestion("Viper Sting", ShootTimer) end
+                                    return A.ViperSting:Show(icon), "[RANGED] Viper Sting (PvE)"
+                                end
+                            end
+                        end
+
+                        -- Arcane Shot (gated by its own mana threshold)
+                        if A.ArcaneShot:IsReady(unit) and useArcane and not Constants.ARCANE_IMMUNE[npcID] and context.mana_pct > arcaneShotMana then
+                            if CT then CT:RecordSuggestion("Arcane Shot", ShootTimer) end
+                            return A.ArcaneShot:Show(icon), "[RANGED] Arcane Shot"
                         end
                     end
 
-                    if s.use_scorpid_sting then
-                        if A.ScorpidSting:IsReady(unit) and Unit(unit):HasDeBuffs(A.ScorpidSting.ID, true) <= GetGCD() + 0.5 and Unit(unit):IsBoss() then
-                            if CT then CT:RecordSuggestion("Scorpid Sting", ShootTimer) end
-                            return A.ScorpidSting:Show(icon), "[RANGED] Scorpid Sting"
-                        end
-                    end
-
-                    if s.use_viper_sting_pve then
-                        if A.ViperSting:IsReady(unit) and Unit(unit):PowerType() == "MANA" and Unit(unit):Power() >= 10 then
-                            if CT then CT:RecordSuggestion("Viper Sting", ShootTimer) end
-                            return A.ViperSting:Show(icon), "[RANGED] Viper Sting (PvE)"
-                        end
-                    end
-
-                    if A.ArcaneShot:IsReady(unit) and useArcane and not Constants.ARCANE_IMMUNE[npcID] and context.mana_pct > arcaneShotMana then
-                        if CT then CT:RecordSuggestion("Arcane Shot", ShootTimer) end
-                        return A.ArcaneShot:Show(icon), "[RANGED] Arcane Shot"
-                    end
-
-                    if (ShootTimer >= Player:Execute_Time(A.SteadyShot.ID) or (ShootTimer <= GetLatency() and ShootTimer > 0)) and context.mana_pct > manaSave then
+                    -- Steady Shot: always castable (cheap at 110 mana), fires when window allows
+                    if (ShootTimer >= steadyCast or (ShootTimer <= latency and ShootTimer > 0)) then
                         if A.SteadyShot:IsReady(unit) then
                             if CT then CT:RecordSuggestion("Steady Shot", ShootTimer) end
                             return A.SteadyShot:Show(icon), "[RANGED] Steady Shot"
@@ -457,37 +475,37 @@ strategies[#strategies + 1] = named("CombatRotation", {
             end -- end AtRange
 
             -- ============================================
-            -- MELEE ROTATION
+            -- MELEE ROTATION (in melee range)
             -- ============================================
             if InMelee() then
-                -- Disengage (PvE, when mob is on us)
+                -- [R-19] Disengage (PvE, when mob is on us)
                 if not A.IsInPvP and A.Disengage:IsReady(unit) and UnitIsUnit("targettarget", PLAYER_UNIT)
                    and (not A.Intimidation:IsReady(unit) or Unit("pet"):HasBuffs(A.Intimidation.ID) == 0 or not s.intimidation_pve) then
                     return A.Disengage:Show(icon), "[MELEE] Disengage"
                 end
 
-                -- Explosive Trap (AoE in melee)
+                -- [R-20] Explosive Trap (AoE in melee)
                 if A.ExplosiveTrap:IsReady(unit) and MultiUnits:GetByRange(5, 3) > 2 and s.aoe then
                     return A.ExplosiveTrap:Show(icon), "[MELEE] Explosive Trap"
                 end
 
-                -- Wing Clip
+                -- [R-21] Wing Clip
                 if ShouldUseWingClip(unit) and A.WingClip:IsReady(unit) and Unit(unit):HasDeBuffs(A.WingClip.ID, true) <= GetGCD()
                    and A.WingClip:AbsentImun(unit, Constants.Temp.TotalAndPhysAndCC) and not CheckCCImmune(unit) then
                     return A.WingClip:Show(icon), "[MELEE] Wing Clip"
                 end
 
-                -- Mongoose Bite
+                -- [R-22] Mongoose Bite
                 if A.MongooseBite:IsReady(unit) then
                     return A.MongooseBite:Show(icon), "[MELEE] Mongoose Bite"
                 end
 
-                -- Raptor Strike
+                -- [R-23] Raptor Strike
                 if A.RaptorStrike:IsReady(unit) and not A.RaptorStrike:IsSpellCurrent() and not Player:IsShooting() then
                     return A.RaptorStrike:Show(icon), "[MELEE] Raptor Strike"
                 end
 
-                -- Auto Attack
+                -- [R-24] Auto Attack
                 if not Player:IsAttacking() then
                     return A:Show(icon, CONST.AUTOATTACK)
                 end

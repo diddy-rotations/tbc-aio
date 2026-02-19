@@ -97,7 +97,7 @@ Action[A.PlayerClass] = {
     SnakeTrap        = Create({ Type = "Spell", ID = 34600, Click = { unit = "player", type = "spell", spell = 34600 } }),
     TrackHidden      = Create({ Type = "Spell", ID = 19885, Click = { unit = "player", type = "spell", spell = 19885 } }),
     WingClip         = Create({ Type = "Spell", ID = 2974, useMaxRank = true, Click = { autounit = "harm", type = "spell" } }),
-    WyvernString     = Create({ Type = "Spell", ID = 19386, useMaxRank = true, Click = { autounit = "harm", type = "spell" } }),
+    WyvernSting      = Create({ Type = "Spell", ID = 19386, useMaxRank = true, Click = { autounit = "harm", type = "spell" } }),
 
     -- Talents
     RapidKilling1 = Create({ Type = "Talent", ID = 34948 }),
@@ -397,6 +397,7 @@ local function validate_playstyle_spells(playstyle)
             { spell = A.MultiShot, name = "Multi-Shot", required = false },
             { spell = A.SerpentSting, name = "Serpent Sting", required = false },
             { spell = A.HuntersMark, name = "Hunter's Mark", required = false },
+            { spell = A.AimedShot, name = "Aimed Shot", required = false, note = "MM talent" },
             { spell = A.KillCommand, name = "Kill Command", required = false, note = "BM talent" },
             { spell = A.BestialWrath, name = "Bestial Wrath", required = false, note = "41pt BM talent" },
             { spell = A.RapidFire, name = "Rapid Fire", required = false },
