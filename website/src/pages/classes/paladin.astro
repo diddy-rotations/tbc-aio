@@ -1,0 +1,160 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../config';
+---
+
+<Base title="Paladin" description="Diddy AIO Paladin rotation - Retribution, Protection, and Holy specs with seal twisting, Forbearance tracking, and intelligent healing.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/paladin')}>Paladin</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--paladin);">Paladin</h1>
+      <p class="section-sub">3 specs with seal management, off-GCD Judgements, Forbearance tracking, and spec-specific aura/blessing buffs.</p>
+    </section>
+
+    <section class="section">
+      <h2>Playstyles</h2>
+      <div class="card-grid">
+        <a href="#retribution" class="card"><h3>Retribution</h3><p>Seal twisting for maximum melee DPS, Crusader Strike, and execute-phase Hammer of Wrath.</p></a>
+        <a href="#protection" class="card"><h3>Protection</h3><p>100% Holy Shield uptime, Consecration threat, Avenger's Shield pulls, and crush prevention.</p></a>
+        <a href="#holy" class="card"><h3>Holy</h3><p>Smart party healing with Flash of Light, Holy Light, Holy Shock, and Divine Favor cooldowns.</p></a>
+      </div>
+    </section>
+
+    <section class="section" id="retribution">
+      <div class="spec">
+        <h3 style="color: var(--paladin);">Retribution</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Seal twisting &mdash; Seal of Command R1 into Seal of Blood/Martyr within 0.4s swing window for double seal procs</li>
+          <li>Crusader Strike as primary GCD filler (41-pt talent, 6s cooldown)</li>
+          <li>Hammer of Wrath execute on targets below 20% HP</li>
+          <li>Exorcism on Undead/Demon targets when mana allows</li>
+          <li>Consecration at configurable enemy count threshold</li>
+        </ul>
+
+        <h4>Judgement System</h4>
+        <ul class="features">
+          <li>Off-GCD Judgements for maximum efficiency (TBC mechanic)</li>
+          <li>Configurable judgement debuff: Blood, Crusader, Wisdom, or Light</li>
+          <li>Auto-judge on cooldown between GCD abilities</li>
+        </ul>
+
+        <h4>Cooldowns</h4>
+        <ul class="features">
+          <li>Avenging Wrath (+30% damage) with Forbearance tracking</li>
+          <li>Trinket and racial ability stacking</li>
+          <li>Seal twist can be disabled for simpler rotation</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="protection">
+      <div class="spec">
+        <h3 style="color: var(--paladin);">Protection</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Holy Shield maintenance for 100% uptime (crush prevention)</li>
+          <li>Consecration as primary AoE threat tool</li>
+          <li>Avenger's Shield for pull/snap threat (41-pt talent)</li>
+          <li>Hammer of Wrath execute on low-HP targets</li>
+          <li>Exorcism on Undead/Demon targets</li>
+        </ul>
+
+        <h4>Judgement &amp; Seals</h4>
+        <ul class="features">
+          <li>Off-GCD Judgement for continuous threat generation</li>
+          <li>Configurable seal: Righteousness, Vengeance, or Wisdom</li>
+          <li>Righteous Fury maintenance for threat modifier</li>
+        </ul>
+
+        <h4>Cooldowns</h4>
+        <ul class="features">
+          <li>Avenging Wrath with Forbearance tracking</li>
+          <li>Trinket and racial ability usage</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="holy">
+      <div class="spec">
+        <h3 style="color: var(--paladin);">Holy</h3>
+
+        <h4>Healing</h4>
+        <ul class="features">
+          <li>Flash of Light as efficient fast heal (configurable threshold, default 90%)</li>
+          <li>Holy Light for large heals on heavily damaged targets (default 60%)</li>
+          <li>Holy Shock as instant emergency heal (default 50%, 15s CD)</li>
+          <li>Smart party/raid target scanning sorted by HP</li>
+        </ul>
+
+        <h4>Cooldowns</h4>
+        <ul class="features">
+          <li>Divine Favor for guaranteed crit on next heal</li>
+          <li>Divine Illumination for 50% mana cost reduction (41-pt talent)</li>
+        </ul>
+
+        <h4>Utility</h4>
+        <ul class="features">
+          <li>Judgement of Light/Wisdom maintenance when party is safe</li>
+          <li>Seal of Wisdom for mana regeneration</li>
+          <li>Party Cleanse for poison, disease, and magic debuffs</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Shared Features</h2>
+      <div class="spec">
+        <h4>Emergency &amp; Defensive</h4>
+        <ul class="features">
+          <li>Divine Shield at configurable HP threshold (blocked by Forbearance)</li>
+          <li>Lay on Hands emergency full heal (blocked by Forbearance)</li>
+          <li>Hammer of Justice stun interrupt on casting enemies</li>
+        </ul>
+
+        <h4>Consumable &amp; Recovery</h4>
+        <ul class="features">
+          <li>Healthstone auto-use at configurable threshold</li>
+          <li>Healing Potion at configurable threshold</li>
+          <li>Mana Potion with threshold setting</li>
+          <li>Dark Rune / Demonic Rune with HP safety check</li>
+        </ul>
+
+        <h4>Self-Buffs (Out of Combat)</h4>
+        <ul class="features">
+          <li>Aura by spec: Sanctity (Ret), Devotion (Prot), Concentration (Holy)</li>
+          <li>Blessing by spec: Might (Ret), Kings (Prot), Wisdom (Holy)</li>
+          <li>Cleanse on self for poison, disease, and magic</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Settings Overview</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>General</h3>
+          <p>Spec selection, Cleanse toggle, interrupt, recovery thresholds, emergency settings, cooldown toggles.</p>
+        </div>
+        <div class="card">
+          <h3>Retribution</h3>
+          <p>Seal twisting toggle, Judgement debuff, Consecration threshold, Exorcism, Crusader Strike.</p>
+        </div>
+        <div class="card">
+          <h3>Protection</h3>
+          <p>Holy Shield, seal selection, Avenger's Shield, Righteous Fury, Consecration.</p>
+        </div>
+        <div class="card">
+          <h3>Holy</h3>
+          <p>Healing thresholds for Flash/Holy Light/Holy Shock, Divine Favor, Divine Illumination, Cleanse party.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Base>

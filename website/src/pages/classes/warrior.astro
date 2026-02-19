@@ -1,0 +1,166 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../config';
+---
+
+<Base title="Warrior" description="Diddy AIO Warrior rotation - Arms, Fury, and Protection specs with Heroic Strike queuing, stance-aware rotation, and rage management.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/warrior')}>Warrior</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--warrior);">Warrior</h1>
+      <p class="section-sub">3 specs with stance-aware rotation logic, off-GCD Heroic Strike/Cleave queuing, and configurable rage management.</p>
+    </section>
+
+    <section class="section">
+      <h2>Playstyles</h2>
+      <div class="card-grid">
+        <a href="#arms" class="card"><h3>Arms</h3><p>Mortal Strike, Rend for Blood Frenzy, Overpower on procs, and Sweeping Strikes cleave.</p></a>
+        <a href="#fury" class="card"><h3>Fury</h3><p>Bloodthirst, Rampage upkeep, Whirlwind, and high-tempo rage spending.</p></a>
+        <a href="#protection" class="card"><h3>Protection</h3><p>Shield Slam threat, Revenge procs, Shield Block uptime, and Devastate filler.</p></a>
+      </div>
+    </section>
+
+    <section class="section" id="arms">
+      <div class="spec">
+        <h3 style="color: var(--warrior);">Arms</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Rend maintenance for Blood Frenzy (+4% physical damage) with configurable refresh window</li>
+          <li>Mortal Strike as primary damage ability (6s CD, stance-free)</li>
+          <li>Overpower on dodge procs (Battle Stance, configurable min rage)</li>
+          <li>Whirlwind cleave attack (Berserker Stance, 10s CD)</li>
+          <li>Sweeping Strikes when 2+ enemies detected</li>
+          <li>Slam as cast filler (requires Improved Slam)</li>
+        </ul>
+
+        <h4>Execute Phase</h4>
+        <ul class="features">
+          <li>Execute priority on targets below 20% HP</li>
+          <li>Configurable: allow/disable MS, WW, and HS during execute phase</li>
+        </ul>
+
+        <h4>Rage Management</h4>
+        <ul class="features">
+          <li>Heroic Strike queued above rage threshold (default 55)</li>
+          <li>Cleave replaces Heroic Strike when enemy count meets AoE threshold</li>
+          <li>Both abilities are off-GCD (swing-weaving)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="fury">
+      <div class="spec">
+        <h3 style="color: var(--warrior);">Fury</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Rampage stack maintenance with configurable refresh window</li>
+          <li>Bloodthirst as primary damage ability</li>
+          <li>Whirlwind with optional priority toggle (WW before or after BT)</li>
+          <li>Slam as cast filler (requires Improved Slam)</li>
+          <li>Overpower on dodge procs (optional, Battle Stance)</li>
+          <li>Hamstring for Sword Spec procs (configurable min rage)</li>
+        </ul>
+
+        <h4>Execute Phase</h4>
+        <ul class="features">
+          <li>Execute priority on targets below 20% HP</li>
+          <li>Configurable: allow/disable BT, WW, and HS during execute phase</li>
+        </ul>
+
+        <h4>Cooldowns</h4>
+        <ul class="features">
+          <li>Death Wish (+20% damage for 30s)</li>
+          <li>Recklessness (+100% crit, Berserker Stance only)</li>
+          <li>Trinket and racial ability stacking</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="protection">
+      <div class="spec">
+        <h3 style="color: var(--warrior);">Protection</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Shield Block maintenance for crush prevention (off-GCD)</li>
+          <li>Shield Slam as highest single-target threat ability (41-pt talent, 6s CD)</li>
+          <li>Revenge on block/dodge/parry procs (highest threat-per-rage)</li>
+          <li>Devastate as filler with auto Sunder Armor stacking</li>
+          <li>Thunder Clap debuff maintenance (optional, Battle Stance)</li>
+          <li>Demoralizing Shout maintenance (optional)</li>
+        </ul>
+
+        <h4>Rage Management</h4>
+        <ul class="features">
+          <li>Heroic Strike queued above rage threshold (default 60)</li>
+          <li>Cleave replaces HS for multi-target threat above AoE threshold</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Shared Features</h2>
+      <div class="spec">
+        <h4>Stance System</h4>
+        <ul class="features">
+          <li>Rotation respects current stance &mdash; no automatic stance switching</li>
+          <li>Abilities gated by stance are skipped when unavailable</li>
+          <li>Battle (Overpower, Sweeping Strikes), Defensive (Shield Block, Revenge), Berserker (Whirlwind, Pummel)</li>
+        </ul>
+
+        <h4>Emergency &amp; Defensive</h4>
+        <ul class="features">
+          <li>Last Stand for +30% max HP emergency (Protection talent)</li>
+          <li>Shield Wall for 75% damage reduction (Defensive Stance)</li>
+          <li>Spell Reflection in Battle/Defensive Stance</li>
+        </ul>
+
+        <h4>Interrupt</h4>
+        <ul class="features">
+          <li>Pummel (Berserker Stance) or Shield Bash (Defensive Stance + shield)</li>
+        </ul>
+
+        <h4>Utility &amp; Buffs</h4>
+        <ul class="features">
+          <li>Bloodrage for rage generation (off-GCD, skipped at high rage or low HP)</li>
+          <li>Berserker Rage for rage + fear immunity (Berserker Stance)</li>
+          <li>Battle Shout or Commanding Shout maintenance</li>
+          <li>Sunder Armor debuff maintenance (configurable: off, help stack, or full maintain)</li>
+        </ul>
+
+        <h4>Recovery</h4>
+        <ul class="features">
+          <li>Healthstone and Healing Potion at configurable thresholds</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Settings Overview</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>General</h3>
+          <p>Spec selection, shout choice, Sunder mode, interrupt toggle, AoE threshold, recovery items, debug mode.</p>
+        </div>
+        <div class="card">
+          <h3>Arms</h3>
+          <p>Rend refresh, Overpower min rage, Sweeping Strikes, Slam, execute phase toggles, HS rage threshold.</p>
+        </div>
+        <div class="card">
+          <h3>Fury</h3>
+          <p>Rampage refresh, WW priority, Slam, Hamstring rage, execute phase toggles, HS rage threshold.</p>
+        </div>
+        <div class="card">
+          <h3>Protection</h3>
+          <p>Shield Block, Thunder Clap, Demo Shout, HS rage threshold, AoE settings.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Base>

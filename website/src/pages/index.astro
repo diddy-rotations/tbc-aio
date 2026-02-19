@@ -6,7 +6,7 @@ import { config, url } from '../config';
 <Base title="Home">
   <div class="hero">
     <h1>Diddy <span>AIO</span></h1>
-    <p class="tagline">Intelligent WoW TBC rotation automation. Druid, Hunter &amp; Mage.</p>
+    <p class="tagline">Intelligent WoW TBC rotation automation for all 9 classes.</p>
     <div class="btn-group">
       <a href={config.downloadUrl} class="btn btn-primary">Download Latest</a>
       <a href={url('/guides/installation')} class="btn btn-secondary">Installation Guide</a>
@@ -21,15 +21,39 @@ import { config, url } from '../config';
       <div class="card-grid">
         <a href={url('/classes/druid')} class="card">
           <h3 class="c-druid">Druid</h3>
-          <p>5 playstyles: Cat DPS, Bear Tank, Balance Moonkin, Resto Tree, and Caster recovery. Powershifting, energy tick tracking, smart healing, and form-aware automation.</p>
+          <p>5 playstyles: Cat DPS, Bear Tank, Balance Moonkin, Resto Tree, and Caster recovery. Powershifting, smart healing, and form-aware automation.</p>
         </a>
         <a href={url('/classes/hunter')} class="card">
           <h3 class="c-hunter">Hunter</h3>
-          <p>Full ranged DPS rotation with auto-shot clip tracking, shot weaving, pet management, sting priority, and mana-aware aspect switching.</p>
+          <p>Ranged DPS with auto-shot clip tracking, shot weaving, pet management, sting priority, and mana-aware aspect switching.</p>
         </a>
         <a href={url('/classes/mage')} class="card">
           <h3 class="c-mage">Mage</h3>
-          <p>3 specs: Fire, Frost, and Arcane. Burn/conserve phase management, scorch debuff tracking, cooldown stacking, and mana recovery automation.</p>
+          <p>Fire, Frost, and Arcane. Burn/conserve phases, scorch debuff tracking, cooldown stacking, and mana recovery automation.</p>
+        </a>
+        <a href={url('/classes/paladin')} class="card">
+          <h3 class="c-paladin">Paladin</h3>
+          <p>Retribution, Protection, and Holy. Seal twisting, off-GCD Judgements, Forbearance tracking, and intelligent party healing.</p>
+        </a>
+        <a href={url('/classes/priest')} class="card">
+          <h3 class="c-priest">Priest</h3>
+          <p>Shadow, Smite, Holy, and Discipline. DoT management, Holy Fire weaving, smart party healing, and shield-based prevention.</p>
+        </a>
+        <a href={url('/classes/rogue')} class="card">
+          <h3 class="c-rogue">Rogue</h3>
+          <p>Combat, Assassination, and Subtlety. Combo point management, poison tracking, stealth openers, and energy pooling.</p>
+        </a>
+        <a href={url('/classes/shaman')} class="card">
+          <h3 class="c-shaman">Shaman</h3>
+          <p>Elemental, Enhancement, and Restoration. Totem management, totem twisting, shock rotation, and smart party healing.</p>
+        </a>
+        <a href={url('/classes/warlock')} class="card">
+          <h3 class="c-warlock">Warlock</h3>
+          <p>Affliction, Demonology, and Destruction. DoT management, curse system, Life Tap automation, and pet handling.</p>
+        </a>
+        <a href={url('/classes/warrior')} class="card">
+          <h3 class="c-warrior">Warrior</h3>
+          <p>Arms, Fury, and Protection. Heroic Strike queuing, stance-aware rotation, Sunder Armor maintenance, and rage management.</p>
         </a>
       </div>
     </section>

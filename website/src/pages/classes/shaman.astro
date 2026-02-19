@@ -1,0 +1,156 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../config';
+---
+
+<Base title="Shaman" description="Diddy AIO Shaman rotation - Elemental, Enhancement, and Restoration specs with totem management, totem twisting, and smart healing.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/shaman')}>Shaman</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--shaman);">Shaman</h1>
+      <p class="section-sub">3 specs with intelligent totem management, shock rotation, totem twisting, and party healing.</p>
+    </section>
+
+    <section class="section">
+      <h2>Playstyles</h2>
+      <div class="card-grid">
+        <a href="#elemental" class="card"><h3>Elemental</h3><p>Lightning Bolt spam, Chain Lightning on Clearcasting, Elemental Mastery, and 4-slot totem upkeep.</p></a>
+        <a href="#enhancement" class="card"><h3>Enhancement</h3><p>Stormstrike, shock weaving, Windfury/GoA totem twisting, and Fire Nova Totem cycling.</p></a>
+        <a href="#restoration" class="card"><h3>Restoration</h3><p>Smart healing target scan, Earth Shield maintenance, Mana Tide, and configurable primary heal.</p></a>
+      </div>
+    </section>
+
+    <section class="section" id="elemental">
+      <div class="spec">
+        <h3 style="color: var(--shaman);">Elemental</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Lightning Bolt as primary nuke filler</li>
+          <li>Chain Lightning mode: on Clearcasting proc, on cooldown, fixed ratio, or LB-only</li>
+          <li>Flame Shock DoT maintenance on target</li>
+          <li>Earth Shock as filler when Flame Shock is active</li>
+          <li>Instant shocks (Flame/Earth) as movement fillers</li>
+        </ul>
+
+        <h4>Cooldowns</h4>
+        <ul class="features">
+          <li>Elemental Mastery for guaranteed crit on next spell</li>
+          <li>Trinket and racial ability stacking</li>
+        </ul>
+
+        <h4>AoE</h4>
+        <ul class="features">
+          <li>Chain Lightning on 3+ targets</li>
+          <li>Fire Nova Totem and Magma Totem above enemy threshold</li>
+          <li>Configurable enemy count threshold (0 = disabled)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="enhancement">
+      <div class="spec">
+        <h3 style="color: var(--shaman);">Enhancement</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Stormstrike as top priority (10s CD, +20% nature damage debuff)</li>
+          <li>Flame Shock DoT weaving with shock rotation</li>
+          <li>Configurable primary shock: Earth or Frost</li>
+          <li>Shamanistic Rage for mana recovery + damage reduction</li>
+        </ul>
+
+        <h4>Totem Twisting</h4>
+        <ul class="features">
+          <li>Windfury &harr; Grace of Air twist &mdash; both buffs active via 10s cycling</li>
+          <li>Fire Nova Totem twist &mdash; AoE burst cycling with default fire totem</li>
+          <li>OOM protection: twisting disabled below 20% mana</li>
+          <li>Both twist modes are optional and independently toggleable</li>
+        </ul>
+
+        <h4>Cooldowns</h4>
+        <ul class="features">
+          <li>Shamanistic Rage at configurable mana threshold</li>
+          <li>Trinket and racial ability stacking</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="restoration">
+      <div class="spec">
+        <h3 style="color: var(--shaman);">Restoration</h3>
+
+        <h4>Healing</h4>
+        <ul class="features">
+          <li>Smart party/raid target scanning sorted by HP ascending</li>
+          <li>Configurable primary heal: Chain Heal, Healing Wave, or Lesser Healing Wave</li>
+          <li>Earth Shield maintenance on focus target (tank) with charge tracking</li>
+          <li>Nature's Swiftness for instant emergency Healing Wave</li>
+        </ul>
+
+        <h4>Cooldowns</h4>
+        <ul class="features">
+          <li>Mana Tide Totem at configurable mana threshold (default 65%)</li>
+          <li>Nature's Swiftness emergency heal below configurable HP threshold</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Shared Features</h2>
+      <div class="spec">
+        <h4>Totem Management</h4>
+        <ul class="features">
+          <li>4-slot totem system: Fire, Earth, Water, Air &mdash; all configurable per spec</li>
+          <li>Auto-refresh when remaining duration drops below 5 seconds</li>
+          <li>Configurable totem choices per element (e.g., Totem of Wrath vs Searing Totem)</li>
+        </ul>
+
+        <h4>Interrupt &amp; Utility</h4>
+        <ul class="features">
+          <li>Earth Shock interrupt (TBC's only shaman interrupt) with Rank 1 mana-efficient option</li>
+          <li>Cure Poison and Cure Disease self-dispels</li>
+          <li>Purge to remove enemy magic buffs</li>
+        </ul>
+
+        <h4>Shield &amp; Recovery</h4>
+        <ul class="features">
+          <li>Auto-maintain Water Shield (Ele/Resto) or Lightning Shield (Enhancement)</li>
+          <li>Healthstone and Healing Potion at configurable thresholds</li>
+          <li>Mana Potion and Dark Rune with HP safety check</li>
+        </ul>
+
+        <h4>Weapon Imbues (Enhancement)</h4>
+        <ul class="features">
+          <li>Auto-apply Windfury (MH) and Flametongue (OH) out of combat</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Settings Overview</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>General</h3>
+          <p>Spec selection, shield type, AoE threshold, interrupt, dispels, recovery items.</p>
+        </div>
+        <div class="card">
+          <h3>Elemental</h3>
+          <p>Chain Lightning mode, Flame Shock, Elemental Mastery, totem choices per element.</p>
+        </div>
+        <div class="card">
+          <h3>Enhancement</h3>
+          <p>Stormstrike, shock selection, Shamanistic Rage, Windfury twist, Fire Nova twist.</p>
+        </div>
+        <div class="card">
+          <h3>Restoration</h3>
+          <p>Earth Shield, Nature's Swiftness threshold, Mana Tide, primary heal selection, totem choices.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Base>

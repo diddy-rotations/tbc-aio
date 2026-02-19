@@ -15,6 +15,12 @@
   --druid: #ff7d0a;
   --hunter: #abd473;
   --mage: #69ccf0;
+  --paladin: #f58cba;
+  --priest: #ffffff;
+  --rogue: #fff569;
+  --shaman: #0070dd;
+  --warlock: #9482c9;
+  --warrior: #c79c6e;
   --gold: #fbbf24;
   --red: #f87171;
   --blue: #60a5fa;
@@ -58,7 +64,30 @@ h3 { font-size: 1.1rem; }
 .nav-links a { color: var(--text-dim); font-size: 0.8rem; font-weight: 500; }
 .nav-links a:hover { color: var(--accent); }
 
-/* Nav dropdown */
+/* Nav dropdown (shared) */
+.nav-dd { position: relative; }
+.nav-dd-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim); font-size: 0.8rem; font-weight: 500;
+  padding: 0; transition: color 0.15s;
+}
+.nav-dd-btn:hover { color: var(--accent); }
+.nav-dd-btn::after { content: ' \25BE'; font-size: 0.65rem; }
+.nav-dd-menu {
+  display: none; position: absolute; left: 50%; top: calc(100% + 8px);
+  transform: translateX(-50%);
+  background: var(--bg-raised); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.35rem; min-width: 130px;
+  list-style: none; z-index: 200;
+}
+.nav-dd-menu.open { display: block; }
+.nav-dd-menu a {
+  display: block; padding: 0.35rem 0.6rem; border-radius: 4px;
+  color: var(--text-dim); font-size: 0.8rem; white-space: nowrap;
+}
+.nav-dd-menu a:hover { background: var(--bg-hover); color: var(--accent); }
+
+/* Nav mobile overflow */
 .nav-more { position: relative; display: none; }
 .nav-more-btn {
   background: none; border: 1px solid var(--border); cursor: pointer;
@@ -121,6 +150,12 @@ a.card:hover { color: var(--text); border-color: var(--accent); }
 .c-druid { color: var(--druid); }
 .c-hunter { color: var(--hunter); }
 .c-mage { color: var(--mage); }
+.c-paladin { color: var(--paladin); }
+.c-priest { color: var(--priest); }
+.c-rogue { color: var(--rogue); }
+.c-shaman { color: var(--shaman); }
+.c-warlock { color: var(--warlock); }
+.c-warrior { color: var(--warrior); }
 
 /* Section */
 .section { padding: 1rem 0; }

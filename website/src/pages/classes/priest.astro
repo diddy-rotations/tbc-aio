@@ -1,0 +1,168 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../config';
+---
+
+<Base title="Priest" description="Diddy AIO Priest rotation - Shadow, Smite, Holy, and Discipline specs with DoT management, Holy Fire weaving, and smart party healing.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/priest')}>Priest</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--priest);">Priest</h1>
+      <p class="section-sub">4 specs covering shadow DPS, holy DPS, and two distinct healing playstyles with smart party targeting.</p>
+    </section>
+
+    <section class="section">
+      <h2>Playstyles</h2>
+      <div class="card-grid">
+        <a href="#shadow" class="card"><h3>Shadow</h3><p>DoT management, Mind Blast burst, Inner Focus crits, and Drain Soul execute phase.</p></a>
+        <a href="#smite" class="card"><h3>Smite</h3><p>Holy damage rotation with Holy Fire weaving, Shadow Word: Pain utility, and Surge of Light procs.</p></a>
+        <a href="#holy" class="card"><h3>Holy</h3><p>Reactive healing with Prayer of Mending, Circle of Healing, and Clearcasting procs.</p></a>
+        <a href="#discipline" class="card"><h3>Discipline</h3><p>Shield-based prevention with Power Word: Shield, Pain Suppression, and Power Infusion.</p></a>
+      </div>
+    </section>
+
+    <section class="section" id="shadow">
+      <div class="spec">
+        <h3 style="color: var(--priest);">Shadow</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Shadowform auto-maintained out of combat</li>
+          <li>Vampiric Touch DoT with smart refresh timing (&lt;1.8s remaining)</li>
+          <li>Shadow Word: Pain maintenance (target must live &gt;6s)</li>
+          <li>Mind Blast on cooldown with Inner Focus pairing for guaranteed crit</li>
+          <li>Shadow Word: Death as HP-gated nuke (configurable safety threshold)</li>
+          <li>Vampiric Embrace debuff maintenance for self-healing</li>
+          <li>Mind Flay as primary filler</li>
+        </ul>
+
+        <h4>Utility</h4>
+        <ul class="features">
+          <li>Silence auto-interrupt on casting enemies (Shadow talent)</li>
+          <li>Racial abilities: Starshards (Night Elf), Devouring Plague (Undead)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="smite">
+      <div class="spec">
+        <h3 style="color: var(--priest);">Smite</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Shadow Word: Pain maintenance for Shadow Weaving/Misery debuffs</li>
+          <li>Surge of Light procs &mdash; instant free Smite cast</li>
+          <li>Holy Fire weave mode &mdash; cast only when SW:P will fall off during cast (optimization)</li>
+          <li>Holy Fire on-cooldown mode as alternative</li>
+          <li>Smite as primary damage filler</li>
+          <li>Optional Mind Blast and Shadow Word: Death toggles</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="holy">
+      <div class="spec">
+        <h3 style="color: var(--priest);">Holy</h3>
+
+        <h4>Healing</h4>
+        <ul class="features">
+          <li>Prayer of Mending on tank or lowest HP target (instant, 10s CD)</li>
+          <li>Circle of Healing when group members damaged above threshold (41-pt talent)</li>
+          <li>Emergency Flash Heal at configurable threshold (default 30%)</li>
+          <li>Binding Heal when self and target both damaged</li>
+          <li>Clearcasting Greater Heal for free heals from Holy Concentration</li>
+          <li>Renew HoT on tank and spread to injured targets</li>
+          <li>Greater Heal for sustained throughput</li>
+          <li>Prayer of Healing for group-wide AoE heal</li>
+        </ul>
+
+        <h4>Utility</h4>
+        <ul class="features">
+          <li>Surge of Light Smite for free damage when no urgent healing needed</li>
+          <li>Smart target scanning: party/raid sorted by HP, tank detection</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="discipline">
+      <div class="spec">
+        <h3 style="color: var(--priest);">Discipline</h3>
+
+        <h4>Healing</h4>
+        <ul class="features">
+          <li>Power Word: Shield on tank (configurable threshold, respects Weakened Soul)</li>
+          <li>Pain Suppression for emergency tank damage reduction (41-pt talent)</li>
+          <li>Prayer of Mending on tank or lowest HP target</li>
+          <li>Inner Focus + Greater Heal combo for crit + free heal</li>
+          <li>Power Infusion self-buff for healing throughput</li>
+          <li>Optional PW:S on non-tank targets (or tank-only mode)</li>
+          <li>Renew HoT maintenance on injured targets</li>
+          <li>Greater Heal and Flash Heal at configurable thresholds</li>
+          <li>Prayer of Healing for group AoE</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Shared Features</h2>
+      <div class="spec">
+        <h4>Emergency &amp; Defensive</h4>
+        <ul class="features">
+          <li>Desperate Prayer instant self-heal at configurable HP threshold (racial)</li>
+          <li>Fade for automatic threat reduction (off-GCD)</li>
+        </ul>
+
+        <h4>Party Utility</h4>
+        <ul class="features">
+          <li>Dispel Magic for magic debuffs on party/raid members</li>
+          <li>Abolish Disease for disease removal</li>
+          <li>Shadowfiend for mana recovery at configurable threshold</li>
+        </ul>
+
+        <h4>Consumable &amp; Recovery</h4>
+        <ul class="features">
+          <li>Healthstone and Healing Potion at configurable thresholds</li>
+          <li>Mana Potion and Dark Rune with HP safety check</li>
+        </ul>
+
+        <h4>Self-Buffs (Out of Combat)</h4>
+        <ul class="features">
+          <li>Inner Fire for armor and spell power</li>
+          <li>Power Word: Fortitude (Prayer if grouped)</li>
+          <li>Divine Spirit (Prayer if grouped, Discipline talent)</li>
+          <li>Shadow Protection (Prayer if grouped, optional)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Settings Overview</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>General</h3>
+          <p>Spec selection, self-buffs, utility toggles, recovery items, Desperate Prayer threshold.</p>
+        </div>
+        <div class="card">
+          <h3>Shadow</h3>
+          <p>VE, Inner Focus, SW:D safety threshold, Silence interrupt, racial ability toggles.</p>
+        </div>
+        <div class="card">
+          <h3>Smite</h3>
+          <p>Holy Fire weave mode, Mind Blast toggle, SW:D toggle, racial ability toggles.</p>
+        </div>
+        <div class="card">
+          <h3>Holy</h3>
+          <p>Emergency/Flash/Renew thresholds, AoE heal count, Circle of Healing, Binding Heal, Prayer of Healing.</p>
+        </div>
+        <div class="card">
+          <h3>Discipline</h3>
+          <p>PW:S threshold, tank-only shield, Pain Suppression, Power Infusion, Inner Focus, healing thresholds.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Base>

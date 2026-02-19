@@ -1,0 +1,154 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../config';
+---
+
+<Base title="Rogue" description="Diddy AIO Rogue rotation - Combat, Assassination, and Subtlety specs with combo point management, poison tracking, and stealth openers.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/rogue')}>Rogue</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--rogue);">Rogue</h1>
+      <p class="section-sub">3 specs with combo point management, Slice and Dice uptime, energy pooling, and stealth opener selection.</p>
+    </section>
+
+    <section class="section">
+      <h2>Playstyles</h2>
+      <div class="card-grid">
+        <a href="#combat" class="card"><h3>Combat</h3><p>Sinister Strike builder, Blade Flurry AoE, Adrenaline Rush burst, and fast-paced finisher cycling.</p></a>
+        <a href="#assassination" class="card"><h3>Assassination</h3><p>Mutilate for 2 CP, Envenom with Deadly Poison synergy, Cold Blood crits, and behind-target positioning.</p></a>
+        <a href="#subtlety" class="card"><h3>Subtlety</h3><p>Hemorrhage builder, Shadowstep teleport burst, Preparation CD resets, and Premeditation openers.</p></a>
+      </div>
+    </section>
+
+    <section class="section" id="combat">
+      <div class="spec">
+        <h3 style="color: var(--rogue);">Combat</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Sinister Strike as primary builder (1 CP per hit)</li>
+          <li>Slice and Dice uptime maintenance (haste buff)</li>
+          <li>Eviscerate as primary CP dump finisher</li>
+          <li>Rupture DoT maintenance (skipped during Blade Flurry multi-target)</li>
+          <li>Expose Armor at 5 CP (optional debuff)</li>
+          <li>Shiv to refresh Deadly Poison when &lt;2s remaining</li>
+          <li>Configurable minimum CP before finisher (3&ndash;5)</li>
+        </ul>
+
+        <h4>Cooldowns</h4>
+        <ul class="features">
+          <li>Blade Flurry for AoE cleave (off-GCD, on cooldown)</li>
+          <li>Adrenaline Rush for haste burst (off-GCD, on cooldown)</li>
+          <li>Trinket and racial ability stacking</li>
+        </ul>
+
+        <h4>Stealth Openers</h4>
+        <ul class="features">
+          <li>Configurable: Garrote (behind), Cheap Shot, Ambush (behind), or None</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="assassination">
+      <div class="spec">
+        <h3 style="color: var(--rogue);">Assassination</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Mutilate as primary builder (2 CP, requires behind target + daggers)</li>
+          <li>Envenom finisher consuming Deadly Poison stacks for bonus damage</li>
+          <li>Configurable minimum Deadly Poison stacks before Envenom</li>
+          <li>Slice and Dice uptime maintenance</li>
+          <li>Eviscerate as fallback finisher</li>
+          <li>Rupture DoT maintenance</li>
+          <li>Shiv to refresh Deadly Poison</li>
+        </ul>
+
+        <h4>Cooldowns</h4>
+        <ul class="features">
+          <li>Cold Blood for guaranteed crit finisher (off-GCD, at 4+ CP)</li>
+          <li>Premeditation for 2 free CP from stealth (off-GCD)</li>
+          <li>Trinket and racial ability stacking</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="subtlety">
+      <div class="spec">
+        <h3 style="color: var(--rogue);">Subtlety</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Hemorrhage as primary builder (1 CP + passive +30% damage debuff on target)</li>
+          <li>Slice and Dice uptime maintenance</li>
+          <li>Eviscerate as primary finisher</li>
+          <li>Rupture DoT maintenance</li>
+        </ul>
+
+        <h4>Cooldowns</h4>
+        <ul class="features">
+          <li>Shadowstep teleport + 20% damage buff on cooldown (41-pt talent)</li>
+          <li>Preparation to reset Shadowstep, Vanish, and Evasion cooldowns</li>
+          <li>Premeditation for 2 free CP from stealth (off-GCD)</li>
+          <li>Trinket and racial ability stacking</li>
+        </ul>
+
+        <h4>Opener Sequence</h4>
+        <ul class="features">
+          <li>Premeditation (2 free CP) &rarr; Shadowstep (teleport + buff) &rarr; Opener spell</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Shared Features</h2>
+      <div class="spec">
+        <h4>Emergency &amp; Defensive</h4>
+        <ul class="features">
+          <li>Emergency Vanish at configurable HP threshold (last-resort escape)</li>
+          <li>Evasion dodge buff when taking damage</li>
+          <li>Cloak of Shadows for magic debuff removal</li>
+        </ul>
+
+        <h4>Interrupt &amp; Utility</h4>
+        <ul class="features">
+          <li>Kick auto-interrupt on casting enemies (25 energy)</li>
+          <li>Feint for threat reduction (toggleable)</li>
+        </ul>
+
+        <h4>Consumable &amp; Recovery</h4>
+        <ul class="features">
+          <li>Healthstone and Healing Potion at configurable thresholds</li>
+          <li>Thistle Tea for +100 energy recovery when energy is low</li>
+          <li>Haste Potion for burst DPS during cooldown windows</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Settings Overview</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>General</h3>
+          <p>Spec selection, interrupt toggle, Feint, Expose Armor, stealth opener, recovery thresholds.</p>
+        </div>
+        <div class="card">
+          <h3>Combat</h3>
+          <p>Blade Flurry, Adrenaline Rush, Rupture/SnD maintenance, min CP for finishers.</p>
+        </div>
+        <div class="card">
+          <h3>Assassination</h3>
+          <p>Cold Blood, Envenom toggle, min Deadly Poison stacks, Rupture/SnD maintenance, min CP.</p>
+        </div>
+        <div class="card">
+          <h3>Subtlety</h3>
+          <p>Shadowstep, Preparation, Rupture/SnD maintenance, min CP for finishers.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Base>

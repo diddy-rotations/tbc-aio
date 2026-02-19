@@ -1,0 +1,164 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../config';
+---
+
+<Base title="Warlock" description="Diddy AIO Warlock rotation - Affliction, Demonology, and Destruction specs with DoT management, curse system, and Life Tap automation.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/warlock')}>Warlock</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--warlock);">Warlock</h1>
+      <p class="section-sub">3 specs with intelligent DoT management, shared curse system, Life Tap automation, and pet handling.</p>
+    </section>
+
+    <section class="section">
+      <h2>Playstyles</h2>
+      <div class="card-grid">
+        <a href="#affliction" class="card"><h3>Affliction</h3><p>Full DoT stack management, Shadow Trance procs, Drain Soul execute, and Dark Pact mana recovery.</p></a>
+        <a href="#demonology" class="card"><h3>Demonology</h3><p>Felguard pet build or Demonic Sacrifice mode. Pet health management and Shadow Bolt filler.</p></a>
+        <a href="#destruction" class="card"><h3>Destruction</h3><p>Immolate/Conflagrate cycling, Backlash procs, Shadowburn execute, and fire/shadow build selection.</p></a>
+      </div>
+    </section>
+
+    <section class="section" id="affliction">
+      <div class="spec">
+        <h3 style="color: var(--warlock);">Affliction</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Shadow Trance (Nightfall) proc &mdash; instant Shadow Bolt, highest priority</li>
+          <li>Curse maintenance with optional Amplify Curse before Doom/Agony</li>
+          <li>Unstable Affliction (41-pt talent) with smart refresh timing</li>
+          <li>Corruption and Siphon Life DoT maintenance</li>
+          <li>Optional Immolate for additional DoT pressure</li>
+          <li>Shadow Bolt as primary filler between DoT refreshes</li>
+        </ul>
+
+        <h4>Execute Phase</h4>
+        <ul class="features">
+          <li>Drain Soul below configurable HP threshold for Soul Siphon bonus damage</li>
+        </ul>
+
+        <h4>Mana Recovery</h4>
+        <ul class="features">
+          <li>Dark Pact preferred (drain pet mana instead of self HP)</li>
+          <li>Life Tap as fallback with HP safety threshold</li>
+        </ul>
+
+        <h4>AoE</h4>
+        <ul class="features">
+          <li>Seed of Corruption at configurable enemy threshold</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="demonology">
+      <div class="spec">
+        <h3 style="color: var(--warlock);">Demonology</h3>
+
+        <h4>Felguard Build (Default)</h4>
+        <ul class="features">
+          <li>Health Funnel to maintain Felguard HP above threshold</li>
+          <li>Curse maintenance on target</li>
+          <li>Optional Corruption and Immolate DoTs</li>
+          <li>Shadow Bolt as primary filler</li>
+          <li>Fel Domination for instant pet resummon if killed</li>
+        </ul>
+
+        <h4>Demonic Sacrifice Build</h4>
+        <ul class="features">
+          <li>Toggle via settings to sacrifice pet for +15% damage buff</li>
+          <li>Succubus sacrifice for shadow damage, Imp for fire damage</li>
+          <li>All pet management disabled when active</li>
+        </ul>
+
+        <h4>AoE</h4>
+        <ul class="features">
+          <li>Seed of Corruption at configurable enemy threshold</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="destruction">
+      <div class="spec">
+        <h3 style="color: var(--warlock);">Destruction</h3>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Backlash proc &mdash; instant Shadow Bolt or Incinerate based on build</li>
+          <li>Immolate maintenance (required for Incinerate +25% bonus)</li>
+          <li>Conflagrate on cooldown &mdash; consumes Immolate, auto-reapplied</li>
+          <li>Shadowfury instant AoE stun (41-pt talent)</li>
+          <li>Configurable primary spell: Incinerate (fire build) or Shadow Bolt (shadow build)</li>
+        </ul>
+
+        <h4>Execute Phase</h4>
+        <ul class="features">
+          <li>Shadowburn instant nuke below configurable HP threshold (costs 1 Soul Shard)</li>
+        </ul>
+
+        <h4>AoE</h4>
+        <ul class="features">
+          <li>Seed of Corruption at configurable enemy threshold</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Shared Features</h2>
+      <div class="spec">
+        <h4>Curse System</h4>
+        <ul class="features">
+          <li>Configurable curse: Elements, Agony, Doom, Recklessness, Tongues, or None</li>
+          <li>Persistent duration tracking with auto-refresh</li>
+          <li>Amplify Curse before Doom/Agony (Affliction talent)</li>
+        </ul>
+
+        <h4>Emergency &amp; Recovery</h4>
+        <ul class="features">
+          <li>Death Coil emergency heal + horror debuff at configurable HP threshold</li>
+          <li>Soulshatter for automatic threat dump (costs 1 Soul Shard)</li>
+          <li>Healthstone and Healing Potion at configurable thresholds</li>
+        </ul>
+
+        <h4>Mana Recovery</h4>
+        <ul class="features">
+          <li>Life Tap (proactive at mana threshold + fallback when OOM) with HP safety</li>
+          <li>Dark Pact to drain pet mana (Affliction talent)</li>
+          <li>Mana Potion and Dark Rune with HP safety check</li>
+        </ul>
+
+        <h4>Self-Buffs (Out of Combat)</h4>
+        <ul class="features">
+          <li>Fel Armor for +100 spell damage (or Demon Armor fallback)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Settings Overview</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>General</h3>
+          <p>Spec selection, curse assignment, AoE threshold, threat management, recovery items, emergency settings.</p>
+        </div>
+        <div class="card">
+          <h3>Affliction</h3>
+          <p>DoT toggles, Drain Soul threshold, Dark Pact, Amplify Curse, Siphon Life timing.</p>
+        </div>
+        <div class="card">
+          <h3>Demonology</h3>
+          <p>Felguard vs Demonic Sacrifice mode, pet heal threshold, Corruption/Immolate toggles.</p>
+        </div>
+        <div class="card">
+          <h3>Destruction</h3>
+          <p>Fire vs shadow build, Conflagrate, Shadowfury, Shadowburn threshold, Immolate maintenance.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Base>

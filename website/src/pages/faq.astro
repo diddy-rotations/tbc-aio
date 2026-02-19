@@ -25,6 +25,13 @@ import { config, url } from '../config';
       </div>
 
       <div class="faq-item">
+        <button class="faq-q" aria-expanded="false">Which classes are supported?</button>
+        <div class="faq-a">
+          <p>All 9 classes: <strong class="c-druid">Druid</strong>, <strong class="c-hunter">Hunter</strong>, <strong class="c-mage">Mage</strong>, <strong class="c-paladin">Paladin</strong>, <strong class="c-priest">Priest</strong>, <strong class="c-rogue">Rogue</strong>, <strong class="c-shaman">Shaman</strong>, <strong class="c-warlock">Warlock</strong>, and <strong class="c-warrior">Warrior</strong>. Each class has multiple spec-specific playstyles with configurable settings. See the class pages for detailed rotation breakdowns.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
         <button class="faq-q" aria-expanded="false">Which servers or clients are supported?</button>
         <div class="faq-a">
           <p>Diddy AIO works on any TBC 2.4.3 client that supports the GGL Action framework. This includes most popular private servers running the TBC patch. It does <strong>not</strong> support Classic Era (1.12), Wrath, or Retail.</p>
@@ -98,7 +105,7 @@ import { config, url } from '../config';
       <div class="faq-item">
         <button class="faq-q" aria-expanded="false">Can I contribute code or add a new class?</button>
         <div class="faq-a">
-          <p>Absolutely. The project is open source. To add a new class, create a new directory under <code>rotation/source/aio/yourclass/</code> with a <code>schema.lua</code>, <code>class.lua</code>, <code>middleware.lua</code>, and rotation modules. Register the class via <code>rotation_registry:register_class()</code> and the build system will auto-discover your modules. Check the existing Druid and Hunter implementations for reference.</p>
+          <p>Absolutely. The project is open source. To add a new class, create a new directory under <code>rotation/source/aio/yourclass/</code> with a <code>schema.lua</code>, <code>class.lua</code>, <code>middleware.lua</code>, and rotation modules. Register the class via <code>rotation_registry:register_class()</code> and the build system will auto-discover your modules. Check any of the existing class implementations for reference.</p>
         </div>
       </div>
     </section>

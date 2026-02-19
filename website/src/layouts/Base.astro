@@ -22,7 +22,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
   <!-- SEO -->
   <meta name="description" content={description} />
   <meta name="author" content="Diddy AIO" />
-  <meta name="keywords" content="WoW, TBC, rotation, addon, druid, hunter, mage, TellMeWhen, classic" />
+  <meta name="keywords" content="WoW, TBC, rotation, addon, druid, hunter, mage, paladin, priest, rogue, shaman, warlock, warrior, TellMeWhen, classic" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href={canonicalUrl.href} />
   <meta name="theme-color" content="#6c63ff" />
@@ -51,9 +51,20 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
     <div class="nav-inner">
       <a href={url('/')} class="nav-logo">Diddy <span>AIO</span></a>
       <ul class="nav-links">
-        <li><a href={url('/classes/druid')}>Druid</a></li>
-        <li><a href={url('/classes/hunter')}>Hunter</a></li>
-        <li><a href={url('/classes/mage')}>Mage</a></li>
+        <li class="nav-dd nav-desktop">
+          <button class="nav-dd-btn" aria-expanded="false">Classes</button>
+          <ul class="nav-dd-menu">
+            <li><a href={url('/classes/druid')}>Druid</a></li>
+            <li><a href={url('/classes/hunter')}>Hunter</a></li>
+            <li><a href={url('/classes/mage')}>Mage</a></li>
+            <li><a href={url('/classes/paladin')}>Paladin</a></li>
+            <li><a href={url('/classes/priest')}>Priest</a></li>
+            <li><a href={url('/classes/rogue')}>Rogue</a></li>
+            <li><a href={url('/classes/shaman')}>Shaman</a></li>
+            <li><a href={url('/classes/warlock')}>Warlock</a></li>
+            <li><a href={url('/classes/warrior')}>Warrior</a></li>
+          </ul>
+        </li>
         <li class="nav-desktop"><a href={url('/guides/installation')}>Install</a></li>
         <li class="nav-desktop"><a href={config.github} target="_blank">GitHub</a></li>
         <li class="nav-desktop"><a href={url('/changelog')}>Changelog</a></li>
@@ -62,6 +73,15 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
         <li class="nav-more">
           <button class="nav-more-btn" aria-label="More links" aria-expanded="false">&#9662;</button>
           <ul class="nav-dropdown">
+            <li><a href={url('/classes/druid')}>Druid</a></li>
+            <li><a href={url('/classes/hunter')}>Hunter</a></li>
+            <li><a href={url('/classes/mage')}>Mage</a></li>
+            <li><a href={url('/classes/paladin')}>Paladin</a></li>
+            <li><a href={url('/classes/priest')}>Priest</a></li>
+            <li><a href={url('/classes/rogue')}>Rogue</a></li>
+            <li><a href={url('/classes/shaman')}>Shaman</a></li>
+            <li><a href={url('/classes/warlock')}>Warlock</a></li>
+            <li><a href={url('/classes/warrior')}>Warrior</a></li>
             <li><a href={url('/guides/installation')}>Install</a></li>
             <li><a href={config.github} target="_blank">GitHub</a></li>
             <li><a href={url('/changelog')}>Changelog</a></li>
@@ -82,16 +102,23 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
   </footer>
 
   <script is:inline>
-    const btn = document.querySelector('.nav-more-btn');
-    const dropdown = document.querySelector('.nav-dropdown');
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const open = dropdown.classList.toggle('open');
-      btn.setAttribute('aria-expanded', open);
+    document.querySelectorAll('.nav-dd-btn, .nav-more-btn').forEach(function(btn) {
+      var menu = btn.nextElementSibling;
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        // close other open menus
+        document.querySelectorAll('.nav-dd-menu.open, .nav-dropdown.open').forEach(function(m) {
+          if (m !== menu) { m.classList.remove('open'); m.previousElementSibling.setAttribute('aria-expanded', 'false'); }
+        });
+        var open = menu.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open);
+      });
     });
-    document.addEventListener('click', () => {
-      dropdown.classList.remove('open');
-      btn.setAttribute('aria-expanded', 'false');
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.nav-dd-menu.open, .nav-dropdown.open').forEach(function(m) {
+        m.classList.remove('open');
+        m.previousElementSibling.setAttribute('aria-expanded', 'false');
+      });
     });
   </script>
 </body>
