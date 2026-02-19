@@ -15,6 +15,57 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.2.2 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-minor">Patch</span>
+
+      <h3><a href={url('/classes/hunter')} class="class-link c-hunter">Hunter</a></h3>
+      <ul class="features">
+        <li>Removed Aimed Shot from rotation &mdash; should not be used in standard BM/SV rotations</li>
+      </ul>
+
+      <h3><a href={url('/classes/warrior')} class="class-link c-warrior">Warrior</a></h3>
+      <ul class="features">
+        <li>Arms: Moved Overpower to correct priority (after Sunder Armor maintain, before Slam)</li>
+        <li>Fury: Added Overpower minimum rage setting</li>
+      </ul>
+
+      <h3><a href={url('/classes/mage')} class="class-link c-mage">Mage</a></h3>
+      <ul class="features">
+        <li>Arcane: Added Fireball as filler option</li>
+        <li>Frost: Fixed frozen target detection to include Water Elemental Freeze</li>
+      </ul>
+
+      <h3><a href={url('/classes/paladin')} class="class-link c-paladin">Paladin</a></h3>
+      <ul class="features">
+        <li>Protection: Moved Avenger&rsquo;s Shield to highest priority for pull/interrupt</li>
+        <li>Protection: Righteous Defense now properly respects its toggle setting</li>
+      </ul>
+
+      <h3><a href={url('/classes/shaman')} class="class-link c-shaman">Shaman</a></h3>
+      <ul class="features">
+        <li>Enhancement: Moved Shock priority above Windfury Twist to avoid clipping</li>
+        <li>Elemental: Moved Fire Elemental to higher priority</li>
+        <li>Elemental: Fixed Chain Lightning clearcast threshold &mdash; now requires fresh 2-charge proc</li>
+      </ul>
+
+      <h3><a href={url('/classes/warlock')} class="class-link c-warlock">Warlock</a></h3>
+      <ul class="features">
+        <li>Fixed Life Tap priority &mdash; now correctly fires after Mana Potion and Dark Rune</li>
+      </ul>
+
+      <h3><a href={url('/classes/priest')} class="class-link c-priest">Priest</a></h3>
+      <ul class="features">
+        <li>Holy: Moved Renew spread before Greater Heal/Flash Heal (instant HoT before cast-time heals)</li>
+      </ul>
+
+      <h3><a href={url('/classes/rogue')} class="class-link c-rogue">Rogue</a></h3>
+      <ul class="features">
+        <li>Feint now checks threat before firing (no longer wastes energy when not tanking)</li>
+        <li>Haste Potion now usable on pull for non-Combat specs</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.2.1 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-minor">Patch</span>
 

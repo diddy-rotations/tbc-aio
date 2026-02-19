@@ -189,6 +189,9 @@ rotation_registry:register_middleware({
         if not context.settings.use_feint then return false end
         if not context.has_valid_enemy_target then return false end
         if context.energy < Constants.ENERGY.FEINT then return false end
+        -- Only use when we have significant threat (tanking the target)
+        local isTanking = Unit(PLAYER_UNIT):IsTanking(TARGET_UNIT)
+        if not isTanking then return false end
         return true
     end,
 
@@ -224,7 +227,7 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
--- HASTE POTION (Burst DPS)
+-- HASTE POTION (Burst DPS — sync with BF/AR burst window)
 -- ============================================================================
 rotation_registry:register_middleware({
     name = "Rogue_HastePotion",
@@ -234,6 +237,10 @@ rotation_registry:register_middleware({
         if not context.in_combat then return false end
         if not context.settings.use_haste_potion then return false end
         if context.combat_time < 2 then return false end
+        -- Use during Blade Flurry or Adrenaline Rush burst window, or on pull for non-Combat specs
+        local has_bf = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.BLADE_FLURRY) or 0) > 0
+        local has_ar = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.ADRENALINE_RUSH) or 0) > 0
+        if not has_bf and not has_ar and context.combat_time > 3 then return false end
         return true
     end,
 

@@ -182,8 +182,8 @@ local Ret_CompleteSealTwist = {
     end,
 }
 
--- [6] Judge Seal of Blood (off-GCD — Judgement does NOT trigger GCD in TBC)
-local Ret_JudgeSealOfBlood = {
+-- [6] Judge configured seal (off-GCD — Judgement does NOT trigger GCD in TBC)
+local Ret_JudgeSeal = {
     requires_combat = true,
     requires_enemy = true,
     is_gcd_gated = false,
@@ -191,13 +191,25 @@ local Ret_JudgeSealOfBlood = {
 
     matches = function(context, state)
         if not context.settings.ret_use_judgement then return false end
-        -- Judge when SoB is active (post-swing or non-twist mode)
-        if not state.seal_blood_active then return false end
+        -- Check if the seal we want to judge is active
+        local judge = context.settings.ret_judge_seal or "blood"
+        if judge == "blood" then
+            if not state.seal_blood_active then return false end
+        elseif judge == "crusader" then
+            if not context.seal_crusader_active then return false end
+        elseif judge == "wisdom" then
+            if not context.seal_wisdom_active then return false end
+        elseif judge == "light" then
+            if not context.seal_light_active then return false end
+        else
+            if not context.has_any_seal then return false end
+        end
         return true
     end,
 
     execute = function(icon, context, state)
-        return try_cast(A.Judgement, icon, TARGET_UNIT, "[RET] Judge SoB")
+        local judge = context.settings.ret_judge_seal or "blood"
+        return try_cast(A.Judgement, icon, TARGET_UNIT, format("[RET] Judge (%s)", judge))
     end,
 }
 
@@ -335,7 +347,7 @@ rotation_registry:register("retribution", {
     named("Trinket2",            Ret_Trinket2),
     named("Racial",              Ret_Racial),
     named("CompleteSealTwist",   Ret_CompleteSealTwist),
-    named("JudgeSealOfBlood",    Ret_JudgeSealOfBlood),
+    named("JudgeSeal",           Ret_JudgeSeal),
     named("CrusaderStrike",      Ret_CrusaderStrike),
     named("PrepSealTwist",       Ret_PrepSealTwist),
     named("HammerOfWrath",       Ret_HammerOfWrath),

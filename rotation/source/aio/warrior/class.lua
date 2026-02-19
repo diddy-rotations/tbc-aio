@@ -241,7 +241,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Warrior",
-    version = "v1.2.1",
+    version = "v1.2.2",
     playstyles = { "arms", "fury", "protection" },
     idle_playstyle_name = nil,
 

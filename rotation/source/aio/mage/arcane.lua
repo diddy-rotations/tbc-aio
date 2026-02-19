@@ -325,6 +325,8 @@ local Arcane_Filler = {
         local filler = context.settings.arcane_filler or "frostbolt"
         if filler == "frostbolt" then
             return try_cast(A.Frostbolt, icon, TARGET_UNIT, "[ARCANE] Frostbolt (filler)")
+        elseif filler == "fireball" then
+            return try_cast(A.Fireball, icon, TARGET_UNIT, "[ARCANE] Fireball (filler)")
         elseif filler == "arcane_missiles" then
             return try_cast(A.ArcaneMissiles, icon, TARGET_UNIT, "[ARCANE] Arcane Missiles (filler)")
         elseif filler == "scorch" then

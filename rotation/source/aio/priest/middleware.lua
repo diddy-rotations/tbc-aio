@@ -413,6 +413,40 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
+-- FEAR WARD (Buff on tank/self — OOC/between pulls)
+-- ============================================================================
+rotation_registry:register_middleware({
+    name = "Priest_FearWard",
+    priority = Priority.MIDDLEWARE.SELF_BUFF_OOC - 10,
+
+    matches = function(context)
+        if context.in_combat then return false end
+        if context.is_mounted then return false end
+        if not context.settings.use_fear_ward then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        if not is_spell_available(A.FearWard) or not A.FearWard:IsReady(PLAYER_UNIT) then
+            return nil
+        end
+        -- Check self first
+        local self_has = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.FEAR_WARD) or 0) > 0
+        if not self_has then
+            return A.FearWard:Show(icon), "[MW] Fear Ward (self)"
+        end
+        -- Check focus/tank target
+        if _G.UnitExists("focus") and not Unit("focus"):IsDead() then
+            local focus_has = (Unit("focus"):HasBuffs(Constants.BUFF_ID.FEAR_WARD) or 0) > 0
+            if not focus_has and A.FearWard:IsReady("focus") then
+                return A.FearWard:Show(icon), "[MW] Fear Ward (focus)"
+            end
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
 print("|cFF00FF00[Diddy AIO Priest]|r Middleware module loaded")

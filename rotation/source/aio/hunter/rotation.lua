@@ -373,12 +373,6 @@ strategies[#strategies + 1] = named("CombatRotation", {
                     MultiAfterHaste = 0.5 / haste
                 end
 
-                -- Aimed Shot: post-2.3 instant, 6s CD — weave into rotation (MM only)
-                if A.AimedShot:IsReady(unit) and (Unit(unit):TimeToDie() > 6 or Unit(unit):IsBoss()) then
-                    if CT then CT:RecordSuggestion("Aimed Shot", ShootTimer) end
-                    return A.AimedShot:Show(icon), "[RANGED] Aimed Shot"
-                end
-
                 if s.warces then
                     -- Warces haste-adjusted version
                     local gcdLeft = GetCurrentGCD() or 0

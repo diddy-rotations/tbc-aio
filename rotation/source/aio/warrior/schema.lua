@@ -135,6 +135,8 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Slam weaving (requires Improved Slam 2/2)." },
             { type = "checkbox", key = "fury_use_overpower", default = false, label = "Use Overpower",
               tooltip = "Use Overpower on dodge procs (Battle Stance only)." },
+            { type = "slider", key = "fury_overpower_rage", default = 25, min = 10, max = 50, label = "Overpower Min Rage",
+              tooltip = "Minimum rage to use Overpower.", format = "%d" },
         }},
         { header = "Rage Dump & Utility", settings = {
             { type = "checkbox", key = "fury_use_heroic_strike", default = true, label = "Heroic Strike Dump",

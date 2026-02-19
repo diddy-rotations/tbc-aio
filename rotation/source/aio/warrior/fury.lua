@@ -215,6 +215,8 @@ local Fury_Overpower = {
 
     matches = function(context, state)
         if not context.settings.fury_use_overpower then return false end
+        local min_rage = context.settings.fury_overpower_rage or 25
+        if context.rage < min_rage then return false end
         -- Overpower requires Battle Stance — IsReady handles check
         return A.Overpower:IsReady(TARGET_UNIT)
     end,
@@ -276,6 +278,21 @@ local Fury_HeroicStrike = {
     end,
 }
 
+-- [11] Victory Rush (free instant after killing blow)
+local Fury_VictoryRush = {
+    requires_combat = true,
+    requires_enemy = true,
+    spell = A.VictoryRush,
+
+    matches = function(context, state)
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.VictoryRush, icon, TARGET_UNIT, "[FURY] Victory Rush")
+    end,
+}
+
 -- ============================================================================
 -- REGISTRATION
 -- ============================================================================
@@ -288,6 +305,7 @@ rotation_registry:register("fury", {
     named("SunderMaintain",  Fury_SunderMaintain),
     named("Slam",            Fury_Slam),
     named("Overpower",       Fury_Overpower),
+    named("VictoryRush",     Fury_VictoryRush),
     named("Hamstring",       Fury_Hamstring),
     named("HeroicStrike",    Fury_HeroicStrike),
 }, {

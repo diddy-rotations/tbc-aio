@@ -97,6 +97,7 @@ local Fire_IcyVeins = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.IcyVeins,
+    setting_key = "fire_use_icy_veins",
 
     matches = function(context, state)
         if context.icy_veins_active then return false end

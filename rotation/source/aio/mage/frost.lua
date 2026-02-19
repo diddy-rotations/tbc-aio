@@ -41,9 +41,10 @@ local function get_frost_state(context)
     if context._frost_valid then return frost_state end
     context._frost_valid = true
 
-    -- Check if target is frozen (Frost Nova from any source)
+    -- Check if target is frozen (Frost Nova or Water Elemental Freeze)
     local frost_nova_dur = Unit(TARGET_UNIT):HasDeBuffs(A.FrostNova.ID) or 0
-    frost_state.target_frozen = frost_nova_dur > 0
+    local freeze_dur = Unit(TARGET_UNIT):HasDeBuffs(A.Freeze.ID) or 0
+    frost_state.target_frozen = frost_nova_dur > 0 or freeze_dur > 0
     frost_state.water_ele_active = Unit("pet"):IsExists() and not Unit("pet"):IsDead()
 
     return frost_state

@@ -195,7 +195,25 @@ rotation_registry:register("holy", {
         end,
     }),
 
-    -- [8] Greater Heal (sustained healing, target above flash threshold)
+    -- [8] Renew on injured (HoT spread — instant, before cast-time heals)
+    named("RenewSpread", {
+        matches = function(context, state)
+            if not context.in_combat then return false end
+            if not state.lowest_unit then return false end
+            local threshold = context.settings.holy_renew_hp or 90
+            if state.lowest_hp > threshold then return false end
+            if has_renew(state.lowest_unit) then return false end
+            return true
+        end,
+        execute = function(icon, context, state)
+            if A.Renew:IsReady(state.lowest_unit) then
+                return A.Renew:Show(icon), format("[HOLY] Renew -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
+            end
+            return nil
+        end,
+    }),
+
+    -- [9] Greater Heal (sustained healing, target above flash threshold)
     named("GreaterHeal", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -213,7 +231,7 @@ rotation_registry:register("holy", {
         end,
     }),
 
-    -- [9] Flash Heal (urgent healing)
+    -- [10] Flash Heal (urgent healing)
     named("FlashHeal", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -225,24 +243,6 @@ rotation_registry:register("holy", {
         execute = function(icon, context, state)
             if A.FlashHeal:IsReady(state.lowest_unit) then
                 return A.FlashHeal:Show(icon), format("[HOLY] Flash Heal -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
-            end
-            return nil
-        end,
-    }),
-
-    -- [10] Renew on injured (HoT spread)
-    named("RenewSpread", {
-        matches = function(context, state)
-            if not context.in_combat then return false end
-            if not state.lowest_unit then return false end
-            local threshold = context.settings.holy_renew_hp or 90
-            if state.lowest_hp > threshold then return false end
-            if has_renew(state.lowest_unit) then return false end
-            return true
-        end,
-        execute = function(icon, context, state)
-            if A.Renew:IsReady(state.lowest_unit) then
-                return A.Renew:Show(icon), format("[HOLY] Renew -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
             end
             return nil
         end,

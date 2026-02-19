@@ -321,7 +321,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Shaman",
-    version = "v1.2.0",
+    version = "v1.2.2",
     playstyles = { "elemental", "enhancement", "restoration" },
     idle_playstyle_name = nil,
 

@@ -259,18 +259,34 @@ local Arms_HeroicStrike = {
     end,
 }
 
+-- [10] Victory Rush (free instant after killing blow)
+local Arms_VictoryRush = {
+    requires_combat = true,
+    requires_enemy = true,
+    spell = A.VictoryRush,
+
+    matches = function(context, state)
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.VictoryRush, icon, TARGET_UNIT, "[ARMS] Victory Rush")
+    end,
+}
+
 -- ============================================================================
 -- REGISTRATION
 -- ============================================================================
 rotation_registry:register("arms", {
     named("MaintainRend",    Arms_MaintainRend),
-    named("Overpower",       Arms_Overpower),
     named("MortalStrike",    Arms_MortalStrike),
     named("Whirlwind",       Arms_Whirlwind),
     named("SweepingStrikes", Arms_SweepingStrikes),
     named("Execute",         Arms_Execute),
     named("SunderMaintain",  Arms_SunderMaintain),
+    named("Overpower",       Arms_Overpower),
     named("Slam",            Arms_Slam),
+    named("VictoryRush",     Arms_VictoryRush),
     named("HeroicStrike",    Arms_HeroicStrike),
 }, {
     context_builder = get_arms_state,

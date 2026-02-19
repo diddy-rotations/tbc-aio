@@ -109,6 +109,8 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Combustion cooldown." },
             { type = "slider", key = "fire_combustion_below_hp", default = 0, min = 0, max = 100, label = "Combustion Target HP%",
               tooltip = "Save Combustion for when target HP is below this. Set to 0 to use on CD.", format = "%d%%" },
+            { type = "checkbox", key = "fire_use_icy_veins", default = true, label = "Use Icy Veins",
+              tooltip = "Use Icy Veins on cooldown (cross-tree Frost talent)." },
         }},
         { header = "Movement", settings = {
             { type = "checkbox", key = "fire_move_fire_blast", default = true, label = "Fire Blast",
@@ -161,6 +163,7 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Spell to cast during conserve phase while Arcane Blast stacks drop.",
               options = {
                   { value = "frostbolt", text = "Frostbolt" },
+                  { value = "fireball", text = "Fireball" },
                   { value = "arcane_missiles", text = "Arcane Missiles" },
                   { value = "scorch", text = "Scorch" },
               }},

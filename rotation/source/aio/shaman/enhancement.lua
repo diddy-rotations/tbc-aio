@@ -463,10 +463,10 @@ rotation_registry:register("enhancement", {
     named("Trinkets",            Enh_Trinkets),
     named("Racial",              Enh_Racial),
     named("TotemManagement",     Enh_TotemManagement),
-    named("WindfuryTwist",       Enh_WindfuryTwist),
-    named("FireNovaTotemTwist",  Enh_FireNovaTotemTwist),
     named("Stormstrike",         Enh_Stormstrike),
     named("Shock",               Enh_Shock),
+    named("WindfuryTwist",       Enh_WindfuryTwist),
+    named("FireNovaTotemTwist",  Enh_FireNovaTotemTwist),
     named("FireElemental",       Enh_FireElemental),
 }, {
     context_builder = get_enh_state,

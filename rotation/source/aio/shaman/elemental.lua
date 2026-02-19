@@ -232,7 +232,7 @@ local Ele_ChainLightning = {
             return true
         elseif rot == "cl_clearcast" then
             -- Use CL when we have clearcasting charges
-            return state.clearcasting_charges > 0
+            return state.clearcasting_charges >= 2
         elseif rot == "fixed_ratio" then
             local ratio = context.settings.ele_fixed_lb_per_cl or 3
             return lb_casts_since_cl >= ratio
@@ -344,12 +344,12 @@ rotation_registry:register("elemental", {
     named("ElementalMastery", Ele_ElementalMastery),
     named("Trinkets",         Ele_Trinkets),
     named("Racial",           Ele_Racial),
-    named("TotemManagement",  Ele_TotemManagement),
     named("FireElemental",    Ele_FireElemental),
+    named("TotemManagement",  Ele_TotemManagement),
+    named("AoE",              Ele_AoE),
     named("FlameShock",       Ele_FlameShock),
     named("ChainLightning",   Ele_ChainLightning),
     named("EarthShock",       Ele_EarthShock),
-    named("AoE",              Ele_AoE),
     named("MovementSpell",    Ele_MovementSpell),
     named("LightningBolt",    Ele_LightningBolt),
 }, {

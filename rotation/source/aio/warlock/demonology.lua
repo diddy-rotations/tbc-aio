@@ -218,11 +218,10 @@ local Demo_Racial = {
     end,
 }
 
--- [9] Shadow Bolt — primary filler (majority of casts)
-local Demo_ShadowBolt = {
+-- [9] Primary Filler — Shadow Bolt or Incinerate (DS/Ruin fire build)
+local Demo_PrimarySpell = {
     requires_combat = true,
     requires_enemy = true,
-    spell = A.ShadowBolt,
 
     matches = function(context, state)
         if context.is_moving then return false end
@@ -230,6 +229,11 @@ local Demo_ShadowBolt = {
     end,
 
     execute = function(icon, context, state)
+        -- DS/Ruin fire build: use Incinerate when fire sacrifice buff is active
+        if context.has_ds_fire and is_spell_available(A.IncinerateR2) then
+            local result = try_cast(A.IncinerateR2, icon, TARGET_UNIT, "[DEMO] Incinerate (DS/Ruin)")
+            if result then return result end
+        end
         return try_cast(A.ShadowBolt, icon, TARGET_UNIT, "[DEMO] Shadow Bolt")
     end,
 }
@@ -263,7 +267,7 @@ rotation_registry:register("demonology", {
     named("AoE",                 Demo_AoE),
     named("Trinkets",            Demo_Trinkets),
     named("Racial",              Demo_Racial),
-    named("ShadowBolt",          Demo_ShadowBolt),
+    named("PrimarySpell",        Demo_PrimarySpell),
     named("LifeTap",             Demo_LifeTap),
 }, {
     context_builder = get_demo_state,

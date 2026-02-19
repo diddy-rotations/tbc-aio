@@ -154,7 +154,7 @@ rotation_registry:register_middleware({
 -- ============================================================================
 rotation_registry:register_middleware({
     name = "Warlock_LifeTap",
-    priority = Priority.MIDDLEWARE.MANA_RECOVERY,
+    priority = Priority.MIDDLEWARE.MANA_RECOVERY - 15,
 
     matches = function(context)
         if not context.in_combat then return false end

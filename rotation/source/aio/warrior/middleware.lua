@@ -248,8 +248,17 @@ rotation_registry:register_middleware({
         local shout_type = context.settings.shout_type or "battle"
         if shout_type == "none" then return false end
 
-        if shout_type == "battle" and not context.has_battle_shout then return true end
-        if shout_type == "commanding" and not context.has_commanding_shout then return true end
+        -- Refresh if missing or duration < 30s (2 min buff, refresh early)
+        if shout_type == "battle" then
+            if not context.has_battle_shout then return true end
+            local dur = Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.BATTLE_SHOUT) or 0
+            if dur < 30 then return true end
+        end
+        if shout_type == "commanding" then
+            if not context.has_commanding_shout then return true end
+            local dur = Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.COMMANDING_SHOUT) or 0
+            if dur < 30 then return true end
+        end
         return false
     end,
 
@@ -274,7 +283,6 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_DeathWish",
     priority = 100,
-    is_gcd_gated = false,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -302,7 +310,6 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_Recklessness",
     priority = 90,
-    is_gcd_gated = false,
 
     matches = function(context)
         if not context.in_combat then return false end

@@ -288,7 +288,7 @@ local Prot_HammerOfWrath = {
     end,
 }
 
--- [12] Avenger's Shield (pull/snap threat, low priority in sustained rotation)
+-- [12] Avenger's Shield (pull/snap threat, early combat only)
 local Prot_AvengersShield = {
     requires_combat = true,
     requires_enemy = true,
@@ -296,6 +296,8 @@ local Prot_AvengersShield = {
 
     matches = function(context, state)
         if not context.settings.prot_use_avengers_shield then return false end
+        -- Only use as a pull ability (first 3 seconds of combat)
+        if context.combat_time > 3 then return false end
         return true
     end,
 
@@ -304,14 +306,43 @@ local Prot_AvengersShield = {
     end,
 }
 
+-- [13] Righteous Defense (taunt — target a friendly being attacked)
+local Prot_RighteousDefense = {
+    requires_combat = true,
+    spell = A.RighteousDefense,
+    setting_key = "prot_use_righteous_defense",
+
+    matches = function(context, state)
+        if not context.settings.prot_use_righteous_defense then return false end
+        -- Check if focus target exists and is being attacked by our target
+        if not _G.UnitExists("focus") then return false end
+        if Unit("focus"):IsDead() then return false end
+        -- Focus must be under attack (focus's target is attacking them, not us)
+        local focus_target = "focustarget"
+        if not _G.UnitExists(focus_target) then return false end
+        -- If focus's attacker is NOT targeting us, they need a taunt
+        if Unit(focus_target):IsUnit(PLAYER_UNIT) then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        if A.RighteousDefense:IsReady("focus") then
+            return A.RighteousDefense:Show(icon), "[PROT] Righteous Defense (taunt)"
+        end
+        return nil
+    end,
+}
+
 -- ============================================================================
 -- REGISTRATION
 -- ============================================================================
 rotation_registry:register("protection", {
     named("RighteousFuryCheck",  Prot_RighteousFuryCheck),
+    named("AvengersShield",      Prot_AvengersShield),
     named("AvengingWrath",       Prot_AvengingWrath),
     named("Trinket1",            Prot_Trinket1),
     named("Trinket2",            Prot_Trinket2),
+    named("RighteousDefense",    Prot_RighteousDefense),
     named("EstablishSeal",       Prot_EstablishSeal),
     named("HolyShield",          Prot_HolyShield),
     named("Consecration",        Prot_Consecration),
@@ -319,7 +350,6 @@ rotation_registry:register("protection", {
     named("Exorcism",            Prot_Exorcism),
     named("HolyShieldFallback",  Prot_HolyShieldFallback),
     named("HammerOfWrath",       Prot_HammerOfWrath),
-    named("AvengersShield",      Prot_AvengersShield),
 }, {
     context_builder = get_prot_state,
 })
