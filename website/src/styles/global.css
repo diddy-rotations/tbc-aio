@@ -67,7 +67,7 @@ h3 { font-size: 1.1rem; }
 
 /* Classes button */
 .nav-classes-btn {
-  background: none; border: none; cursor: pointer;
+  background: none; border: none; cursor: pointer; font-family: inherit;
   color: var(--text-dim); font-size: 0.8rem; font-weight: 500;
   padding: 0; transition: color 0.15s;
 }
