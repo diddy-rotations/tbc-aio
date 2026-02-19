@@ -205,12 +205,12 @@ a.class-link:hover {
 }
 .section h2 + .spec { margin-top: 1rem; }
 .spec h3 { font-size: 1.1rem; margin-bottom: 0.35rem; }
-.spec h4 {
+.spec h4, h3.spec-sub {
   font-size: 0.75rem; color: var(--text); margin: 1rem 0 0.3rem;
   font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
   padding-top: 0.6rem; border-top: 1px solid var(--border);
 }
-.spec h4:first-of-type { border-top: none; padding-top: 0; }
+.spec h4:first-of-type, .spec h3.spec-sub:first-of-type { border-top: none; padding-top: 0; }
 .talent-req {
   display: inline-block; background: #1a1708;
   border: 1px solid #3f3510; color: var(--gold);
