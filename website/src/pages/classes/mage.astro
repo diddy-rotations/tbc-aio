@@ -1,0 +1,202 @@
+---
+import Base from '../../layouts/Base.astro';
+import { url } from '../../config';
+---
+
+<Base title="Mage" description="Diddy AIO Mage rotation - Fire, Frost, and Arcane specs with burn/conserve phases, scorch tracking, and cooldown stacking.">
+  <div class="container">
+    <div class="breadcrumb">
+      <a href={url('/')}>Home</a> / <a href={url('/classes/mage')}>Mage</a>
+    </div>
+
+    <section class="section">
+      <h1 style="color: var(--mage);">Mage</h1>
+      <p class="section-sub">3 specs with intelligent cooldown management, mana recovery, and phase-based rotation logic.</p>
+    </section>
+
+    <section class="section">
+      <h2>Playstyles</h2>
+      <div class="card-grid">
+        <a href="#fire" class="card"><h3>Fire</h3><p>Scorch debuff maintenance, Combustion timing, Fireball spam, and Fire Blast weaving.</p></a>
+        <a href="#frost" class="card"><h3>Frost</h3><p>Frostbolt filler, Water Elemental management, Icy Veins + Cold Snap cycling.</p></a>
+        <a href="#arcane" class="card"><h3>Arcane</h3><p>Burn/conserve phase system, Arcane Blast stack management, and CD stacking.</p></a>
+      </div>
+    </section>
+
+    <section class="section" id="fire">
+      <div class="spec">
+        <h3 style="color: var(--mage);">Fire</h3>
+        <span class="talent-req">Recommended: Deep Fire (48pt)</span>
+        <a href={url('/guides/mage-talents#fire')} class="btn-build">View Build</a>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Fireball as primary nuke (or Scorch via setting)</li>
+          <li>Improved Scorch debuff maintenance &mdash; auto-refresh when stacks &lt; 5 or duration low</li>
+          <li>Fire Blast weaving between casts and as movement filler</li>
+          <li>Blast Wave and Dragon's Breath when talented and enabled</li>
+        </ul>
+
+        <h4>Cooldown Management</h4>
+        <ul class="features">
+          <li>Combustion usage with configurable target HP threshold (0 = on cooldown)</li>
+          <li>Icy Veins (cross-tree talent) on cooldown</li>
+          <li>Trinket and racial ability stacking with major cooldowns</li>
+        </ul>
+
+        <h4>Scorch Debuff Tracking</h4>
+        <ul class="features">
+          <li>Tracks Improved Scorch stacks and duration on current target</li>
+          <li>Configurable refresh window (default 6 sec remaining)</li>
+          <li>Prioritizes scorch maintenance over primary nuke</li>
+        </ul>
+
+        <h4>AoE</h4>
+        <ul class="features">
+          <li>Arcane Explosion when enemies in melee range meet threshold</li>
+          <li>Flamestrike as ranged AoE filler</li>
+          <li>Blast Wave and Dragon's Breath instant AoE (talent toggles)</li>
+          <li>Configurable enemy count threshold (0 = disabled)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="frost">
+      <div class="spec">
+        <h3 style="color: var(--mage);">Frost</h3>
+        <span class="talent-req">Recommended: Deep Frost (51pt)</span>
+        <a href={url('/guides/mage-talents#frost')} class="btn-build">View Build</a>
+
+        <h4>Rotation</h4>
+        <ul class="features">
+          <li>Frostbolt as primary filler (90%+ of casts)</li>
+          <li>Movement spell selection: Fire Blast, Ice Lance, or Cone of Cold (configurable)</li>
+          <li>Simple priority-based rotation &mdash; minimal decision-making for consistent DPS</li>
+        </ul>
+
+        <h4>Cooldown Management</h4>
+        <ul class="features">
+          <li>Icy Veins on cooldown for 20% haste burst</li>
+          <li>Water Elemental summoning when talented and not active</li>
+          <li>Cold Snap to reset Icy Veins and Water Elemental when both expired</li>
+          <li>Trinket and racial ability stacking</li>
+        </ul>
+
+        <h4>AoE</h4>
+        <ul class="features">
+          <li>Cone of Cold as priority melee AoE</li>
+          <li>Arcane Explosion when enemies in melee range</li>
+          <li>Blizzard as ranged channeled AoE (synergy with Improved Blizzard slow)</li>
+          <li>Configurable enemy count threshold (0 = disabled)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="arcane">
+      <div class="spec">
+        <h3 style="color: var(--mage);">Arcane</h3>
+        <span class="talent-req">Recommended: Deep Arcane (40pt)</span>
+        <a href={url('/guides/mage-talents#arcane')} class="btn-build">View Build</a>
+
+        <h4>Burn/Conserve Phases</h4>
+        <ul class="features">
+          <li>Automatic phase transitions based on mana percentage thresholds</li>
+          <li>Burn phase: spam Arcane Blast with all cooldowns active</li>
+          <li>Conserve phase: limited Arcane Blast casts per cycle, then filler spell</li>
+          <li>Configurable start/stop conserve mana thresholds</li>
+        </ul>
+
+        <h4>Arcane Blast Management</h4>
+        <ul class="features">
+          <li>Tracks AB debuff stacks and duration</li>
+          <li>Configurable max AB stacks before switching to filler in conserve phase</li>
+          <li>Filler spell selection: Frostbolt, Arcane Missiles, or Scorch (configurable)</li>
+          <li>Cycle counter resets when AB stacks drop to 0</li>
+        </ul>
+
+        <h4>Cooldown Stacking</h4>
+        <ul class="features">
+          <li>Arcane Power (30% damage) during burn phase</li>
+          <li>Presence of Mind (instant cast) during burn phase</li>
+          <li>Icy Veins (20% haste) &mdash; first CD activated for Cold Snap reset window</li>
+          <li>Cold Snap to reset Icy Veins after it expires</li>
+          <li>Trinket and racial abilities stacked with Arcane Power window</li>
+        </ul>
+
+        <h4>AoE</h4>
+        <ul class="features">
+          <li>Arcane Explosion when enemies in melee range meet threshold</li>
+          <li>Flamestrike as ranged AoE filler</li>
+          <li>Configurable enemy count threshold (0 = disabled)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Shared Features</h2>
+      <div class="spec">
+        <h4>Emergency &amp; Defensive</h4>
+        <ul class="features">
+          <li>Ice Block at configurable HP threshold (respects Hypothermia debuff)</li>
+          <li>Mana Shield at configurable HP threshold</li>
+          <li>Counterspell interrupt on castable enemy targets</li>
+        </ul>
+
+        <h4>Mana Recovery</h4>
+        <ul class="features">
+          <li>Mana Gem (Mana Emerald) at configurable threshold</li>
+          <li>Super Mana Potion at configurable threshold</li>
+          <li>Dark Rune / Demonic Rune with HP safety check</li>
+          <li>Evocation when mana low and not moving</li>
+        </ul>
+
+        <h4>Consumable &amp; Recovery</h4>
+        <ul class="features">
+          <li>Healthstone auto-use at configurable HP threshold</li>
+          <li>Healing Potion at configurable HP threshold</li>
+          <li>Remove Curse on self when cursed</li>
+        </ul>
+
+        <h4>Self-Buffs (Out of Combat)</h4>
+        <ul class="features">
+          <li>Armor selection: Molten Armor, Mage Armor, or Ice Armor (auto or manual)</li>
+          <li>Arcane Brilliance if grouped, else Arcane Intellect</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Settings Overview</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>General</h3>
+          <p>Playstyle selection, armor type, utility toggles, recovery thresholds, emergency settings, debug mode.</p>
+        </div>
+        <div class="card">
+          <h3>Fire</h3>
+          <p>Scorch maintenance, primary spell selection, Fire Blast weave, Blast Wave, Dragon's Breath, Combustion threshold.</p>
+        </div>
+        <div class="card">
+          <h3>Frost</h3>
+          <p>Icy Veins, Cold Snap, Water Elemental, movement spell selection.</p>
+        </div>
+        <div class="card">
+          <h3>Arcane</h3>
+          <p>Phase CDs, filler spell selection, AB stack limits, conserve mana thresholds.</p>
+        </div>
+        <div class="card">
+          <h3>CDs &amp; Mana</h3>
+          <p>Trinkets, racial abilities, Mana Gem, Mana Potion, Dark Rune, Evocation thresholds.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Talent Guides</h2>
+      <div class="btn-group" style="justify-content: flex-start;">
+        <a href={url('/guides/mage-talents')} class="btn btn-secondary">Mage Talent Specs</a>
+      </div>
+    </section>
+
+  </div>
+</Base>

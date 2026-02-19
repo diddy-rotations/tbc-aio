@@ -1,0 +1,345 @@
+--- Arcane Mage Module
+--- Arcane playstyle strategies with burn/conserve phase management
+--- Part of the modular AIO rotation system
+
+-- ============================================================
+-- IMPORTANT: NEVER capture settings values at load time!
+-- Always access settings through context.settings in matches/execute.
+-- ============================================================
+
+local NS = _G.DiddyAIO
+if not NS then
+    print("|cFFFF0000[Diddy AIO Arcane]|r Core module not loaded!")
+    return
+end
+
+if not NS.rotation_registry then
+    print("|cFFFF0000[Diddy AIO Arcane]|r Registry not found!")
+    return
+end
+
+local A = NS.A
+local Constants = NS.Constants
+local Unit = NS.Unit
+local rotation_registry = NS.rotation_registry
+local try_cast = NS.try_cast
+local named = NS.named
+local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
+local TARGET_UNIT = NS.TARGET_UNIT or "target"
+local format = string.format
+
+-- ============================================================================
+-- PHASE TRACKING (persists across frames)
+-- ============================================================================
+-- Arcane uses a two-phase system:
+--   "burn"    = spend mana freely, spam AB with all CDs
+--   "conserve" = AB x N → filler while stacks drop, repeat
+local arcane_phase = "burn"
+local arcane_casts_this_cycle = 0
+
+-- ============================================================================
+-- ARCANE STATE (context_builder)
+-- ============================================================================
+-- Pre-allocated state table — no inline {} in combat
+local arcane_state = {
+    is_burning = true,
+    is_conserving = false,
+    casts_this_cycle = 0,
+    ab_will_drop = false,
+}
+
+local function get_arcane_state(context)
+    if context._arcane_valid then return arcane_state end
+    context._arcane_valid = true
+
+    local settings = context.settings
+    local start_conserve = settings.arcane_start_conserve_pct or Constants.ARCANE.DEFAULT_START_CONSERVE
+    local stop_conserve = settings.arcane_stop_conserve_pct or Constants.ARCANE.DEFAULT_STOP_CONSERVE
+
+    -- Phase transitions
+    if arcane_phase == "burn" and context.mana_pct <= start_conserve then
+        arcane_phase = "conserve"
+        arcane_casts_this_cycle = 0
+    elseif arcane_phase == "conserve" and context.mana_pct >= stop_conserve and context.ab_stacks == 0 then
+        arcane_phase = "burn"
+    end
+
+    -- Reset on combat exit
+    if not context.in_combat then
+        arcane_phase = "burn"
+        arcane_casts_this_cycle = 0
+    end
+
+    arcane_state.is_burning = (arcane_phase == "burn")
+    arcane_state.is_conserving = (arcane_phase == "conserve")
+    arcane_state.casts_this_cycle = arcane_casts_this_cycle
+
+    -- Will AB stacks drop before we can recast?
+    local ab_cast_time = A.ArcaneBlast:GetSpellCastTimeCache() or 2.5
+    arcane_state.ab_will_drop = context.ab_duration > 0 and context.ab_duration < ab_cast_time
+
+    -- Reset cycle counter when stacks have dropped
+    if context.ab_stacks == 0 and arcane_casts_this_cycle > 0 then
+        arcane_casts_this_cycle = 0
+        arcane_state.casts_this_cycle = 0
+    end
+
+    return arcane_state
+end
+
+-- ============================================================================
+-- STRATEGIES
+-- ============================================================================
+do
+
+-- [1] Icy Veins (off-GCD, first CD to activate for Cold Snap reset later)
+local Arcane_IcyVeins = {
+    requires_combat = true,
+    is_gcd_gated = false,
+    spell = A.IcyVeins,
+    setting_key = "arcane_use_icy_veins",
+
+    matches = function(context, state)
+        if context.icy_veins_active then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.IcyVeins, icon, PLAYER_UNIT, "[ARCANE] Icy Veins")
+    end,
+}
+
+-- [2] Cold Snap (reset Icy Veins CD after it expires)
+local Arcane_ColdSnap = {
+    requires_combat = true,
+    spell = A.ColdSnap,
+    setting_key = "arcane_use_cold_snap",
+
+    matches = function(context, state)
+        local iv_cd = A.IcyVeins:GetCooldown() or 0
+        if iv_cd < 20 then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.ColdSnap, icon, PLAYER_UNIT, "[ARCANE] Cold Snap")
+    end,
+}
+
+-- [3] Arcane Power (off-GCD, burn phase only)
+local Arcane_ArcanePower = {
+    requires_combat = true,
+    is_gcd_gated = false,
+    spell = A.ArcanePower,
+    setting_key = "arcane_use_arcane_power",
+
+    matches = function(context, state)
+        if context.arcane_power_active then return false end
+        if not state.is_burning then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.ArcanePower, icon, PLAYER_UNIT, "[ARCANE] Arcane Power")
+    end,
+}
+
+-- [4] Presence of Mind (off-GCD, instant next AB during burn)
+local Arcane_PresenceOfMind = {
+    requires_combat = true,
+    is_gcd_gated = false,
+    spell = A.PresenceOfMind,
+    setting_key = "arcane_use_pom",
+
+    matches = function(context, state)
+        if context.pom_active then return false end
+        if not state.is_burning then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.PresenceOfMind, icon, PLAYER_UNIT, "[ARCANE] Presence of Mind")
+    end,
+}
+
+-- [5] Trinkets (off-GCD, stack with AP window)
+local Arcane_Trinkets = {
+    requires_combat = true,
+    is_gcd_gated = false,
+
+    matches = function(context, state)
+        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
+        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
+        return false
+    end,
+
+    execute = function(icon, context, state)
+        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
+            return A.Trinket1:Show(icon), "[ARCANE] Trinket 1"
+        end
+        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
+            return A.Trinket2:Show(icon), "[ARCANE] Trinket 2"
+        end
+        return nil
+    end,
+}
+
+-- [6] Racial (off-GCD)
+local Arcane_Racial = {
+    requires_combat = true,
+    is_gcd_gated = false,
+    setting_key = "use_racial",
+
+    matches = function(context, state)
+        if A.Berserking:IsReady(PLAYER_UNIT) then return true end
+        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
+        return false
+    end,
+
+    execute = function(icon, context, state)
+        if A.Berserking:IsReady(PLAYER_UNIT) then
+            return A.Berserking:Show(icon), "[ARCANE] Berserking"
+        end
+        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then
+            return A.ArcaneTorrent:Show(icon), "[ARCANE] Arcane Torrent"
+        end
+        return nil
+    end,
+}
+
+-- [7] AoE rotation (when enough enemies)
+local Arcane_AoE = {
+    requires_combat = true,
+    requires_enemy = true,
+
+    matches = function(context, state)
+        local threshold = context.settings.aoe_threshold or 0
+        if threshold == 0 then return false end
+        if context.enemy_count_melee >= threshold then return true end
+        if not context.is_moving and context.enemy_count_ranged >= threshold then return true end
+        return false
+    end,
+
+    execute = function(icon, context, state)
+        local threshold = context.settings.aoe_threshold or 0
+        -- Arcane Explosion preferred (lowest threat via Arcane Subtlety)
+        if context.enemy_count_melee >= threshold and A.ArcaneExplosion:IsReady(PLAYER_UNIT) then
+            return try_cast(A.ArcaneExplosion, icon, PLAYER_UNIT, "[ARCANE] Arcane Explosion (AoE)")
+        end
+        -- Ranged AoE filler
+        return try_cast(A.Flamestrike, icon, TARGET_UNIT, "[ARCANE] Flamestrike (AoE)")
+    end,
+}
+
+-- [8] Movement spell (Fire Blast while moving)
+local Arcane_MovementSpell = {
+    requires_combat = true,
+    requires_enemy = true,
+
+    matches = function(context, state)
+        if not context.is_moving then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.FireBlast, icon, TARGET_UNIT, "[ARCANE] Fire Blast (moving)")
+    end,
+}
+
+-- [9] Burn phase — spam Arcane Blast
+local Arcane_BurnAB = {
+    requires_combat = true,
+    requires_enemy = true,
+    spell = A.ArcaneBlast,
+
+    matches = function(context, state)
+        if context.is_moving then return false end
+        if not state.is_burning then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.ArcaneBlast, icon, TARGET_UNIT,
+            format("[ARCANE] Arcane Blast (BURN) - Stacks: %d", context.ab_stacks))
+    end,
+}
+
+-- [9] Conserve phase — N Arcane Blasts per cycle
+local Arcane_ConserveAB = {
+    requires_combat = true,
+    requires_enemy = true,
+    spell = A.ArcaneBlast,
+
+    matches = function(context, state)
+        if context.is_moving then return false end
+        if not state.is_conserving then return false end
+        local max_casts = context.settings.arcane_blasts_between_fillers or Constants.ARCANE.DEFAULT_BLASTS_BEFORE_FILLER
+        if state.casts_this_cycle >= max_casts then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        local result = try_cast(A.ArcaneBlast, icon, TARGET_UNIT,
+            format("[ARCANE] Arcane Blast (CONSERVE %d/%d)",
+                state.casts_this_cycle + 1,
+                context.settings.arcane_blasts_between_fillers or Constants.ARCANE.DEFAULT_BLASTS_BEFORE_FILLER))
+        if result then
+            arcane_casts_this_cycle = arcane_casts_this_cycle + 1
+        end
+        return result
+    end,
+}
+
+-- [10] Conserve phase — filler spell while AB stacks drop
+local Arcane_Filler = {
+    requires_combat = true,
+    requires_enemy = true,
+
+    matches = function(context, state)
+        if context.is_moving then return false end
+        if not state.is_conserving then return false end
+        local max_casts = context.settings.arcane_blasts_between_fillers or Constants.ARCANE.DEFAULT_BLASTS_BEFORE_FILLER
+        -- Cast filler when we've done enough ABs, or when stacks are about to drop
+        if state.casts_this_cycle < max_casts and not state.ab_will_drop then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        local filler = context.settings.arcane_filler or "frostbolt"
+        if filler == "frostbolt" then
+            return try_cast(A.Frostbolt, icon, TARGET_UNIT, "[ARCANE] Frostbolt (filler)")
+        elseif filler == "arcane_missiles" then
+            return try_cast(A.ArcaneMissiles, icon, TARGET_UNIT, "[ARCANE] Arcane Missiles (filler)")
+        elseif filler == "scorch" then
+            return try_cast(A.Scorch, icon, TARGET_UNIT, "[ARCANE] Scorch (filler)")
+        end
+        -- Fallback
+        return try_cast(A.Frostbolt, icon, TARGET_UNIT, "[ARCANE] Frostbolt (filler)")
+    end,
+}
+
+-- ============================================================================
+-- REGISTRATION
+-- ============================================================================
+rotation_registry:register("arcane", {
+    named("IcyVeins",        Arcane_IcyVeins),
+    named("ColdSnap",        Arcane_ColdSnap),
+    named("ArcanePower",     Arcane_ArcanePower),
+    named("PresenceOfMind",  Arcane_PresenceOfMind),
+    named("Trinkets",        Arcane_Trinkets),
+    named("Racial",          Arcane_Racial),
+    named("AoE",             Arcane_AoE),
+    named("MovementSpell",   Arcane_MovementSpell),
+    named("BurnAB",          Arcane_BurnAB),
+    named("ConserveAB",      Arcane_ConserveAB),
+    named("Filler",          Arcane_Filler),
+}, {
+    context_builder = get_arcane_state,
+})
+
+end -- scope block
+
+-- ============================================================================
+-- MODULE LOADED
+-- ============================================================================
+print("|cFF00FF00[Diddy AIO Mage]|r Arcane module loaded")

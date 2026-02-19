@@ -234,21 +234,21 @@ local function refresh_settings()
    local changed_list = settings_changed_list
    for i = 1, #changed_list do changed_list[i] = nil end
 
-   for _, tab_def in pairs(SETTINGS_SCHEMA) do
+   for _, tab_def in ipairs(SETTINGS_SCHEMA) do
       for _, section in ipairs(tab_def.sections) do
          for _, s in ipairs(section.settings) do
-            local raw = GetToggle(2, s.key)
-            local value
-            if s.type == "checkbox" then
-               if s.default == true then
-                  value = raw ~= false
+               local raw = GetToggle(2, s.key)
+               local value
+               if s.type == "checkbox" then
+                  if s.default == true then
+                     value = raw ~= false
+                  else
+                     value = raw == true
+                  end
                else
-                  value = raw == true
+                  value = raw or s.default
                end
-            else
-               value = raw or s.default
-            end
-            update_setting(s.key, value, changed_list, debug_mode)
+               update_setting(s.key, value, changed_list, debug_mode)
          end
       end
    end

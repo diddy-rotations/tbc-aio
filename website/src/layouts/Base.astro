@@ -22,7 +22,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
   <!-- SEO -->
   <meta name="description" content={description} />
   <meta name="author" content="Diddy AIO" />
-  <meta name="keywords" content="WoW, TBC, rotation, addon, druid, hunter, TellMeWhen, classic" />
+  <meta name="keywords" content="WoW, TBC, rotation, addon, druid, hunter, mage, TellMeWhen, classic" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href={canonicalUrl.href} />
   <meta name="theme-color" content="#6c63ff" />
@@ -53,14 +53,17 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
       <ul class="nav-links">
         <li><a href={url('/classes/druid')}>Druid</a></li>
         <li><a href={url('/classes/hunter')}>Hunter</a></li>
-        <li><a href={url('/guides/installation')}>Install</a></li>
-        <li><a href={config.github} target="_blank">GitHub</a></li>
+        <li><a href={url('/classes/mage')}>Mage</a></li>
+        <li class="nav-desktop"><a href={url('/guides/installation')}>Install</a></li>
+        <li class="nav-desktop"><a href={config.github} target="_blank">GitHub</a></li>
         <li class="nav-desktop"><a href={url('/changelog')}>Changelog</a></li>
         <li class="nav-desktop"><a href={url('/faq')}>FAQ</a></li>
         <li class="nav-desktop"><a href={config.discord} target="_blank">Discord</a></li>
         <li class="nav-more">
           <button class="nav-more-btn" aria-label="More links" aria-expanded="false">&#9662;</button>
           <ul class="nav-dropdown">
+            <li><a href={url('/guides/installation')}>Install</a></li>
+            <li><a href={config.github} target="_blank">GitHub</a></li>
             <li><a href={url('/changelog')}>Changelog</a></li>
             <li><a href={url('/faq')}>FAQ</a></li>
             <li><a href={config.discord} target="_blank">Discord</a></li>
