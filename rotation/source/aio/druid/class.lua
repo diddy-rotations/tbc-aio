@@ -655,7 +655,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.2.4",
+   version = "v1.2.5",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 
@@ -698,8 +698,6 @@ rotation_registry:register_class({
             ctx.in_melee_range = A.MangleCat:IsInRange(TARGET_UNIT) == true
          elseif stance == Constants.STANCE.BEAR then
             ctx.in_melee_range = A.MangleBear:IsInRange(TARGET_UNIT) == true
-         else
-            ctx.in_melee_range = A.Wrath:IsInRange(TARGET_UNIT) == true
          end
       end
    end,
