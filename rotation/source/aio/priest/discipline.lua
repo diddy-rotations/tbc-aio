@@ -324,8 +324,7 @@ rotation_registry:register("discipline", {
         matches = function(context, state)
             if not context.in_combat then return false end
             if context.is_moving then return false end
-            -- Use same AoE count threshold as holy tab defaults
-            return state.group_damaged_count >= 3
+            return state.group_damaged_count >= (context.settings.disc_aoe_count or 3)
         end,
         execute = function(icon, context, state)
             if is_spell_available(A.PrayerOfHealing) and A.PrayerOfHealing:IsReady(PLAYER_UNIT) then

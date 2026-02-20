@@ -128,7 +128,7 @@ local Demo_HealthFunnel = {
     end,
 }
 
--- [2] Demonic Sacrifice — sacrifice pet if DS build + no buff active
+-- [4] Demonic Sacrifice — sacrifice pet if DS build + no buff active
 local Demo_DemonicSacrifice = {
     spell = A.DemonicSacrifice,
     setting_key = "demo_use_sacrifice",
@@ -144,7 +144,7 @@ local Demo_DemonicSacrifice = {
     end,
 }
 
--- [3] Maintain Curse — apply assigned curse if missing/expired
+-- [5] Maintain Curse — apply assigned curse if missing/expired
 local Demo_MaintainCurse = {
     requires_combat = true,
     requires_enemy = true,
@@ -291,7 +291,8 @@ local Demo_LifeTap = {
     matches = function(context, state)
         local min_hp = context.settings.life_tap_min_hp or 40
         if context.hp < min_hp then return false end
-        return context.mana_pct < 90
+        local threshold = context.settings.life_tap_mana_pct or 30
+        return context.mana_pct < threshold
     end,
 
     execute = function(icon, context, state)

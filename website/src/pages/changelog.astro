@@ -15,6 +15,67 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.3.0 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-minor">Minor</span>
+
+      <h3><a href={url('/classes/druid')} class="class-link c-druid">Druid</a></h3>
+      <ul class="features">
+        <li>Bear: Fixed Demoralizing Roar detection to use spell ID array &mdash; now correctly detects debuffs applied by other Druids</li>
+        <li>Caster: Fixed nil guard on Innervate buff check; unified rejuv/regrowth checks with shared utilities</li>
+      </ul>
+
+      <h3><a href={url('/classes/mage')} class="class-link c-mage">Mage</a></h3>
+      <ul class="features">
+        <li>Arcane: Simplified burn/conserve cycle tracker &mdash; now uses <code>ab_stacks</code> natively, no separate counter; conserve&rarr;burn transition now allows &le;1 stack instead of requiring 0</li>
+        <li>Arcane Filler now correctly checks <code>ab_stacks</code> at max before triggering (was broken with old counter)</li>
+        <li>Remove Curse middleware now scans all party members, not just self</li>
+      </ul>
+
+      <h3><a href={url('/classes/paladin')} class="class-link c-paladin">Paladin</a></h3>
+      <ul class="features">
+        <li>Holy: Added configurable Divine Illumination mana threshold (default 60%)</li>
+        <li>Holy/Protection: Added Racial strategies &mdash; Arcane Torrent (mana restore) and Stoneform (defensive), off-GCD</li>
+        <li>Holy: Judgement only fires when no emergency targets exist (previously blocked when any target was below 80%)</li>
+        <li>Protection: Added Mocking Blow &mdash; 2-min CD taunt fallback when in Battle Stance (smart filter: elites/bosses only, healer protection)</li>
+        <li>Healing pool pre-allocated at load time &mdash; fixes potential in-combat table allocation</li>
+      </ul>
+
+      <h3><a href={url('/classes/priest')} class="class-link c-priest">Priest</a></h3>
+      <ul class="features">
+        <li>Discipline: Prayer of Healing minimum injured group count is now configurable (default 3, range 2&ndash;5)</li>
+        <li>Holy: Renew/Greater Heal HP threshold now uses the <code>holy_renew_hp</code> setting instead of a hardcoded value</li>
+      </ul>
+
+      <h3><a href={url('/classes/rogue')} class="class-link c-rogue">Rogue</a></h3>
+      <ul class="features">
+        <li>Subtlety: Added Ghostly Strike strategy &mdash; secondary builder on cooldown, grants +15% dodge for 7s</li>
+        <li>Subtlety: Preparation now only fires when Shadowstep is actually talented (not on every spec)</li>
+        <li>Assassination/Subtlety: Rupture refresh window is now configurable (default 2s)</li>
+        <li>Shiv now bypasses the energy pooling gate &mdash; Deadly Poison refresh takes priority even while pooling for the next finisher</li>
+      </ul>
+
+      <h3><a href={url('/classes/shaman')} class="class-link c-shaman">Shaman</a></h3>
+      <ul class="features">
+        <li>Enhancement: Moved Windfury and Fire Nova Totem twists before Stormstrike/Shock &mdash; time-sensitive totem management now fires correctly</li>
+        <li>Restoration: Earth Shield now checks <code>is_spell_available</code> (only fires when 41pt Restoration talent is learned)</li>
+      </ul>
+
+      <h3><a href={url('/classes/warlock')} class="class-link c-warlock">Warlock</a></h3>
+      <ul class="features">
+        <li>Life Tap fallback strategy now mirrors the <code>life_tap_mana_pct</code> middleware threshold &mdash; no longer fires at 90% mana as a last resort</li>
+      </ul>
+
+      <h3><a href={url('/classes/warrior')} class="class-link c-warrior">Warrior</a></h3>
+      <ul class="features">
+        <li>Arms: Overpower moved before Mortal Strike &mdash; dodge proc window (5s) now correctly prioritized</li>
+        <li>Protection: Added Mocking Blow &mdash; 2-min CD taunt fallback for Battle Stance (smart filter: elites/bosses, healer protection)</li>
+        <li>Added configurable Bloodrage minimum HP setting (default 50%; Bloodrage costs HP)</li>
+        <li>Added Berserker Rage toggle &mdash; was previously always firing when in Berserker Stance with no setting check</li>
+        <li>Arms/Fury/Protection: Settings checks migrated to <code>setting_key</code> auto-check pattern (cleaner, no duplicate logic)</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.2.6 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 

@@ -70,9 +70,9 @@ do
 local Arms_MaintainRend = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "arms_maintain_rend",
 
     matches = function(context, state)
-        if not context.settings.arms_maintain_rend then return false end
         -- Don't bother rending in execute phase
         if state.target_below_20 and context.settings.arms_execute_phase then return false end
         local refresh = context.settings.arms_rend_refresh or 4
@@ -91,9 +91,9 @@ local Arms_MaintainRend = {
 local Arms_Overpower = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "arms_use_overpower",
 
     matches = function(context, state)
-        if not context.settings.arms_use_overpower then return false end
         local min_rage = context.settings.arms_overpower_rage or 25
         if context.rage < min_rage then return false end
         -- Overpower requires Battle Stance — IsReady handles stance check
@@ -128,9 +128,9 @@ local Arms_MortalStrike = {
 local Arms_Whirlwind = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "arms_use_whirlwind",
 
     matches = function(context, state)
-        if not context.settings.arms_use_whirlwind then return false end
         -- During execute phase, check setting
         if state.target_below_20 and context.settings.arms_execute_phase then
             if not context.settings.arms_use_ww_execute then return false end
@@ -148,9 +148,9 @@ local Arms_Whirlwind = {
 local Arms_SweepingStrikes = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "arms_use_sweeping_strikes",
 
     matches = function(context, state)
-        if not context.settings.arms_use_sweeping_strikes then return false end
         if context.sweeping_strikes_active then return false end
         -- More valuable with multiple targets
         if context.enemy_count < 2 then return false end
@@ -168,9 +168,9 @@ local Arms_SweepingStrikes = {
 local Arms_Execute = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "arms_execute_phase",
 
     matches = function(context, state)
-        if not context.settings.arms_execute_phase then return false end
         if not state.target_below_20 then return false end
         return A.Execute:IsReady(TARGET_UNIT)
     end,
@@ -254,9 +254,9 @@ local Arms_DemoShout = {
 local Arms_Slam = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "arms_use_slam",
 
     matches = function(context, state)
-        if not context.settings.arms_use_slam then return false end
         if context.is_moving then return false end
         -- Don't Slam in execute phase (Execute is better use of rage)
         if state.target_below_20 and context.settings.arms_execute_phase then return false end
@@ -268,7 +268,7 @@ local Arms_Slam = {
     end,
 }
 
--- [9] Heroic Strike / Cleave (off-GCD rage dump)
+-- [12] Heroic Strike / Cleave (off-GCD rage dump)
 local Arms_HeroicStrike = {
     requires_combat = true,
     requires_enemy = true,
@@ -300,7 +300,7 @@ local Arms_HeroicStrike = {
     end,
 }
 
--- [10] Victory Rush (free instant after killing blow)
+-- [11] Victory Rush (free instant after killing blow)
 local Arms_VictoryRush = {
     requires_combat = true,
     requires_enemy = true,
@@ -316,11 +316,11 @@ local Arms_VictoryRush = {
 -- ============================================================================
 rotation_registry:register("arms", {
     named("MaintainRend",    Arms_MaintainRend),
+    named("Overpower",       Arms_Overpower),       -- dodge proc (5s window) — must fire before MS
     named("MortalStrike",    Arms_MortalStrike),
     named("Whirlwind",       Arms_Whirlwind),
     named("SweepingStrikes", Arms_SweepingStrikes),
     named("Execute",         Arms_Execute),
-    named("Overpower",       Arms_Overpower),
     named("SunderMaintain",  Arms_SunderMaintain),
     named("ThunderClap",     Arms_ThunderClap),
     named("DemoShout",       Arms_DemoShout),

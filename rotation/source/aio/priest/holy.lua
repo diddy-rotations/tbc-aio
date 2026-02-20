@@ -165,7 +165,7 @@ rotation_registry:register("holy", {
             if context.is_moving then return false end
             if not state.clearcasting then return false end
             if not state.lowest_unit then return false end
-            return state.lowest_hp < 90
+            return state.lowest_hp < (context.settings.holy_renew_hp or 90)
         end,
         execute = function(icon, context, state)
             if A.GreaterHeal:IsReady(state.lowest_unit) then

@@ -258,7 +258,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Priest",
-    version = "v1.2.4",
+    version = "v1.3.0",
     playstyles = { "shadow", "smite", "holy", "discipline" },
     idle_playstyle_name = nil,
 
@@ -280,6 +280,7 @@ rotation_registry:register_class({
         ctx.has_clearcasting = (Unit("player"):HasBuffs(Constants.BUFF_ID.HOLY_CONCENTRATION) or 0) > 0
         ctx.has_inner_fire = (Unit("player"):HasBuffs(Constants.INNER_FIRE_IDS) or 0) > 0
         ctx.enemy_count = MultiUnits:GetByRangeInCombat(30)
+        ctx.has_valid_enemy_target = ctx.target_exists and ctx.target_enemy
 
         -- Cache invalidation for per-playstyle builders
         ctx._shadow_valid = false

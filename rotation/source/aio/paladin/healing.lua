@@ -33,9 +33,14 @@ local PARTY_UNITS = { "player", "party1", "party2", "party3", "party4" }
 local RAID_UNITS = {}
 for i = 1, 40 do RAID_UNITS[i] = "raid" .. i end
 
--- Pre-allocated target pool (reused each scan)
+-- Pre-allocated target pool (reused each scan, never reallocated in combat)
 local healing_targets = {}
 local healing_targets_count = 0
+for i = 1, 40 do
+    healing_targets[i] = { unit = nil, hp = 100, is_player = false, has_aggro = false,
+                            is_tank = false, has_poison = false, has_disease = false,
+                            has_magic = false, needs_cleanse = false }
+end
 
 local function unit_has_aggro(unit_id)
     local threat = _G.UnitThreatSituation(unit_id)
@@ -82,11 +87,6 @@ local function scan_healing_targets()
             if in_range then
                 healing_targets_count = healing_targets_count + 1
                 local idx = healing_targets_count
-
-                if not healing_targets[idx] then
-                    healing_targets[idx] = {}
-                end
-
                 local entry = healing_targets[idx]
                 entry.unit = unit
                 entry.hp = _G.UnitHealth(unit) / _G.UnitHealthMax(unit) * 100

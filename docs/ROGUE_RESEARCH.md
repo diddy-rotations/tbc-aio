@@ -397,9 +397,18 @@ Shadowstep Usage (PVE):
 3. **Preparation** — off-GCD, use to reset Shadowstep/Vanish/Cold Blood
 4. **Trinkets** — off-GCD, use on CD
 5. **Racial** — off-GCD
-6. **Rupture** — at 5 CP if debuff not active and TTD > threshold
-7. **Eviscerate** — at 5 CP as CP dump
-8. **Hemorrhage** — primary builder (keeps debuff active passively)
+6. **Ghostly Strike** — secondary builder on CD (20s CD, 40 energy, +15% dodge 7s, setting-gated)
+7. **Rupture** — at 5 CP if debuff not active and TTD > threshold
+8. **Eviscerate** — at 5 CP as CP dump
+9. **Hemorrhage** — primary builder (keeps debuff active passively)
+
+**Ghostly Strike notes:**
+- Subtlety talent (not available to all rogues)
+- Use on CD as a secondary builder between Hemorrhage casts
+- Grants +15% dodge for 7s — meaningful defensive benefit on bosses
+- 40 energy (5 more than Hemorrhage, so only use when energy is sufficient)
+- Does NOT require positional requirement (unlike Backstab/Mutilate)
+- Setting: `subtlety_use_ghostly_strike` (default true, requires talent)
 
 ### State Tracking Needed
 - `snd_active` — Slice and Dice buff present
@@ -624,9 +633,10 @@ Note: wowsims default rotation uses Rupture > Eviscerate only (no Envenom).
 [3]  Preparation           — off-GCD, reset CDs when key abilities on CD
 [4]  Trinkets              — off-GCD, use on CD
 [5]  Racial                — off-GCD, use on CD
-[6]  Rupture               — at 5 CP if enabled, debuff not active, TTD > threshold
-[7]  Eviscerate            — at min_cp+ as CP dump
-[8]  Hemorrhage            — primary builder (also maintains debuff passively)
+[6]  GhostlyStrike         — secondary builder, on CD, 20s CD, +15% dodge (if talented + enabled)
+[7]  Rupture               — at 5 CP if enabled, debuff not active, TTD > threshold
+[8]  Eviscerate            — at min_cp+ as CP dump
+[9]  Hemorrhage            — primary builder (also maintains debuff passively)
 ```
 
 ### Shared Middleware (all specs)

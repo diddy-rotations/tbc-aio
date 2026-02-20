@@ -27,6 +27,7 @@ local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
+local is_spell_available = NS.is_spell_available
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
@@ -161,12 +162,9 @@ local Subtlety_Preparation = {
     setting_key = "subtlety_use_preparation",
 
     matches = function(context, state)
-        -- Use Preparation when Shadowstep is on CD (primary reason in PVE)
-        if context.settings.subtlety_use_shadowstep and A.Shadowstep
-           and not A.Shadowstep:IsReady(TARGET_UNIT) then
-            return true
-        end
-        return false
+        -- Use Preparation when Shadowstep is on CD (only fires if Shadowstep is talented)
+        if not is_spell_available(A.Shadowstep) then return false end
+        return not A.Shadowstep:IsReady(TARGET_UNIT)
     end,
 
     execute = function(icon, context, state)
@@ -221,7 +219,27 @@ local Subtlety_Racial = {
     end,
 }
 
--- [7] Expose Armor — at 5 CP, debuff not active
+-- [7] Ghostly Strike — secondary builder on CD, +15% dodge 7s (Subtlety talent)
+local Subtlety_GhostlyStrike = {
+    requires_combat = true,
+    requires_enemy = true,
+    requires_stealth = false,
+    spell = A.GhostlyStrike,
+    setting_key = "subtlety_use_ghostly_strike",
+
+    matches = function(context, state)
+        if state.pooling then return false end
+        if context.cp >= 5 then return false end
+        return context.energy >= Constants.ENERGY.GHOSTLY_STRIKE
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.GhostlyStrike, icon, TARGET_UNIT,
+            format("[SUBTLETY] Ghostly Strike - Energy: %d, CP: %d", context.energy, context.cp))
+    end,
+}
+
+-- [8] Expose Armor — at 5 CP, debuff not active
 local Subtlety_ExposeArmor = {
     requires_combat = true,
     requires_enemy = true,
@@ -243,7 +261,7 @@ local Subtlety_ExposeArmor = {
     end,
 }
 
--- [8] Rupture — at 5 CP, not active, TTD > threshold
+-- [9] Rupture — at 5 CP, not active, TTD > threshold
 local Subtlety_Rupture = {
     requires_combat = true,
     requires_enemy = true,
@@ -253,7 +271,8 @@ local Subtlety_Rupture = {
 
     matches = function(context, state)
         if state.pooling then return false end
-        if state.rupture_active and state.rupture_duration >= 2 then return false end
+        local refresh = context.settings.subtlety_rupture_refresh or 2
+        if state.rupture_active and state.rupture_duration >= refresh then return false end
         local min_ttd = context.settings.subtlety_rupture_min_ttd or 12
         if context.ttd < min_ttd then return false end
         return true
@@ -269,7 +288,7 @@ local Subtlety_Rupture = {
     end,
 }
 
--- [8] Eviscerate — at min_cp+ CP dump
+-- [10] Eviscerate — at min_cp+ CP dump
 local Subtlety_Eviscerate = {
     requires_combat = true,
     requires_enemy = true,
@@ -290,7 +309,7 @@ local Subtlety_Eviscerate = {
     end,
 }
 
--- [9] Hemorrhage — primary builder (also maintains debuff passively)
+-- [11] Hemorrhage — primary builder (also maintains debuff passively)
 local Subtlety_Hemorrhage = {
     requires_combat = true,
     requires_enemy = true,
@@ -319,6 +338,7 @@ rotation_registry:register("subtlety", {
     named("Preparation",    Subtlety_Preparation),
     named("Trinkets",       Subtlety_Trinkets),
     named("Racial",         Subtlety_Racial),
+    named("GhostlyStrike",  Subtlety_GhostlyStrike),
     named("ExposeArmor",    Subtlety_ExposeArmor),
     named("Rupture",        Subtlety_Rupture),
     named("Eviscerate",     Subtlety_Eviscerate),
@@ -338,4 +358,4 @@ end -- scope block
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Rogue]|r Subtlety strategies registered (10 strategies)")
+print("|cFF00FF00[Diddy AIO Rogue]|r Subtlety strategies registered (11 strategies)")

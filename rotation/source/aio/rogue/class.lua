@@ -132,6 +132,7 @@ local Constants = {
         BACKSTAB        = 60,
         MUTILATE        = 60,
         HEMORRHAGE      = 35,
+        GHOSTLY_STRIKE  = 40,
         SHIV            = 20,
         SLICE_AND_DICE  = 25,
         EVISCERATE      = 35,
@@ -201,6 +202,7 @@ local function validate_playstyle_spells(playstyle)
             { spell = A.Eviscerate, name = "Eviscerate", required = true },
             { spell = A.Rupture, name = "Rupture", required = false },
             { spell = A.Shadowstep, name = "Shadowstep", required = false, note = "41pt Subtlety talent" },
+            { spell = A.GhostlyStrike, name = "Ghostly Strike", required = false, note = "Subtlety talent" },
             { spell = A.Preparation, name = "Preparation", required = false, note = "Subtlety talent" },
             { spell = A.Premeditation, name = "Premeditation", required = false, note = "Subtlety talent" },
             { spell = A.Kick, name = "Kick", required = false },
@@ -236,7 +238,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Rogue",
-    version = "v1.2.4",
+    version = "v1.3.0",
     playstyles = { "combat", "assassination", "subtlety" },
     idle_playstyle_name = nil,
 

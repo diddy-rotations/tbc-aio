@@ -366,8 +366,7 @@ rotation_registry:register_middleware({
         if context.in_combat then return false end
         if context.is_mounted then return false end
         if not context.settings.use_fortitude then return false end
-        local has_fort = (Unit(PLAYER_UNIT):HasBuffs(Constants.FORTITUDE_IDS) or 0) > 0
-        if has_fort then return false end
+        if (Unit(PLAYER_UNIT):HasBuffs(Constants.FORTITUDE_IDS) or 0) > 0 then return false end
         return true
     end,
 
@@ -395,8 +394,7 @@ rotation_registry:register_middleware({
         if context.in_combat then return false end
         if context.is_mounted then return false end
         if not context.settings.use_divine_spirit then return false end
-        local has_ds = (Unit(PLAYER_UNIT):HasBuffs(Constants.DIVINE_SPIRIT_IDS) or 0) > 0
-        if has_ds then return false end
+        if (Unit(PLAYER_UNIT):HasBuffs(Constants.DIVINE_SPIRIT_IDS) or 0) > 0 then return false end
         return true
     end,
 

@@ -189,7 +189,30 @@ local Prot_Trinket2 = {
     end,
 }
 
--- [5] Establish configured seal (ensure primary seal is always active)
+-- [5] Racial (off-GCD — Arcane Torrent restores mana, Stoneform defensive)
+local Prot_Racial = {
+    requires_combat = true,
+    is_gcd_gated = false,
+    setting_key = "use_racial",
+
+    matches = function(context, state)
+        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
+        if A.Stoneform:IsReady(PLAYER_UNIT) then return true end
+        return false
+    end,
+
+    execute = function(icon, context, state)
+        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then
+            return A.ArcaneTorrent:Show(icon), "[PROT] Arcane Torrent"
+        end
+        if A.Stoneform:IsReady(PLAYER_UNIT) then
+            return A.Stoneform:Show(icon), "[PROT] Stoneform"
+        end
+        return nil
+    end,
+}
+
+-- [6] Establish configured seal (ensure primary seal is always active)
 local Prot_EstablishSeal = {
     requires_combat = true,
 
@@ -385,6 +408,7 @@ rotation_registry:register("protection", {
     named("AvengingWrath",       Prot_AvengingWrath),        -- off-GCD
     named("Trinket1",            Prot_Trinket1),             -- off-GCD
     named("Trinket2",            Prot_Trinket2),             -- off-GCD
+    named("Racial",              Prot_Racial),               -- off-GCD
     named("EstablishSeal",       Prot_EstablishSeal),
     named("HolyShield",          Prot_HolyShield),
     named("Consecration",        Prot_Consecration),
