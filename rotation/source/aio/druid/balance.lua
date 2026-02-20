@@ -65,6 +65,7 @@ do
          return ctx.ttd > fon_min_ttd
       end
    })
+   Balance_ForceOfNature.is_burst = true
 
    -- [4] AoE (Hurricane with Barkskin protection) - skip if target has magic immunity
    local Balance_AoE = {

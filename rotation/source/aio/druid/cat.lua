@@ -792,6 +792,7 @@ local Cat_RakeTrick = {
 -- Tiger's Fury - Energy boost cooldown
 local Cat_TigersFury = {
    is_gcd_gated = false,
+   is_burst = true,
    requires_combat = true,
    requires_enemy = true,
    requires_in_range = true,

@@ -390,6 +390,7 @@ do
    -- High rage = more healing output; healers supplement, so using at 50% HP is safe
    local Bear_FrenziedRegen = {
       is_gcd_gated = false,
+      is_defensive = true,
       requires_combat = true,
       setting_key = "use_frenzied_regen",
       spell = A.FrenziedRegeneration,

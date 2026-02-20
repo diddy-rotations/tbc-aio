@@ -204,6 +204,24 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "resto_auto_dispel_poison", default = true, label = "Auto Abolish Poison (Party)", tooltip = "Abolish Poison on party members (castable in Tree form)." },
         }},
     }},
+
+    -- Tab 7: Dashboard & Commands
+    [7] = { name = "Dashboard", sections = {
+        { header = "Dashboard", settings = {
+            { type = "checkbox", key = "show_dashboard", default = false, label = "Show Dashboard",
+              tooltip = "Display the combat dashboard overlay (/flux status)." },
+        }},
+        { header = "Burst Conditions", description = "When to automatically use burst cooldowns.", settings = {
+            { type = "checkbox", key = "burst_on_bloodlust", default = false, label = "During Bloodlust/Heroism",
+              tooltip = "Auto-burst when Bloodlust or Heroism buff is detected." },
+            { type = "checkbox", key = "burst_on_pull", default = false, label = "On Pull (first 5s)",
+              tooltip = "Auto-burst within the first 5 seconds of combat." },
+            { type = "checkbox", key = "burst_on_execute", default = false, label = "Execute Phase (<20% HP)",
+              tooltip = "Auto-burst when target is below 20% health." },
+            { type = "checkbox", key = "burst_in_combat", default = false, label = "Always in Combat",
+              tooltip = "Always auto-burst when in combat with a valid target (most aggressive)." },
+        }},
+    }},
 }
 
 print("|cFF00FF00[Flux AIO]|r Druid schema loaded")

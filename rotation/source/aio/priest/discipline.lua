@@ -150,6 +150,7 @@ rotation_registry:register("discipline", {
     -- [5] Inner Focus + Greater Heal (off-GCD trigger + free GH)
     named("InnerFocusGreaterHeal", {
         is_gcd_gated = false,
+        is_burst = true,
         matches = function(context, state)
             if not context.in_combat then return false end
             if not context.settings.disc_use_inner_focus then return false end
@@ -170,6 +171,7 @@ rotation_registry:register("discipline", {
     -- [6] Power Infusion (off-GCD, self or focus)
     named("PowerInfusion", {
         is_gcd_gated = false,
+        is_burst = true,
         matches = function(context, state)
             if not context.in_combat then return false end
             if not context.settings.disc_use_power_infusion then return false end

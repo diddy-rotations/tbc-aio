@@ -290,7 +290,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Paladin",
-    version = "v1.3.1",
+    version = "v1.6.0",
     playstyles = { "retribution", "protection", "holy" },
     idle_playstyle_name = nil,
 
@@ -344,6 +344,59 @@ rotation_registry:register_class({
         ctx._prot_valid = false
         ctx._holy_valid = false
     end,
+
+    dashboard = {
+        resource = { type = "mana", label = "Mana", color = {0.96, 0.55, 0.73} },
+        cooldowns = {
+            retribution = { A.AvengingWrath, A.CrusaderStrike, A.Trinket1, A.Trinket2 },
+            protection = { A.HolyShield, A.AvengingWrath, A.Trinket1, A.Trinket2 },
+            holy = { A.DivineFavor, A.DivineIllumination, A.HolyShock, A.Trinket1, A.Trinket2 },
+        },
+        buffs = {
+            retribution = {
+                { id = Constants.BUFF_ID.AVENGING_WRATH, label = "AW" },
+                { id = Constants.BUFF_ID.VENGEANCE_TALENT, label = "Veng" },
+            },
+            protection = {
+                { id = Constants.BUFF_ID.HOLY_SHIELD, label = "HS" },
+                { id = Constants.BUFF_ID.RIGHTEOUS_FURY, label = "RF" },
+                { id = Constants.BUFF_ID.AVENGING_WRATH, label = "AW" },
+            },
+            holy = {
+                { id = Constants.BUFF_ID.DIVINE_FAVOR, label = "DF" },
+                { id = Constants.BUFF_ID.DIVINE_ILLUMINATION, label = "DI" },
+                { id = Constants.BUFF_ID.LIGHTS_GRACE, label = "LG" },
+            },
+        },
+        debuffs = {
+            retribution = {
+                { id = Constants.DEBUFF_ID.JUDGEMENT_CRUSADER, label = "JoC", target = true, owned = false },
+                { id = Constants.DEBUFF_ID.SEAL_VENGEANCE_DOT, label = "SoV", target = true },
+            },
+            protection = {
+                { id = Constants.DEBUFF_ID.SEAL_VENGEANCE_DOT, label = "SoV", target = true },
+                { id = Constants.DEBUFF_ID.JUDGEMENT_WISDOM, label = "JoW", target = true, owned = false },
+            },
+            holy = {
+                { id = Constants.DEBUFF_ID.FORBEARANCE, label = "Forb" },
+            },
+        },
+        timers = {
+            {
+                label = function() return (Player:GetSwingShoot() or 0) > 0 and "Shoot" or "Swing" end,
+                color = {0.96, 0.55, 0.73},
+                remaining = function(ctx)
+                    local shoot = Player:GetSwingShoot() or 0
+                    if shoot > 0 then return shoot end
+                    return ctx.time_to_swing or 0
+                end,
+                duration = function()
+                    if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
+                    return Player:GetSwing(1) or 2.0
+                end,
+            },
+        },
+    },
 })
 
 -- ============================================================================

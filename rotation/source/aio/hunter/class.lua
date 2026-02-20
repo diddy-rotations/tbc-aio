@@ -439,7 +439,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Hunter",
-    version = "v1.2.2",
+    version = "v1.6.0",
     playstyles = { "ranged" },
     idle_playstyle_name = nil,
 
@@ -460,6 +460,27 @@ rotation_registry:register_class({
         ctx.pet_active = Pet:IsActive() or (ctx.pet_exists and not ctx.pet_dead)
         ctx.pet_hp = Unit("pet"):HealthPercent() or 0
     end,
+
+    dashboard = {
+        resource = { type = "mana", label = "Mana", color = {0.67, 0.83, 0.45} },
+        cooldowns = { A.RapidFire, A.BestialWrath, A.KillCommand, A.Trinket1, A.Trinket2 },
+        buffs = {
+            { id = 3045, label = "RF" },       -- Rapid Fire
+            { id = 34471, label = "TBW" },     -- The Beast Within
+        },
+        debuffs = {
+            { id = A.SerpentSting.ID, label = "Serp", target = true },
+        },
+        timers = {
+            { label = "Auto Shot", color = {0.67, 0.83, 0.45}, remaining = function(ctx) return ctx.shoot_timer or 0 end, duration = function(ctx) return ctx.weapon_speed or 3.0 end },
+        },
+        custom_lines = {
+            function(context)
+                if context.pet_active then return "Pet HP", format("%.0f%%", context.pet_hp or 0) end
+                return "Pet", "Inactive"
+            end,
+        },
+    },
 })
 
 -- ============================================================================

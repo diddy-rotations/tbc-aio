@@ -238,7 +238,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Rogue",
-    version = "v1.3.0",
+    version = "v1.6.0",
     playstyles = { "combat", "assassination", "subtlety" },
     idle_playstyle_name = nil,
 
@@ -265,6 +265,74 @@ rotation_registry:register_class({
         ctx._assassination_valid = false
         ctx._subtlety_valid = false
     end,
+
+    gap_handler = function(icon, context)
+        if A.Shadowstep:IsReady(TARGET_UNIT) then
+            return A.Shadowstep:Show(icon), "[GAP] Shadowstep"
+        end
+        if A.Sprint:IsReady(PLAYER_UNIT) then
+            return A.Sprint:Show(icon), "[GAP] Sprint"
+        end
+        return nil
+    end,
+
+    dashboard = {
+        resource = { type = "energy", label = "Energy", color = {1.00, 0.96, 0.41} },
+        cooldowns = {
+            combat = { A.BladeFlurry, A.AdrenalineRush, A.Sprint, A.Trinket1, A.Trinket2 },
+            assassination = { A.ColdBlood, A.Sprint, A.Trinket1, A.Trinket2 },
+            subtlety = { A.Preparation, A.Shadowstep, A.Sprint, A.Trinket1, A.Trinket2 },
+        },
+        buffs = {
+            combat = {
+                { id = Constants.BUFF_ID.BLADE_FLURRY, label = "BF" },
+                { id = Constants.BUFF_ID.ADRENALINE_RUSH, label = "AR" },
+                { id = Constants.BUFF_ID.SLICE_AND_DICE, label = "SnD" },
+            },
+            assassination = {
+                { id = Constants.BUFF_ID.SLICE_AND_DICE, label = "SnD" },
+                { id = Constants.BUFF_ID.COLD_BLOOD, label = "CB" },
+            },
+            subtlety = {
+                { id = Constants.BUFF_ID.SLICE_AND_DICE, label = "SnD" },
+                { id = Constants.BUFF_ID.MASTER_OF_SUBTLETY, label = "MoS" },
+            },
+        },
+        debuffs = {
+            combat = {
+                { id = Constants.DEBUFF_ID.RUPTURE, label = "Rupt", target = true },
+            },
+            assassination = {
+                { id = Constants.DEBUFF_ID.RUPTURE, label = "Rupt", target = true },
+                { id = Constants.DEBUFF_ID.DEADLY_POISON, label = "DP", target = true, show_stacks = true },
+                { id = Constants.DEBUFF_ID.EXPOSE_ARMOR, label = "EA", target = true },
+            },
+            subtlety = {
+                { id = Constants.DEBUFF_ID.RUPTURE, label = "Rupt", target = true },
+                { id = Constants.DEBUFF_ID.HEMORRHAGE, label = "Hemo", target = true },
+            },
+        },
+        timers = {
+            {
+                label = function() return (Player:GetSwingShoot() or 0) > 0 and "Shoot" or "Swing" end,
+                color = {1.00, 0.96, 0.41},
+                remaining = function()
+                    local shoot = Player:GetSwingShoot() or 0
+                    if shoot > 0 then return shoot end
+                    local s = Player:GetSwingStart(1) or 0; local d = Player:GetSwing(1) or 0
+                    if s > 0 and d > 0 then local r = (s + d) - _G.GetTime(); return r > 0 and r or 0 end
+                    return 0
+                end,
+                duration = function()
+                    if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
+                    return Player:GetSwing(1) or 2.0
+                end,
+            },
+        },
+        custom_lines = {
+            function(context) return "CP", tostring(context.cp or 0) end,
+        },
+    },
 })
 
 -- ============================================================================

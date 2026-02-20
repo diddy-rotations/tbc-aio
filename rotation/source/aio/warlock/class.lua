@@ -292,7 +292,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Warlock",
-    version = "v1.3.0",
+    version = "v1.6.0",
     playstyles = { "affliction", "demonology", "destruction" },
     idle_playstyle_name = nil,
 
@@ -342,6 +342,64 @@ rotation_registry:register_class({
         ctx._demo_valid = false
         ctx._destro_valid = false
     end,
+
+    dashboard = {
+        resource = { type = "mana", label = "Mana", color = {0.58, 0.51, 0.79} },
+        cooldowns = {
+            affliction = { A.AmplifyCurse, A.Trinket1, A.Trinket2 },
+            demonology = { A.FelDomination, A.Trinket1, A.Trinket2 },
+            destruction = { A.Shadowburn, A.Conflagrate, A.Trinket1, A.Trinket2 },
+        },
+        buffs = {
+            affliction = {
+                { id = Constants.BUFF_ID.SHADOW_TRANCE, label = "NT" },
+            },
+            demonology = {
+                { id = Constants.BUFF_ID.SOUL_LINK, label = "SL" },
+            },
+            destruction = {
+                { id = Constants.BUFF_ID.BACKLASH, label = "BL" },
+            },
+        },
+        debuffs = {
+            affliction = {
+                { id = Constants.DEBUFF_ID.CORRUPTION, label = "Corr", target = true },
+                { id = Constants.DEBUFF_ID.UNSTABLE_AFF, label = "UA", target = true },
+                { id = Constants.DEBUFF_ID.SIPHON_LIFE, label = "SL", target = true },
+                { id = Constants.DEBUFF_ID.COA, label = "CoA", target = true },
+            },
+            demonology = {
+                { id = Constants.DEBUFF_ID.CORRUPTION, label = "Corr", target = true },
+                { id = Constants.DEBUFF_ID.IMMOLATE, label = "Immo", target = true },
+                { id = Constants.DEBUFF_ID.ISB, label = "ISB", target = true, show_stacks = true, owned = false },
+            },
+            destruction = {
+                { id = Constants.DEBUFF_ID.IMMOLATE, label = "Immo", target = true },
+                { id = Constants.DEBUFF_ID.CORRUPTION, label = "Corr", target = true },
+                { id = Constants.DEBUFF_ID.ISB, label = "ISB", target = true, show_stacks = true, owned = false },
+            },
+        },
+        timers = {
+            {
+                label = function() return (Player:GetSwingShoot() or 0) > 0 and "Wand" or "Swing" end,
+                color = {0.58, 0.51, 0.79},
+                remaining = function()
+                    local shoot = Player:GetSwingShoot() or 0
+                    if shoot > 0 then return shoot end
+                    local s = Player:GetSwingStart(1) or 0; local d = Player:GetSwing(1) or 0
+                    if s > 0 and d > 0 then local r = (s + d) - GetTime(); return r > 0 and r or 0 end
+                    return 0
+                end,
+                duration = function()
+                    if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
+                    return Player:GetSwing(1) or 2.0
+                end,
+            },
+        },
+        custom_lines = {
+            function(context) return "Shards", tostring(context.soul_shards or 0) end,
+        },
+    },
 })
 
 -- ============================================================================

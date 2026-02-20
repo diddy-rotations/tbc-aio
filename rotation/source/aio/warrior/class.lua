@@ -53,6 +53,8 @@ Action[A.PlayerClass] = {
     Taunt              = Create({ Type = "Spell", ID = 355 }),
     MockingBlow        = Create({ Type = "Spell", ID = 694, useMaxRank = true }),
     ChallengingShout   = Create({ Type = "Spell", ID = 1161, Click = { unit = "player", type = "spell", spell = 1161 } }),
+    Charge             = Create({ Type = "Spell", ID = 100, useMaxRank = true }),
+    Intercept          = Create({ Type = "Spell", ID = 20252, useMaxRank = true }),
 
     -- Shouts
     BattleShout        = Create({ Type = "Spell", ID = 6673, useMaxRank = true, Click = { unit = "player", type = "spell" } }),
@@ -251,9 +253,11 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 -- CLASS REGISTRATION
 -- ============================================================================
+local STANCE_NAMES = { "Battle", "Defensive", "Berserker" }
+
 rotation_registry:register_class({
     name = "Warrior",
-    version = "v1.3.0",
+    version = "v1.6.0",
     playstyles = { "arms", "fury", "protection" },
     idle_playstyle_name = nil,
 
@@ -291,6 +295,77 @@ rotation_registry:register_class({
         ctx._fury_valid = false
         ctx._prot_valid = false
     end,
+
+    gap_handler = function(icon, context)
+        if A.Charge:IsReady(TARGET_UNIT) then
+            return A.Charge:Show(icon), "[GAP] Charge"
+        end
+        if A.Intercept:IsReady(TARGET_UNIT) then
+            return A.Intercept:Show(icon), "[GAP] Intercept"
+        end
+        return nil
+    end,
+
+    dashboard = {
+        resource = { type = "rage", label = "Rage", color = {0.78, 0.61, 0.43} },
+        cooldowns = {
+            arms = { A.SweepingStrikes, A.Recklessness, A.DeathWish, A.Trinket1, A.Trinket2 },
+            fury = { A.DeathWish, A.Recklessness, A.Trinket1, A.Trinket2 },
+            protection = { A.ShieldBlock, A.ShieldWall, A.LastStand, A.Trinket1, A.Trinket2 },
+        },
+        buffs = {
+            arms = {
+                { id = Constants.BUFF_ID.SWEEPING_STRIKES, label = "SS" },
+                { id = Constants.BUFF_ID.RECKLESSNESS, label = "Reck" },
+                { id = Constants.BUFF_ID.ENRAGE, label = "Enr" },
+            },
+            fury = {
+                { id = Constants.BUFF_ID.DEATH_WISH, label = "DW" },
+                { id = Constants.BUFF_ID.RECKLESSNESS, label = "Reck" },
+                { id = Constants.BUFF_ID.RAMPAGE, label = "Ramp" },
+                { id = Constants.BUFF_ID.FLURRY, label = "Flurry" },
+            },
+            protection = {
+                { id = Constants.BUFF_ID.SHIELD_BLOCK, label = "SB" },
+                { id = Constants.BUFF_ID.LAST_STAND, label = "LS" },
+                { id = Constants.BUFF_ID.SPELL_REFLECTION, label = "SR" },
+            },
+        },
+        debuffs = {
+            arms = {
+                { id = Constants.DEBUFF_ID.REND, label = "Rend", target = true },
+                { id = Constants.DEBUFF_ID.SUNDER_ARMOR, label = "Sunder", target = true, show_stacks = true },
+            },
+            fury = {
+                { id = Constants.DEBUFF_ID.SUNDER_ARMOR, label = "Sunder", target = true, show_stacks = true },
+            },
+            protection = {
+                { id = Constants.DEBUFF_ID.SUNDER_ARMOR, label = "Sunder", target = true, show_stacks = true },
+                { id = Constants.DEBUFF_ID.THUNDER_CLAP, label = "TC", target = true, owned = false },
+                { id = Constants.DEBUFF_ID.DEMO_SHOUT, label = "Demo", target = true, owned = false },
+            },
+        },
+        timers = {
+            {
+                label = function() return (Player:GetSwingShoot() or 0) > 0 and "Shoot" or "Swing" end,
+                color = {0.78, 0.61, 0.43},
+                remaining = function()
+                    local shoot = Player:GetSwingShoot() or 0
+                    if shoot > 0 then return shoot end
+                    local s = Player:GetSwingStart(1) or 0; local d = Player:GetSwing(1) or 0
+                    if s > 0 and d > 0 then local r = (s + d) - GetTime(); return r > 0 and r or 0 end
+                    return 0
+                end,
+                duration = function()
+                    if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
+                    return Player:GetSwing(1) or 2.0
+                end,
+            },
+        },
+        custom_lines = {
+            function(context) return "Stance", STANCE_NAMES[context.stance] or "?" end,
+        },
+    },
 })
 
 -- ============================================================================

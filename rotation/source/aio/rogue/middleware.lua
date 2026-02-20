@@ -31,6 +31,7 @@ local TARGET_UNIT = "target"
 rotation_registry:register_middleware({
     name = "Rogue_EmergencyVanish",
     priority = 500,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -55,6 +56,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Rogue_Evasion",
     priority = 450,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -79,6 +81,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Rogue_CloakOfShadows",
     priority = 400,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -232,6 +235,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Rogue_HastePotion",
     priority = 200,
+    is_burst = true,
 
     matches = function(context)
         if not context.in_combat then return false end

@@ -216,6 +216,7 @@ rotation_registry:register("holy", {
     -- [9] Inner Focus (off-GCD, fire before Greater Heal)
     named("InnerFocus", {
         is_gcd_gated = false,
+        is_burst = true,
         matches = function(context, state)
             if not context.in_combat then return false end
             if not context.settings.holy_use_inner_focus then return false end

@@ -31,6 +31,7 @@ local TARGET_UNIT = "target"
 rotation_registry:register_middleware({
     name = "Warrior_LastStand",
     priority = 500,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -54,6 +55,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_ShieldWall",
     priority = 490,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -79,6 +81,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_SpellReflection",
     priority = 400,
+    is_defensive = true,
     is_gcd_gated = false,
 
     matches = function(context)
@@ -191,6 +194,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_Bloodrage",
     priority = 200,
+    is_burst = true,
     is_gcd_gated = false,
 
     matches = function(context)
@@ -218,6 +222,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_BerserkerRage",
     priority = 150,
+    is_burst = true,
     is_gcd_gated = false,
 
     matches = function(context)
@@ -285,6 +290,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_DeathWish",
     priority = 100,
+    is_burst = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -312,6 +318,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_Recklessness",
     priority = 90,
+    is_burst = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -339,6 +346,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_Trinkets",
     priority = 80,
+    is_burst = true,
     is_gcd_gated = false,
 
     matches = function(context)
@@ -366,6 +374,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_Racial",
     priority = 70,
+    is_burst = true,
     is_gcd_gated = false,
 
     matches = function(context)

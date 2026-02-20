@@ -258,7 +258,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Priest",
-    version = "v1.4.0",
+    version = "v1.6.0",
     playstyles = { "shadow", "smite", "holy", "discipline" },
     idle_playstyle_name = nil,
 
@@ -288,6 +288,61 @@ rotation_registry:register_class({
         ctx._holy_valid = false
         ctx._disc_valid = false
     end,
+
+    dashboard = {
+        resource = { type = "mana", label = "Mana", color = {1.00, 1.00, 1.00} },
+        cooldowns = {
+            shadow = { A.Shadowfiend, A.InnerFocus, A.Trinket1, A.Trinket2 },
+            smite = { A.InnerFocus, A.Shadowfiend, A.Trinket1, A.Trinket2 },
+            holy = { A.InnerFocus, A.Shadowfiend, A.Trinket1, A.Trinket2 },
+            discipline = { A.InnerFocus, A.PowerInfusion, A.PainSuppression, A.Shadowfiend, A.Trinket1, A.Trinket2 },
+        },
+        buffs = {
+            shadow = {
+                { id = Constants.BUFF_ID.INNER_FOCUS, label = "IF" },
+            },
+            smite = {
+                { id = Constants.BUFF_ID.INNER_FOCUS, label = "IF" },
+                { id = Constants.BUFF_ID.SURGE_OF_LIGHT, label = "SoL" },
+            },
+            holy = {
+                { id = Constants.BUFF_ID.INNER_FOCUS, label = "IF" },
+                { id = Constants.BUFF_ID.SURGE_OF_LIGHT, label = "SoL" },
+            },
+            discipline = {
+                { id = Constants.BUFF_ID.INNER_FOCUS, label = "IF" },
+                { id = Constants.BUFF_ID.POWER_INFUSION, label = "PI" },
+            },
+        },
+        timers = {
+            {
+                label = function() return (Player:GetSwingShoot() or 0) > 0 and "Wand" or "Swing" end,
+                color = {1.00, 1.00, 1.00},
+                remaining = function()
+                    local shoot = Player:GetSwingShoot() or 0
+                    if shoot > 0 then return shoot end
+                    local s = Player:GetSwingStart(1) or 0; local d = Player:GetSwing(1) or 0
+                    if s > 0 and d > 0 then local r = (s + d) - GetTime(); return r > 0 and r or 0 end
+                    return 0
+                end,
+                duration = function()
+                    if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
+                    return Player:GetSwing(1) or 2.0
+                end,
+            },
+        },
+        debuffs = {
+            shadow = {
+                { id = Constants.DEBUFF_ID.SHADOW_WORD_PAIN, label = "SWP", target = true },
+                { id = Constants.DEBUFF_ID.VAMPIRIC_TOUCH, label = "VT", target = true },
+                { id = Constants.DEBUFF_ID.SHADOW_WEAVING, label = "SW", target = true, show_stacks = true },
+            },
+            smite = {
+                { id = Constants.DEBUFF_ID.HOLY_FIRE_DOT, label = "HF", target = true },
+                { id = Constants.DEBUFF_ID.SHADOW_WORD_PAIN, label = "SWP", target = true },
+            },
+        },
+    },
 })
 
 -- ============================================================================

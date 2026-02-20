@@ -321,7 +321,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Shaman",
-    version = "v1.3.0",
+    version = "v1.6.0",
     playstyles = { "elemental", "enhancement", "restoration" },
     idle_playstyle_name = nil,
 
@@ -373,6 +373,57 @@ rotation_registry:register_class({
         ctx._enh_valid = false
         ctx._resto_valid = false
     end,
+
+    dashboard = {
+        resource = { type = "mana", label = "Mana", color = {0.00, 0.44, 0.87} },
+        cooldowns = {
+            elemental = { A.ElementalMastery, A.FireElementalTotem, A.Trinket1, A.Trinket2 },
+            enhancement = { A.ShamanisticRage, A.FireElementalTotem, A.Trinket1, A.Trinket2 },
+            restoration = { A.NaturesSwiftness, A.ManaTideTotem, A.Trinket1, A.Trinket2 },
+        },
+        buffs = {
+            elemental = {
+                { id = Constants.BUFF_ID.ELEMENTAL_MASTERY, label = "EM" },
+                { id = Constants.BUFF_ID.ELEMENTAL_FOCUS, label = "CC" },
+            },
+            enhancement = {
+                { id = Constants.BUFF_ID.SHAMANISTIC_RAGE, label = "SR" },
+                { id = Constants.BUFF_ID.FLURRY, label = "Flurry" },
+            },
+            restoration = {
+                { id = Constants.BUFF_ID.NATURES_SWIFTNESS, label = "NS" },
+                { id = Constants.BUFF_ID.WATER_SHIELD, label = "WS" },
+            },
+        },
+        debuffs = {
+            elemental = {
+                { id = Constants.DEBUFF_ID.FLAME_SHOCK, label = "FS", target = true },
+            },
+            enhancement = {
+                { id = Constants.DEBUFF_ID.STORMSTRIKE, label = "SS", target = true, show_stacks = true },
+                { id = Constants.DEBUFF_ID.FLAME_SHOCK, label = "FS", target = true },
+            },
+        },
+        timers = {
+            enhancement = {
+                {
+                    label = function() return (Player:GetSwingShoot() or 0) > 0 and "Shoot" or "Swing" end,
+                    color = {0.00, 0.44, 0.87},
+                    remaining = function()
+                        local shoot = Player:GetSwingShoot() or 0
+                        if shoot > 0 then return shoot end
+                        local s = Player:GetSwingStart(1) or 0; local d = Player:GetSwing(1) or 0
+                        if s > 0 and d > 0 then local r = (s + d) - GetTime(); return r > 0 and r or 0 end
+                        return 0
+                    end,
+                    duration = function()
+                        if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
+                        return Player:GetSwing(1) or 2.0
+                    end,
+                },
+            },
+        },
+    },
 })
 
 -- ============================================================================

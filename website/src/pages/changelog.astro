@@ -15,6 +15,25 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.6.0 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-minor">Minor</span>
+
+      <h3>New Features (All Classes)</h3>
+      <ul class="features">
+        <li><strong>Combat Dashboard</strong> &mdash; Real-time overlay showing current priority, cooldown readiness, buff/debuff tracking, resource bar, and GCD + swing/wand timer bars. Toggle via <code>/flux status</code> or the <em>Show Dashboard</em> setting</li>
+        <li><strong><code>/flux</code> Slash Commands</strong> &mdash; <code>/flux burst</code> (force offensive CDs for 3s), <code>/flux def</code> (force defensive CDs for 3s), <code>/flux gap</code> (fire best gap closer), <code>/flux status</code> (toggle dashboard), <code>/flux help</code> (command list)</li>
+        <li><strong>Burst Context System</strong> &mdash; Auto-burst conditions: during Bloodlust/Heroism, on pull (first 5s), in execute phase (&lt;20% HP), or always in combat. Configure per-class via checkboxes</li>
+        <li><strong>Movable Settings Button</strong> &mdash; Settings button can now be dragged anywhere on screen instead of being locked to the minimap perimeter. Position persists across reloads</li>
+        <li><strong>Dynamic Swing/Wand Timers</strong> &mdash; Dashboard timer bar automatically detects equipped weapon type: shows Swing for melee weapons, Wand/Shoot for ranged</li>
+      </ul>
+
+      <h3>Class-Specific Dashboard Configs</h3>
+      <ul class="features">
+        <li>Each class has tailored cooldown icons, buff/debuff tracking, and custom lines (e.g., Warrior stance display, Shaman totem states, Hunter pet HP, Rogue combo points)</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.4.0 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-minor">Minor</span>
 

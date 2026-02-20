@@ -238,6 +238,7 @@ rotation_registry:register("shadow", {
    -- [7] Inner Focus (off-GCD, fire before Mind Blast)
    named("InnerFocus", {
       is_gcd_gated = false,
+      is_burst = true,
       matches = function(context, state)
          if not context.in_combat then
             return false

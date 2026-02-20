@@ -660,55 +660,49 @@ end
 NS.toggle_settings = toggle_settings
 
 -- ============================================================================
--- MINIMAP BUTTON
+-- SETTINGS BUTTON (Free-floating, draggable anywhere)
 -- ============================================================================
-local minimap_angle = 220
-
-local function create_minimap_button()
-    local btn = CreateFrame("Button", "FluxAIOMinimapBtn", Minimap)
+local function create_settings_button()
+    local btn = CreateFrame("Button", "FluxAIOSettingsBtn", UIParent)
     btn:SetSize(32, 32)
     btn:SetFrameStrata("MEDIUM")
     btn:SetFrameLevel(8)
+    btn:SetClampedToScreen(true)
 
-    local icon = btn:CreateTexture(nil, "BACKGROUND")
-    icon:SetSize(18, 18)
-    icon:SetPoint("CENTER", btn, 0, 1)
-    icon:SetColorTexture(THEME.bg[1], THEME.bg[2], THEME.bg[3], 1)
+    -- Circular border (slightly larger, rendered behind)
+    local border = btn:CreateTexture(nil, "BACKGROUND")
+    border:SetPoint("TOPLEFT", -2, 2)
+    border:SetPoint("BOTTOMRIGHT", 2, -2)
+    border:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMaskSmall")
+    border:SetVertexColor(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.8)
 
+    -- Circular background
+    local bg = btn:CreateTexture(nil, "BORDER")
+    bg:SetAllPoints()
+    bg:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMaskSmall")
+    bg:SetVertexColor(THEME.bg[1], THEME.bg[2], THEME.bg[3], 0.95)
+
+    -- Icon letter
     local txt = btn:CreateFontString(nil, "ARTWORK")
-    txt:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
-    txt:SetPoint("CENTER", icon, 0, 0)
+    txt:SetFont("Fonts\\FRIZQT__.TTF", 14, "OUTLINE")
+    txt:SetPoint("CENTER", 0, 0)
     txt:SetText("F")
     txt:SetTextColor(THEME.accent[1], THEME.accent[2], THEME.accent[3])
 
-    local border = btn:CreateTexture(nil, "OVERLAY")
-    border:SetSize(52, 52)
-    border:SetPoint("TOPLEFT")
-    border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-
-    local function update_pos()
-        local rad = math.rad(minimap_angle)
-        btn:ClearAllPoints()
-        btn:SetPoint("CENTER", Minimap, "CENTER", math.cos(rad) * 80, math.sin(rad) * 80)
-    end
-
+    -- Movable + draggable
+    btn:SetMovable(true)
+    btn:EnableMouse(true)
     btn:RegisterForDrag("LeftButton")
     btn:RegisterForClicks("LeftButtonUp")
-    btn:SetMovable(true)
 
     btn:SetScript("OnDragStart", function(self)
         self.dragging = true
-        self:SetScript("OnUpdate", function()
-            local mx, my = Minimap:GetCenter()
-            local cx, cy = GetCursorPosition()
-            local s = Minimap:GetEffectiveScale()
-            minimap_angle = math.deg(math.atan2(cy / s - my, cx / s - mx))
-            update_pos()
-        end)
+        self:StartMoving()
     end)
 
     btn:SetScript("OnDragStop", function(self)
-        self:SetScript("OnUpdate", nil)
+        self:StopMovingOrSizing()
+        self:SetUserPlaced(true)
         C_Timer.After(0.05, function() self.dragging = false end)
     end)
 
@@ -722,23 +716,74 @@ local function create_minimap_button()
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:SetText(addon_title_colored, 1, 1, 1)
         GameTooltip:AddLine("Left-click to open settings", 1, 1, 1)
-        GameTooltip:AddLine("Drag to reposition", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("Drag to move", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("/flux help for commands", 0.5, 0.5, 0.5)
         GameTooltip:Show()
     end)
     btn:SetScript("OnLeave", GameTooltip_Hide)
 
-    update_pos()
+    -- Default position near minimap if not previously placed by user
+    if not btn:IsUserPlaced() then
+        btn:SetPoint("CENTER", Minimap, "CENTER", 80, 0)
+    end
+
     return btn
 end
 
-local minimap_btn = create_minimap_button()
+local settings_btn = create_settings_button()
 
 -- ============================================================================
 -- SLASH COMMANDS
 -- ============================================================================
 SLASH_FLUXAIO1 = "/flux"
 SLASH_FLUXAIO2 = "/faio"
-SlashCmdList["FLUXAIO"] = function()
+SlashCmdList["FLUXAIO"] = function(msg)
+    msg = (msg or ""):lower():match("^%s*(.-)%s*$")
+
+    if msg == "" then
+        toggle_settings()
+        return
+    end
+
+    if msg == "burst" then
+        NS.set_force_flag("force_burst")
+        print(format("|cff%s[Flux AIO]|r |cFFFFFF00Burst|r cooldowns activated!", class_hex))
+        return
+    end
+
+    if msg == "defensive" or msg == "def" then
+        NS.set_force_flag("force_defensive")
+        print(format("|cff%s[Flux AIO]|r |cFFFFFF00Defensive|r cooldowns activated!", class_hex))
+        return
+    end
+
+    if msg == "gap" then
+        NS.set_force_flag("force_gap")
+        print(format("|cff%s[Flux AIO]|r |cFFFFFF00Gap closer|r activated!", class_hex))
+        return
+    end
+
+    if msg == "status" then
+        if NS.toggle_dashboard then
+            NS.toggle_dashboard()
+        else
+            print(format("|cff%s[Flux AIO]|r Dashboard not yet loaded.", class_hex))
+        end
+        return
+    end
+
+    if msg == "help" then
+        print(format("|cff%s[Flux AIO]|r Slash commands:", class_hex))
+        print("  /flux           - Open settings")
+        print("  /flux burst     - Force burst cooldowns")
+        print("  /flux def       - Force defensive cooldowns")
+        print("  /flux gap       - Use gap closer")
+        print("  /flux status    - Toggle combat dashboard")
+        print("  /flux help      - Show this help")
+        return
+    end
+
+    -- Unknown subcommand: fallback to settings toggle
     toggle_settings()
 end
 

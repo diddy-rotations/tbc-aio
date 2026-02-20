@@ -33,12 +33,20 @@ local validate_playstyle_spells = NS.validate_playstyle_spells
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 
+-- Force command system
+local is_force_active = NS.is_force_active
+local clear_force_flag = NS.clear_force_flag
+local should_auto_burst = NS.should_auto_burst
+
 -- Lua optimizations
 local format = string.format
 local ipairs = ipairs
 
 -- Suggestion system for A[1] icon
 local suggestion = { spell = nil }
+
+-- Dashboard state (set each frame for dashboard to read)
+local last_action = { name = nil, source = nil }
 
 -- ============================================================================
 -- ROTATION REGISTRY EXECUTION METHODS
@@ -48,20 +56,35 @@ local suggestion = { spell = nil }
 function rotation_registry:execute_middleware(icon, context)
    local debug_mode = context.settings and context.settings.debug_mode
    local debug_system = context.settings and context.settings.debug_system
+   local force_burst = is_force_active("force_burst")
+   local force_defensive = is_force_active("force_defensive")
+   local auto_burst = should_auto_burst(context)
 
    for _, mw in ipairs(self.middleware) do
       if (not context.on_gcd and mw.is_gcd_gated ~= false)
          or (mw.is_gcd_gated == false) then
-      local matches = mw.matches(context)
+
+      -- Force-bypass: skip matches() for tagged middleware when force flag active
+      local forced = (force_burst and mw.is_burst) or (force_defensive and mw.is_defensive)
+      -- Safety: even when forced, spell must still be ready (CD, range, stance)
+      if forced and mw.spell then
+         local target = mw.spell_target or "player"
+         if not mw.spell:IsReady(target) then forced = false end
+      end
+      -- Auto-burst gate: skip burst middleware when conditions configured but unmet
+      local burst_blocked = mw.is_burst and (not forced) and auto_burst == false
+      local matches = not burst_blocked and (forced or mw.matches(context))
 
       if matches then
          local result, log_msg = mw.execute(icon, context)
          if result then
             if debug_mode and log_msg and debug_print then
-                debug_print(format("[MW] %s", log_msg))
+                debug_print(format("[MW] %s%s", forced and "[FORCED] " or "", log_msg))
             elseif debug_system and debug_print then
-               debug_print(format("[MW] EXECUTED %s (P%d)", mw.name, mw.priority))
+               debug_print(format("[MW] EXECUTED %s (P%d)%s", mw.name, mw.priority, forced and " [FORCED]" or ""))
             end
+            last_action.name = mw.name
+            last_action.source = "MW"
             return result
          end
       end
@@ -84,21 +107,39 @@ function rotation_registry:execute_strategies(playstyle, icon, context)
    local config = self.playstyle_config[playstyle]
    local config_prereqs = config and config.check_prerequisites
    local state = self:get_playstyle_state(playstyle, context)
+   local force_burst = is_force_active("force_burst")
+   local force_defensive = is_force_active("force_defensive")
+   local auto_burst = should_auto_burst(context)
 
    for _, strategy in ipairs(strategies) do
       if not context.on_gcd or strategy.is_gcd_gated == false then
-         if self:check_prerequisites(strategy, context)
+         -- Force-bypass: skip prerequisites and matches() for tagged strategies
+         local forced = (force_burst and strategy.is_burst) or (force_defensive and strategy.is_defensive)
+         -- Safety: even when forced, spell must still be ready (CD, range, stance)
+         if forced and strategy.spell then
+            local target = strategy.spell_target or TARGET_UNIT
+            if not strategy.spell:IsReady(target) then forced = false end
+         end
+         -- Auto-burst gate: skip burst strategies when conditions configured but unmet
+         local burst_blocked = strategy.is_burst and (not forced) and auto_burst == false
+         local passes = not burst_blocked and (forced or (
+            self:check_prerequisites(strategy, context)
             and (not config_prereqs or config_prereqs(strategy, context))
-            and (not strategy.matches or strategy.matches(context, state)) then
+            and (not strategy.matches or strategy.matches(context, state))
+         ))
+
+         if passes then
             local result, log_msg = strategy.execute(icon, context, state)
 
             if debug_mode and log_msg and debug_print then
-               debug_print(format("[%s] %s", playstyle:upper(), log_msg))
+               debug_print(format("[%s] %s%s", playstyle:upper(), forced and "[FORCED] " or "", log_msg))
             elseif debug_system and debug_print then
-               debug_print(format("[%s] EXECUTED %s (P%d)", playstyle:upper(), strategy.name, strategy.priority))
+               debug_print(format("[%s] EXECUTED %s%s", playstyle:upper(), strategy.name, forced and " [FORCED]" or ""))
             end
 
             if result then
+               last_action.name = strategy.name
+               last_action.source = playstyle
                return result
             end
          end
@@ -171,6 +212,23 @@ A[3] = function(icon)
    local cc = rotation_registry.class_config
    if not cc then return end
 
+   -- Reset last action each frame
+   last_action.name = nil
+   last_action.source = nil
+
+   -- Gap closer: class-specific, runs before middleware
+   if is_force_active("force_gap") then
+      if cc.gap_handler then
+         local result = cc.gap_handler(icon, context)
+         if result then
+            clear_force_flag("force_gap")
+            last_action.name = "Gap Closer"
+            last_action.source = "CMD"
+            return result
+         end
+      end
+   end
+
    -- Run middleware first (shared concerns: recovery items, CDs)
    local mw_result = rotation_registry:execute_middleware(icon, context)
    if mw_result then
@@ -224,6 +282,9 @@ A[5] = nil
 A[6] = nil
 A[7] = nil
 A[8] = nil
+
+-- Export last action for dashboard
+NS.last_action = last_action
 
 -- ============================================================================
 -- INITIALIZATION COMPLETE

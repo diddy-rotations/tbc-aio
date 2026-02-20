@@ -446,6 +446,13 @@ NS.REGROWTH_BUFF_IDS = REGROWTH_BUFF_IDS
 -- Debuff ID arrays for multi-rank spells
 local FAERIE_FIRE_DEBUFF_IDS = { 16857, 17390, 17391, 17392, 27011 }
 local DEMO_ROAR_DEBUFF_IDS = { 99, 1735, 9490, 9747, 9898, 26998 }
+local MANGLE_DEBUFF_IDS = { 33876, 33982, 33983, 33878, 33986, 33987 }
+local RIP_DEBUFF_IDS = { 1079, 9492, 9493, 9752, 9894, 9896, 27008 }
+local RAKE_DEBUFF_IDS = { 1822, 1823, 1824, 9904, 27003 }
+
+-- Self-buff ID arrays (all ranks + Gift variants for dashboard tracking)
+local MOTW_BUFF_IDS = { 1126, 5232, 6756, 5234, 8907, 9884, 9885, 26990, 21849, 21850, 26991 }
+local THORNS_BUFF_IDS = { 467, 782, 1075, 8914, 9756, 9910, 26992 }
 
 NS.FAERIE_FIRE_DEBUFF_IDS = FAERIE_FIRE_DEBUFF_IDS
 NS.DEMO_ROAR_DEBUFF_IDS = DEMO_ROAR_DEBUFF_IDS
@@ -655,7 +662,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.4.0",
+   version = "v1.6.0",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 
@@ -701,6 +708,72 @@ rotation_registry:register_class({
          end
       end
    end,
+
+   gap_handler = function(icon, context)
+      if A.FeralChargeBear:IsReady(TARGET_UNIT) then
+         return A.FeralChargeBear:Show(icon), "[GAP] Feral Charge"
+      end
+      if A.Dash:IsReady("player") then
+         return A.Dash:Show(icon), "[GAP] Dash"
+      end
+      return nil
+   end,
+
+   dashboard = {
+      resource = { type = "mana", label = "Mana", color = {0.00, 0.44, 0.87} },
+      secondary_resource = {
+         cat  = { type = "energy", label = "Energy", color = {1.0, 1.0, 0.0} },
+         bear = { type = "rage",   label = "Rage",   color = {0.78, 0.25, 0.25} },
+      },
+      cooldowns = {
+         cat     = { A.TigersFury },
+         bear    = { A.FrenziedRegeneration, A.Enrage, A.Barkskin },
+         balance = { A.ForceOfNature, A.Barkskin, A.SelfInnervate },
+         resto   = { A.NaturesSwiftness, A.Swiftmend, A.SelfInnervate, A.Barkskin, A.Tranquility },
+         caster  = { A.Barkskin, A.SelfInnervate },
+      },
+      buffs = {
+         { id = MOTW_BUFF_IDS, label = "MotW" },
+         { id = THORNS_BUFF_IDS, label = "Thorns" },
+         { id = 16864, label = "OoC" },
+      },
+      timers = {
+         {
+            label = function() return (Player:GetSwingShoot() or 0) > 0 and "Shoot" or "Swing" end,
+            color = {1.00, 0.49, 0.04},
+            remaining = function()
+               local shoot = Player:GetSwingShoot() or 0
+               if shoot > 0 then return shoot end
+               local s = Player:GetSwingStart(1) or 0; local d = Player:GetSwing(1) or 0
+               if s > 0 and d > 0 then local r = (s + d) - GetTime(); return r > 0 and r or 0 end
+               return 0
+            end,
+            duration = function()
+               if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
+               return Player:GetSwing(1) or 2.0
+            end,
+         },
+      },
+      debuffs = {
+         cat = {
+            { id = MANGLE_DEBUFF_IDS, label = "Mangle", target = true },
+            { id = RIP_DEBUFF_IDS, label = "Rip", target = true },
+            { id = RAKE_DEBUFF_IDS, label = "Rake", target = true },
+            { id = FAERIE_FIRE_DEBUFF_IDS, label = "FF", target = true },
+         },
+         bear = {
+            { id = 33745, label = "Lacerate", target = true, show_stacks = true },
+            { id = MANGLE_DEBUFF_IDS, label = "Mangle", target = true },
+            { id = DEMO_ROAR_DEBUFF_IDS, label = "Demo", target = true },
+            { id = FAERIE_FIRE_DEBUFF_IDS, label = "FF", target = true },
+         },
+         balance = {
+            { id = 8921, label = "Moonfire", target = true },
+            { id = 5570, label = "Insect Swarm", target = true },
+            { id = FAERIE_FIRE_DEBUFF_IDS, label = "FF", target = true },
+         },
+      },
+   },
 })
 
 -- ============================================================================

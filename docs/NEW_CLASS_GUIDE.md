@@ -80,6 +80,7 @@ The build system enforces this order via `ORDER_MAP`. You cannot change it witho
 | 5 | `healing.lua` | class | Healing utilities (if needed, same order as settings) |
 | 5 | `settings.lua` | shared | Custom tabbed settings UI + minimap button |
 | 6 | `middleware.lua` | class | Recovery items, cross-playstyle middleware |
+| 7 | `dashboard.lua` | shared | Shared combat dashboard overlay |
 | 7 | *(remaining)* | class | Playstyle modules (alphabetical within order 7) |
 | 8 | `main.lua` | shared | Context creation, rotation dispatcher (ALWAYS LAST) |
 
@@ -319,6 +320,55 @@ rotation_registry:register_class({
 | `get_active_playstyle` | function(context) → string/nil | YES | Returns active playstyle based on game state |
 | `get_idle_playstyle` | function(context) → string/nil | NO | Returns idle playstyle or nil |
 | `extend_context` | function(ctx) | NO | Adds class fields to context each frame |
+| `gap_handler` | function(icon, ctx) → result | NO | Called by `/flux gap` — fires best gap closer |
+| `dashboard` | table | NO | Dashboard config (see [Combat Dashboard](#combat-dashboard)) |
+
+### gap_handler
+
+Optional function for classes with gap closers. Called when `/flux gap` is active. Returns a result if successful (consumed on first fire), nil otherwise.
+
+```lua
+gap_handler = function(icon, context)
+    if A.Charge:IsReady(TARGET_UNIT) then
+        return A.Charge:Show(icon)
+    end
+    if A.Intercept:IsReady(TARGET_UNIT) then
+        return A.Intercept:Show(icon)
+    end
+    return nil
+end,
+```
+
+### Combat Dashboard
+
+Optional declarative config that drives the shared combat dashboard overlay. The dashboard module renders from this config — no class-specific UI code needed.
+
+```lua
+dashboard = {
+    resource = { type = "rage", label = "Rage", color = {0.78, 0.25, 0.25} },
+    cooldowns = { A.DeathWish, A.Recklessness, A.Trinket1, A.Trinket2 },
+    buffs = {
+        { id = DEATH_WISH_ID, label = "DW" },
+        { id = RECKLESSNESS_ID, label = "Reck" },
+    },
+    debuffs = {
+        { id = SUNDER_ID, label = "Sunder", target = true, show_stacks = true },
+    },
+    custom_lines = {
+        function(context) return "Stance", STANCE_NAMES[context.stance] end,
+    },
+},
+```
+
+| Dashboard Field | Type | Description |
+|----------------|------|-------------|
+| `resource` | table | `{ type, label, color }` — resource bar config |
+| `cooldowns` | Action[] | Array of spell Actions to show in CD grid |
+| `buffs` | table[] | `{ id, label }` — player buffs to track |
+| `debuffs` | table[] | `{ id, label, target?, show_stacks? }` — target debuffs |
+| `custom_lines` | function[] | `function(context) → label, value` — extra text lines |
+
+All panels are optional — omit a field and that section doesn't render.
 
 **How playstyle selection works (main.lua dispatcher):**
 1. `get_active_playstyle(context)` is called → returns e.g. `"fire"`
@@ -362,6 +412,7 @@ local PLAYER_UNIT = "player"
 rotation_registry:register_middleware({
     name = "Mage_RecoveryItems",
     priority = Priority.MIDDLEWARE.RECOVERY_ITEMS,  -- Use predefined priorities
+    is_defensive = true,  -- Optional: tagged for /flux def force-fire
 
     matches = function(context)
         -- Return true if this middleware should execute
@@ -489,6 +540,8 @@ end  -- End scope block
 | `is_gcd_gated` | bool/nil | If false, strategy runs even during GCD (for off-GCD abilities) |
 | `should_suggest` | function(context) → bool | For idle playstyle suggestion system (A[1] icon) |
 | `suggestion_spell` | Action | Spell to show on A[1] when should_suggest returns true |
+| `is_burst` | bool/nil | If true, `/flux burst` force-fires this strategy (bypasses `matches()`) |
+| `is_defensive` | bool/nil | If true, `/flux def` force-fires this strategy (bypasses `matches()`) |
 
 **Built-in prerequisite checks** (from `rotation_registry:check_prerequisites`):
 - `requires_combat` — checked against `context.in_combat`
@@ -544,14 +597,48 @@ These files are class-agnostic and serve all classes:
 
 | File | Purpose |
 |------|---------|
-| `core.lua` | Namespace (`_G.FluxAIO`), settings cache, registry, utilities, debug system |
-| `main.lua` | Context creation, rotation dispatcher (A[3]), suggestion icon (A[1]) |
+| `core.lua` | Namespace (`_G.FluxAIO`), settings cache, registry, utilities, force flags, burst context |
+| `main.lua` | Context creation, rotation dispatcher (A[3]), suggestion icon (A[1]), force-bypass logic |
 | `ui.lua` | Generates `A.Data.ProfileUI[2]` from `_G.FluxAIO_SETTINGS_SCHEMA` |
-| `settings.lua` | Custom tabbed settings UI, minimap button, `/flux` slash command |
+| `settings.lua` | Custom tabbed settings UI, movable settings button, `/flux` slash commands |
+| `dashboard.lua` | Shared combat dashboard overlay (data-driven, reads class `dashboard` config) |
 
 **You should not need to modify these** when adding a new class. They read from the schema and class config dynamically.
 
 The one exception: if you need a new `Priority.MIDDLEWARE.*` constant, add it to `core.lua`.
+
+### Slash Commands (`/flux`)
+
+| Command | Behavior |
+|---|---|
+| `/flux` | Toggle settings UI |
+| `/flux burst` | Force offensive CDs for 3s (fires all `is_burst` tagged entries) |
+| `/flux def` | Force defensive CDs for 3s (fires all `is_defensive` tagged entries) |
+| `/flux gap` | Fire best gap closer (consumed on first success, uses `gap_handler`) |
+| `/flux status` | Toggle combat dashboard |
+| `/flux help` | Print command list |
+
+### Burst Context System
+
+Automatic burst conditions — users configure **when** burst CDs fire via schema checkboxes. Shared utility `NS.should_auto_burst(context)` in core.lua checks:
+
+| Setting Key | Condition |
+|---|---|
+| `burst_on_bloodlust` | Bloodlust/Heroism buff detected |
+| `burst_on_pull` | First 5s of combat |
+| `burst_on_execute` | Target < 20% HP |
+| `burst_in_combat` | Always in combat with valid target |
+
+These settings go in a "Dashboard" tab of each class's schema. Burst-tagged middleware/strategies can check `NS.should_auto_burst(context)` in their `matches()` to fire automatically under these conditions.
+
+### Force-Bypass Dispatch (main.lua)
+
+When `/flux burst` or `/flux def` is active:
+1. The dispatch loop checks `is_burst`/`is_defensive` on each middleware and strategy
+2. If tagged and flag active: **bypasses `matches()` and `check_prerequisites()`**
+3. If the entry has a `spell` property, `IsReady()` is still checked at dispatch level (CD, range, stance respected). Entries without `spell` rely on `execute()` checking `IsReady()` internally via `try_cast` or explicit guard
+4. Burst/defensive flags last 3 seconds (dumps all CDs over multiple GCDs)
+5. Gap closer flag is consumed on first successful fire
 
 ---
 
@@ -952,6 +1039,11 @@ When adding a new class (e.g. Mage):
 - [ ] Cache invalidation flags in `extend_context` (e.g. `ctx._fire_valid = false`)
 - [ ] `extend_context` adds all class-specific context fields
 - [ ] All file names are lowercase single words (no underscores/hyphens/spaces)
+- [ ] Tag burst strategies/middleware with `is_burst = true`
+- [ ] Tag defensive strategies/middleware with `is_defensive = true`
+- [ ] Add `gap_handler` to `register_class()` (if class has gap closers)
+- [ ] Add `dashboard` config to `register_class()` (cooldowns, buffs, debuffs to display)
+- [ ] Add "Dashboard" tab to schema with `show_dashboard` + 4 burst context checkboxes
 - [ ] Run `node build.js` — should discover and compile the new class
 - [ ] Update version locations if doing a release (see MEMORY.md)
 - [ ] Add class color to `settings.lua` `CLASS_TITLE_COLORS` table

@@ -57,6 +57,7 @@ end
 rotation_registry:register_middleware({
     name = "Priest_DesperatePrayer",
     priority = Priority.MIDDLEWARE.EMERGENCY_HEAL + 10,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -80,6 +81,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Priest_Fade",
     priority = Priority.MIDDLEWARE.EMERGENCY_HEAL - 10,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end

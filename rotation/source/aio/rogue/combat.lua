@@ -126,6 +126,7 @@ local Combat_MaintainSnD = {
 local Combat_BladeFlurry = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.BladeFlurry,
     spell_target = PLAYER_UNIT,
     setting_key = "combat_use_blade_flurry",
@@ -143,6 +144,7 @@ local Combat_BladeFlurry = {
 local Combat_AdrenalineRush = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.AdrenalineRush,
     spell_target = PLAYER_UNIT,
     setting_key = "combat_use_adrenaline_rush",
@@ -160,6 +162,7 @@ local Combat_AdrenalineRush = {
 local Combat_Trinkets = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
 
     matches = function(context, state)
         return context.settings.use_trinket1 or context.settings.use_trinket2
@@ -180,6 +183,7 @@ local Combat_Trinkets = {
 local Combat_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     setting_key = "use_racial",
 
     matches = function(context, state)

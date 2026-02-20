@@ -137,6 +137,7 @@ local Prot_RighteousFuryCheck = {
 local Prot_AvengingWrath = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.AvengingWrath,
     spell_target = PLAYER_UNIT,
     setting_key = "use_avenging_wrath",
@@ -155,6 +156,7 @@ local Prot_AvengingWrath = {
 local Prot_Trinket1 = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.Trinket1,
 
     matches = function(context, state)
@@ -174,6 +176,7 @@ local Prot_Trinket1 = {
 local Prot_Trinket2 = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.Trinket2,
 
     matches = function(context, state)
@@ -193,6 +196,7 @@ local Prot_Trinket2 = {
 local Prot_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     setting_key = "use_racial",
 
     matches = function(context, state)

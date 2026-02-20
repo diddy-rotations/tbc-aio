@@ -183,7 +183,7 @@ You have unlimited stamina. The human does not. Use your persistence wisely—lo
 
 ## Project Overview
 
-**Flux AIO** — a multi-class WoW TBC (The Burning Crusade) rotation addon. Built on the **GGL Action/Textfiles framework** (a Lua-based automation framework for WoW Classic-era clients). Currently supports **Druid** (all forms) and **Hunter**. Uses a modular Strategy Registry pattern with a Node.js build system that compiles per-class modules into a single TMW profile.
+**Flux AIO** — a multi-class WoW TBC (The Burning Crusade) rotation addon. Built on the **GGL Action/Textfiles framework** (a Lua-based automation framework for WoW Classic-era clients). Supports **9 classes**: Druid, Hunter, Mage, Paladin, Priest, Rogue, Shaman, Warlock, and Warrior. Uses a modular Strategy Registry pattern with a Node.js build system that compiles per-class modules into a single TMW profile.
 
 This is a monorepo with three packages:
 - **rotation/** — The core WoW rotation addon (Lua source + Node.js build system)
@@ -197,27 +197,20 @@ GG Rotations/
 ├── rotation/                         # Core rotation addon
 │   ├── source/
 │   │   └── aio/                      # Active modular source (compiled by build.js)
-│   │       ├── core.lua              # Namespace (FluxAIO), settings, utilities, registry
-│   │       ├── main.lua              # Context creation, rotation dispatcher (LOAD LAST)
-│   │       ├── settings.lua          # Custom tabbed settings UI + minimap button
+│   │       ├── core.lua              # Namespace, settings, registry, force flags, burst context
+│   │       ├── main.lua              # Context creation, rotation dispatcher, force-bypass (LOAD LAST)
+│   │       ├── settings.lua          # Custom tabbed settings UI, movable button, /flux commands
 │   │       ├── ui.lua                # ProfileUI schema generator (framework backing store)
-│   │       ├── druid/                # Druid class modules
-│   │       │   ├── schema.lua        # Settings schema + A.Data.ProfileEnabled
-│   │       │   ├── class.lua         # Actions, constants, class registration
-│   │       │   ├── healing.lua       # Healing utilities, spell rank selection
-│   │       │   ├── middleware.lua    # Shared middleware (recovery, dispels, buffs, CDs)
-│   │       │   ├── caster.lua        # Caster self-care strategies
-│   │       │   ├── cat.lua           # Cat DPS strategies
-│   │       │   ├── bear.lua          # Bear tank strategies
-│   │       │   ├── balance.lua       # Balance/Moonkin strategies
-│   │       │   └── resto.lua         # Resto healer strategies
-│   │       └── hunter/               # Hunter class modules
-│   │           ├── schema.lua        # Settings schema
-│   │           ├── class.lua         # Actions, constants, class registration
-│   │           ├── cliptracker.lua   # Auto-shot clip tracking
-│   │           ├── debugui.lua       # Hunter debug overlay
-│   │           ├── middleware.lua    # Shared middleware
-│   │           └── rotation.lua      # Ranged DPS rotation
+│   │       ├── dashboard.lua         # Shared combat dashboard overlay (data-driven)
+│   │       ├── druid/                # Druid: caster, cat, bear, balance, resto
+│   │       ├── hunter/               # Hunter: ranged
+│   │       ├── mage/                 # Mage: fire, frost, arcane
+│   │       ├── paladin/              # Paladin: retribution, protection, holy
+│   │       ├── priest/               # Priest: shadow, smite, holy
+│   │       ├── rogue/                # Rogue: combat, assassination, subtlety
+│   │       ├── shaman/               # Shaman: elemental, enhancement, restoration
+│   │       ├── warlock/              # Warlock: affliction, demonology, destruction
+│   │       └── warrior/              # Warrior: arms, fury, protection
 │   ├── output/                       # Compiled output (gitignored)
 │   │   └── TellMeWhen.lua
 │   ├── build.js                      # Build script: discovers modules, compiles AIO
@@ -232,12 +225,11 @@ GG Rotations/
 ├── discord-bot/                      # Discord bot for personalized rotations
 │   └── (see discord-bot/package.json)
 │
-├── docs/                             # API docs, type stubs, reference
+├── docs/                             # API docs, type stubs, reference, class research
 │   ├── api/                          # Lua type stubs for IDE IntelliSense
-│   │   ├── Action.lua, Unit.lua, Player.lua, MultiUnits.lua, etc.
-│   └── reference/                    # Markdown API reference docs
-│       ├── GG_API_Reference.md, TellMeWhen-API.md, Textfiles-API.md
-│       └── TheAction_*_HelperFunctions.md
+│   ├── reference/                    # Markdown API reference docs
+│   ├── NEW_CLASS_GUIDE.md            # Complete guide to adding a new class
+│   └── *_RESEARCH.md                 # Per-class implementation research (spell IDs, rotation theory)
 │
 ├── package.json                      # Root workspace config
 ├── TBC-main/, Addon Libraries/       # External dependencies (gitignored)
@@ -268,12 +260,12 @@ Load order is managed by `build.js` ORDER_MAP. Shared modules and class modules 
 
 1. **schema.lua** (class) → Settings schema, `ProfileEnabled`
 2. **ui.lua** (shared) → ProfileUI generator
-3. **core.lua** (shared) → Namespace, settings, utilities, registry
+3. **core.lua** (shared) → Namespace, settings, utilities, registry, force flags, burst context
 4. **class.lua** (class) → Actions, constants, `register_class()`
 5. **healing.lua** (class) / **settings.lua** (shared) → Can load in parallel (no mutual deps)
 6. **middleware.lua** (class) → Shared middleware strategies
-7. **Remaining class modules** (Order 7, alphabetical) → Playstyle strategies
-8. **main.lua** (shared, always last) → Context creation, dispatcher
+7. **dashboard.lua** (shared) / **Remaining class modules** (Order 7, alphabetical) → Dashboard + playstyle strategies
+8. **main.lua** (shared, always last) → Context creation, dispatcher, force-bypass logic
 
 ## Architecture
 
@@ -284,8 +276,7 @@ The rotation uses a **middleware + strategies** architecture:
 
 2. **Strategies** (playstyle-specific): Registered via `rotation_registry:register(playstyle, strategies_array)`. Array position determines execution order (first = highest priority).
 
-**Druid playstyles**: `"caster"`, `"cat"`, `"bear"`, `"balance"`, `"resto"`
-**Hunter playstyles**: `"ranged"`
+**Druid**: `"caster"`, `"cat"`, `"bear"`, `"balance"`, `"resto"` | **Hunter**: `"ranged"` | **Mage**: `"fire"`, `"frost"`, `"arcane"` | **Paladin**: `"retribution"`, `"protection"`, `"holy"` | **Priest**: `"shadow"`, `"smite"`, `"holy"` | **Rogue**: `"combat"`, `"assassination"`, `"subtlety"` | **Shaman**: `"elemental"`, `"enhancement"`, `"restoration"` | **Warlock**: `"affliction"`, `"demonology"`, `"destruction"` | **Warrior**: `"arms"`, `"fury"`, `"protection"`
 
 ### Class Registration
 Each class module registers via `rotation_registry:register_class(config)`:
@@ -297,19 +288,50 @@ rotation_registry:register_class({
    idle_playstyle_name = "caster",
    get_active_playstyle = function(context) ... end,
    get_idle_playstyle = function(context) ... end,
-   extend_context = function(ctx) ... end,  -- optional class-specific context fields
+   extend_context = function(ctx) ... end,
+   gap_handler = function(icon, ctx) ... end,  -- optional: /flux gap handler
+   dashboard = { resource = ..., cooldowns = ..., buffs = ..., debuffs = ..., custom_lines = ... },
 })
 ```
 
 ### Strategy/Middleware Structure
 ```lua
+-- Strategy
 {
     name = "StrategyName",
-    priority = 100,  -- For middleware; strategies use array position
+    matches = function(context, state) return boolean end,
+    execute = function(icon, context, state) return result, log_message end,
+    is_burst = true,      -- optional: /flux burst force-fires (bypasses matches, not IsReady)
+    is_defensive = true,  -- optional: /flux def force-fires
+    setting_key = "key",  -- optional: auto-checked by check_prerequisites
+    spell = A.Spell,      -- optional: auto-checked IsReady + availability
+}
+
+-- Middleware
+{
+    name = "MiddlewareName",
+    priority = 100,  -- higher = runs first
     matches = function(context) return boolean end,
     execute = function(icon, context) return result, log_message end,
+    is_burst = true,      -- optional: /flux burst force-fires
+    is_defensive = true,  -- optional: /flux def force-fires
 }
 ```
+
+### Slash Commands (`/flux`)
+| Command | Behavior |
+|---|---|
+| `/flux` | Toggle settings UI |
+| `/flux burst` | Force offensive CDs for 3s (fires all `is_burst` tagged entries) |
+| `/flux def` | Force defensive CDs for 3s (fires all `is_defensive` tagged entries) |
+| `/flux gap` | Fire best gap closer (consumed on first success, uses `gap_handler`) |
+| `/flux status` | Toggle combat dashboard |
+| `/flux help` | Print command list |
+
+### Force-Bypass & Burst Context
+- **Force-bypass** (`/flux burst`/`def`): Skips `matches()` and `check_prerequisites()` but if `spell` property is set, `IsReady()` is still checked (CD, range, stance respected). Entries without `spell` rely on `execute()` checking `IsReady()` internally
+- **Burst context** (`should_auto_burst`): Schema checkboxes (`burst_on_bloodlust`, `burst_on_pull`, `burst_on_execute`, `burst_in_combat`) control when burst CDs fire automatically. Returns `nil` when no conditions configured (fire freely), `true` when met, `false` when configured but unmet
+- **Dashboard**: Shared combat overlay driven by declarative `dashboard` config in `register_class()`. Toggled via `show_dashboard` setting or `/flux status`
 
 ### Global Namespace
 All modules share the `_G.FluxAIO` namespace (aliased as `NS` locally):
@@ -422,7 +444,8 @@ All magic numbers are in the `Constants` table (defined in Core):
 
 - `debug_print(...)` - Logs with throttle per unique message (defined in core.lua)
 - Enable via UI: "Debug Mode" checkbox in settings
-- Hunter has a dedicated debug overlay (`debugui.lua`)
+- **Combat Dashboard** (`dashboard.lua`) - Shared real-time overlay showing current priority, cooldowns, buffs/debuffs. Toggled via `show_dashboard` setting or `/flux status`
+- Hunter has an additional debug overlay (`debugui.lua`)
 
 ## Development Notes
 

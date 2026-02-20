@@ -61,6 +61,7 @@ do
 local Frost_IcyVeins = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.IcyVeins,
     spell_target = PLAYER_UNIT,
     setting_key = "frost_use_icy_veins",
@@ -73,6 +74,7 @@ local Frost_IcyVeins = {
 -- [2] Summon Water Elemental
 local Frost_WaterElemental = {
     requires_combat = true,
+    is_burst = true,
     spell = A.SummonWaterElemental,
     spell_target = PLAYER_UNIT,
     setting_key = "frost_use_water_elemental",
@@ -85,6 +87,7 @@ local Frost_WaterElemental = {
 -- [3] Cold Snap (reset frost CDs when IV + WE both expired)
 local Frost_ColdSnap = {
     requires_combat = true,
+    is_burst = true,
     spell = A.ColdSnap,
     spell_target = PLAYER_UNIT,
     setting_key = "frost_use_cold_snap",
@@ -106,6 +109,7 @@ local Frost_ColdSnap = {
 local Frost_Trinkets = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
 
     matches = function(context, state)
         if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
@@ -128,6 +132,7 @@ local Frost_Trinkets = {
 local Frost_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     setting_key = "use_racial",
 
     matches = function(context, state)

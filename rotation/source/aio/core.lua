@@ -54,6 +54,34 @@ NS.RACE_TROLL = RACE_TROLL
 NS.RACE_ORC = RACE_ORC
 
 -- ============================================================================
+-- FORCE COMMAND FLAGS (set by /flux slash commands)
+-- ============================================================================
+-- Values are expiry timestamps (GetTime() + duration). Zero = inactive.
+-- Checked each frame by execute_middleware/execute_strategies in main.lua.
+NS.force_burst = 0
+NS.force_defensive = 0
+NS.force_gap = 0
+
+local FORCE_DURATION = 3.0
+
+local function set_force_flag(flag_name)
+   NS[flag_name] = GetTime() + FORCE_DURATION
+end
+
+local function is_force_active(flag_name)
+   local expiry = NS[flag_name]
+   return expiry > 0 and GetTime() < expiry
+end
+
+local function clear_force_flag(flag_name)
+   NS[flag_name] = 0
+end
+
+NS.set_force_flag = set_force_flag
+NS.is_force_active = is_force_active
+NS.clear_force_flag = clear_force_flag
+
+-- ============================================================================
 -- PRIORITY REGISTRY (Middleware Only)
 -- Higher number = runs FIRST (descending order)
 -- ============================================================================
@@ -157,7 +185,7 @@ NS.has_total_immunity = has_total_immunity
 -- ============================================================================
 local cached_settings = {}
 local last_settings_update = 0
-local SETTINGS_CACHE_DURATION = 1.0
+local SETTINGS_CACHE_DURATION = 0.05
 local settings_changed_list = {}
 
 NS.cached_settings = cached_settings
@@ -682,6 +710,36 @@ local function get_time_to_die(unit_id)
 end
 
 NS.get_time_to_die = get_time_to_die
+
+-- ============================================================================
+-- BURST CONTEXT SYSTEM
+-- ============================================================================
+-- Pre-allocated Bloodlust/Heroism buff IDs for detection
+local BLOODLUST_IDS = { 2825, 32182 }
+
+--- Check if auto-burst conditions are met (schema-driven).
+-- Returns true if ANY enabled burst condition is satisfied.
+local function should_auto_burst(context)
+   local s = context.settings
+   if not s then return nil end
+
+   -- If no burst conditions are configured, return nil (CDs fire freely)
+   local any_configured = s.burst_in_combat or s.burst_on_pull or s.burst_on_execute or s.burst_on_bloodlust
+   if not any_configured then return nil end
+
+   -- At least one condition is configured; must be in combat with a target
+   if not context.in_combat then return false end
+   if not context.has_valid_enemy_target then return false end
+
+   if s.burst_in_combat then return true end
+   if s.burst_on_pull and context.combat_time and context.combat_time < 5 then return true end
+   if s.burst_on_execute and context.target_hp and context.target_hp < 20 then return true end
+   if s.burst_on_bloodlust and (Unit(PLAYER_UNIT):HasBuffs(BLOODLUST_IDS) or 0) > 0 then return true end
+
+   return false  -- conditions configured but none met
+end
+
+NS.should_auto_burst = should_auto_burst
 
 -- ============================================================================
 -- ROTATION REGISTRY INFRASTRUCTURE

@@ -91,6 +91,7 @@ do
 local Ret_AvengingWrath = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.AvengingWrath,
     spell_target = PLAYER_UNIT,
     setting_key = "use_avenging_wrath",
@@ -109,6 +110,7 @@ local Ret_AvengingWrath = {
 local Ret_Trinket1 = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.Trinket1,
 
     matches = function(context, state)
@@ -128,6 +130,7 @@ local Ret_Trinket1 = {
 local Ret_Trinket2 = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.Trinket2,
 
     matches = function(context, state)
@@ -147,6 +150,7 @@ local Ret_Trinket2 = {
 local Ret_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
 
     matches = function(context, state)
         if not context.settings.use_racial then return false end

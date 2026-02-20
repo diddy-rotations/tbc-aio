@@ -31,6 +31,7 @@ local TARGET_UNIT = "target"
 rotation_registry:register_middleware({
     name = "Warlock_DeathCoil",
     priority = Priority.MIDDLEWARE.EMERGENCY_HEAL,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -106,6 +107,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warlock_Soulshatter",
     priority = Priority.MIDDLEWARE.DISPEL_CURSE,
+    is_defensive = true,
 
     matches = function(context)
         if not context.settings.use_soulshatter then return false end

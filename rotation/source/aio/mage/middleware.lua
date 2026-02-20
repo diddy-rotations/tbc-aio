@@ -32,6 +32,7 @@ local TARGET_UNIT = "target"
 rotation_registry:register_middleware({
     name = "Mage_IceBlock",
     priority = Priority.MIDDLEWARE.EMERGENCY_HEAL,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -56,6 +57,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Mage_ManaShield",
     priority = Priority.MIDDLEWARE.PROACTIVE_HEAL,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end
@@ -80,6 +82,7 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Mage_IceBarrier",
     priority = Priority.MIDDLEWARE.PROACTIVE_HEAL - 5,
+    is_defensive = true,
 
     matches = function(context)
         if not context.in_combat then return false end

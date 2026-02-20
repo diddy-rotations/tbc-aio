@@ -244,7 +244,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Mage",
-    version = "v1.3.1",
+    version = "v1.6.0",
     playstyles = { "fire", "frost", "arcane" },
     idle_playstyle_name = nil,
 
@@ -274,6 +274,72 @@ rotation_registry:register_class({
         ctx._frost_valid = false
         ctx._arcane_valid = false
     end,
+
+    gap_handler = function(icon, context)
+        if A.Blink:IsReady(PLAYER_UNIT) then
+            return A.Blink:Show(icon), "[GAP] Blink"
+        end
+        return nil
+    end,
+
+    dashboard = {
+        resource = { type = "mana", label = "Mana", color = {0.41, 0.80, 0.94} },
+        cooldowns = {
+            fire   = { A.Combustion },
+            frost  = { A.IcyVeins, A.ColdSnap, A.SummonWaterElemental },
+            arcane = { A.ArcanePower, A.PresenceOfMind, A.IcyVeins },
+        },
+        buffs = {
+            fire = {
+                { id = Constants.BUFF_ID.COMBUSTION, label = "Comb" },
+                { id = Constants.BUFF_ID.CLEARCASTING, label = "CC" },
+                { id = Constants.ARMOR_BUFF_IDS, label = "Armor" },
+                { id = Constants.INTELLECT_BUFF_IDS, label = "Int" },
+            },
+            frost = {
+                { id = Constants.BUFF_ID.ICY_VEINS, label = "IV" },
+                { id = Constants.BUFF_ID.CLEARCASTING, label = "CC" },
+                { id = Constants.ARMOR_BUFF_IDS, label = "Armor" },
+                { id = Constants.INTELLECT_BUFF_IDS, label = "Int" },
+            },
+            arcane = {
+                { id = Constants.BUFF_ID.ARCANE_POWER, label = "AP" },
+                { id = Constants.BUFF_ID.PRESENCE_OF_MIND, label = "PoM" },
+                { id = Constants.BUFF_ID.CLEARCASTING, label = "CC" },
+                { id = Constants.ARMOR_BUFF_IDS, label = "Armor" },
+                { id = Constants.INTELLECT_BUFF_IDS, label = "Int" },
+            },
+        },
+        timers = {
+            {
+                label = function() return (Player:GetSwingShoot() or 0) > 0 and "Wand" or "Swing" end,
+                color = {0.41, 0.80, 0.94},
+                remaining = function()
+                    local shoot = Player:GetSwingShoot() or 0
+                    if shoot > 0 then return shoot end
+                    local s = Player:GetSwingStart(1) or 0; local d = Player:GetSwing(1) or 0
+                    if s > 0 and d > 0 then local r = (s + d) - GetTime(); return r > 0 and r or 0 end
+                    return 0
+                end,
+                duration = function()
+                    if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
+                    return Player:GetSwing(1) or 2.0
+                end,
+            },
+        },
+        debuffs = {
+            fire = {
+                { id = Constants.DEBUFF_ID.IMPROVED_SCORCH, label = "Scorch", target = true, show_stacks = true, owned = false },
+            },
+            frost = {
+                { id = 122, label = "FNova", target = true, owned = false },
+                { id = 33395, label = "Freeze", target = true, owned = false },
+            },
+            arcane = {
+                { id = Constants.DEBUFF_ID.ARCANE_BLAST, label = "AB", show_stacks = true },
+            },
+        },
+    },
 })
 
 -- ============================================================================

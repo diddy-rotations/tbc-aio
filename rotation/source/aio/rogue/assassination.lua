@@ -130,6 +130,7 @@ local Assassination_MaintainSnD = {
 local Assassination_ColdBlood = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.ColdBlood,
     spell_target = PLAYER_UNIT,
     setting_key = "assassination_use_cold_blood",
@@ -149,6 +150,7 @@ local Assassination_ColdBlood = {
 local Assassination_Trinkets = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
 
     matches = function(context, state)
         return context.settings.use_trinket1 or context.settings.use_trinket2
@@ -169,6 +171,7 @@ local Assassination_Trinkets = {
 local Assassination_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     setting_key = "use_racial",
 
     matches = function(context, state)

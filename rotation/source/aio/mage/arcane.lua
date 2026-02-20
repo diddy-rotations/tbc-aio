@@ -88,6 +88,7 @@ do
 local Arcane_IcyVeins = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.IcyVeins,
     spell_target = PLAYER_UNIT,
     setting_key = "arcane_use_icy_veins",
@@ -106,6 +107,7 @@ local Arcane_IcyVeins = {
 -- [2] Cold Snap (reset Icy Veins CD after it expires)
 local Arcane_ColdSnap = {
     requires_combat = true,
+    is_burst = true,
     spell = A.ColdSnap,
     spell_target = PLAYER_UNIT,
     setting_key = "arcane_use_cold_snap",
@@ -127,6 +129,7 @@ local Arcane_ColdSnap = {
 local Arcane_ArcanePower = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.ArcanePower,
     spell_target = PLAYER_UNIT,
     setting_key = "arcane_use_arcane_power",
@@ -145,6 +148,7 @@ local Arcane_ArcanePower = {
 local Arcane_PresenceOfMind = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.PresenceOfMind,
     spell_target = PLAYER_UNIT,
     setting_key = "arcane_use_pom",
@@ -163,6 +167,7 @@ local Arcane_PresenceOfMind = {
 local Arcane_Trinkets = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
 
     matches = function(context, state)
         if not state.is_burning then return false end
@@ -186,6 +191,7 @@ local Arcane_Trinkets = {
 local Arcane_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     setting_key = "use_racial",
 
     matches = function(context, state)

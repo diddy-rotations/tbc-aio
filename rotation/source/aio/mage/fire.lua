@@ -80,6 +80,7 @@ local Fire_MaintainScorch = {
 local Fire_Combustion = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.Combustion,
     spell_target = PLAYER_UNIT,
     setting_key = "fire_use_combustion",
@@ -99,6 +100,7 @@ local Fire_Combustion = {
 local Fire_IcyVeins = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.IcyVeins,
     spell_target = PLAYER_UNIT,
     setting_key = "fire_use_icy_veins",
@@ -112,6 +114,7 @@ local Fire_IcyVeins = {
 local Fire_Trinkets = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
 
     matches = function(context, state)
         if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
@@ -134,6 +137,7 @@ local Fire_Trinkets = {
 local Fire_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     setting_key = "use_racial",
 
     matches = function(context, state)

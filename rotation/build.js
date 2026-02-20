@@ -82,6 +82,7 @@ const ORDER_MAP = {
     'healing.lua':    5,
     'settings.lua':   5,
     'middleware.lua':  6,
+    'dashboard.lua':  7,
     'main.lua':       8,
 };
 
@@ -95,7 +96,8 @@ const LOAD_ORDER = [
     { slot: 'shared', source: 'settings.lua' },
     { slot: 'class', source: 'middleware.lua' },
     // ... remaining class files (Order 7) inserted here alphabetically ...
-    { slot: 'shared', source: 'main.lua' },     // always last
+    { slot: 'shared', source: 'dashboard.lua' }, // shared combat dashboard
+    { slot: 'shared', source: 'main.lua' },      // always last
 ];
 
 const NAME_OVERRIDES = { 'ui': 'UI' };

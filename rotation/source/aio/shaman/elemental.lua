@@ -75,6 +75,7 @@ do
 local Ele_ElementalMastery = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     spell = A.ElementalMastery,
     spell_target = PLAYER_UNIT,
     setting_key = "ele_use_elemental_mastery",
@@ -88,6 +89,7 @@ local Ele_ElementalMastery = {
 local Ele_Trinkets = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
 
     matches = function(context, state)
         if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
@@ -110,6 +112,7 @@ local Ele_Trinkets = {
 local Ele_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     setting_key = "use_racial",
 
     matches = function(context, state)
@@ -188,6 +191,7 @@ local Ele_TotemManagement = {
 -- [5] Fire Elemental (long CD summon)
 local Ele_FireElemental = {
     requires_combat = true,
+    is_burst = true,
     spell = A.FireElementalTotem,
     spell_target = PLAYER_UNIT,
     setting_key = "ele_use_fire_elemental",
