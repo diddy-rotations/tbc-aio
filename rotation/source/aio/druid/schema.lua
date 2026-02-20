@@ -5,8 +5,12 @@
 local _G = _G
 local A = _G.Action
 
-if not A then return end
-if A.PlayerClass ~= "DRUID" then return end
+if not A then
+	return
+end
+if A.PlayerClass ~= "DRUID" then
+	return
+end
 
 -- Enable this profile
 A.Data.ProfileEnabled[A.CurrentProfile] = true
@@ -23,184 +27,984 @@ A.Data.ProfileEnabled[A.CurrentProfile] = true
 --   GetToggle(2, key), SetToggle({2, key, ...}), cached_settings[key], context.settings[key]
 
 _G.DiddyAIO_SETTINGS_SCHEMA = {
-    -- Tab 1: General
-    [1] = { name = "General", sections = {
-        { header = "Shared Combat", settings = {
-            { type = "checkbox", key = "maintain_faerie_fire", default = true, label = "Maintain Faerie Fire",
-              tooltip = "Keep Faerie Fire debuff active (armor reduction + 3% hit)." },
-        }},
-        { header = "Cooldowns", settings = {
-            { type = "checkbox", key = "use_trinket1", default = true, label = "Use Trinket 1", tooltip = "Use first trinket on cooldown in combat." },
-            { type = "checkbox", key = "use_trinket2", default = true, label = "Use Trinket 2", tooltip = "Use second trinket on cooldown in combat." },
-            { type = "checkbox", key = "use_racial", default = true, label = "Use Racial Ability", tooltip = "Use racial DPS cooldown (Berserking / Blood Fury)." },
-        }},
-        { header = "Recovery Items", settings = {
-            { type = "checkbox", key = "use_healthstone", default = true, label = "Use Healthstone", tooltip = "Use Healthstone when HP drops below threshold." },
-            { type = "slider", key = "healthstone_hp", default = 30, min = 15, max = 50, label = "Healthstone HP (%)", tooltip = "Use Healthstone below this HP.", format = "%d%%" },
-            { type = "checkbox", key = "use_healing_potion", default = true, label = "Use Healing Potion", tooltip = "Use Healing Potion when HP drops below threshold." },
-            { type = "slider", key = "healing_potion_hp", default = 25, min = 10, max = 40, label = "Healing Potion HP (%)", tooltip = "Use Healing Potion below this HP.", format = "%d%%" },
-            { type = "checkbox", key = "use_mana_potion", default = true, label = "Use Mana Potion", tooltip = "Use Super Mana Potion when mana drops below threshold." },
-            { type = "slider", key = "mana_potion_mana", default = 20, min = 10, max = 50, label = "Mana Potion Mana (%)", tooltip = "Use Mana Potion below this mana %.", format = "%d%%" },
-            { type = "checkbox", key = "use_dark_rune", default = true, label = "Use Dark Rune", tooltip = "Use Dark Rune / Demonic Rune when mana drops below threshold. Costs HP.", wide = true },
-            { type = "slider", key = "dark_rune_mana", default = 30, min = 15, max = 60, label = "Dark Rune Mana (%)", tooltip = "Use Dark Rune below this mana %.", format = "%d%%" },
-            { type = "slider", key = "dark_rune_min_hp", default = 50, min = 25, max = 75, label = "Dark Rune Min HP (%)", tooltip = "Only use Dark Rune if HP is above this (rune costs 600-1000 HP).", format = "%d%%" },
-        }},
-        { header = "Utility", settings = {
-            { type = "checkbox", key = "use_innervate_self", default = true, label = "Innervate Self (Solo)", tooltip = "Use Innervate on yourself when low mana and solo." },
-            { type = "slider", key = "innervate_mana", default = 30, min = 15, max = 50, label = "Innervate Mana (%)", tooltip = "Use Innervate below this mana %.", format = "%d%%" },
-        }},
-        { header = "Debug", settings = {
-            { type = "checkbox", key = "debug_mode", default = true, label = "Debug Mode", tooltip = "Print rotation debug messages." },
-            { type = "checkbox", key = "debug_system", default = false, label = "Debug System (Advanced)", tooltip = "Print system debug messages (middleware, strategies)." },
-        }},
-    }},
+	-- Tab 1: General
+	[1] = {
+		name = "General",
+		sections = {
+			{
+				header = "Shared Combat",
+				settings = {
+					{
+						type = "checkbox",
+						key = "maintain_faerie_fire",
+						default = true,
+						label = "Maintain Faerie Fire",
+						tooltip = "Keep Faerie Fire debuff active (armor reduction + 3% hit).",
+					},
+				},
+			},
+			{
+				header = "Cooldowns",
+				settings = {
+					{
+						type = "checkbox",
+						key = "use_trinket1",
+						default = true,
+						label = "Use Trinket 1",
+						tooltip = "Use first trinket on cooldown in combat.",
+					},
+					{
+						type = "checkbox",
+						key = "use_trinket2",
+						default = true,
+						label = "Use Trinket 2",
+						tooltip = "Use second trinket on cooldown in combat.",
+					},
+					{
+						type = "checkbox",
+						key = "use_racial",
+						default = true,
+						label = "Use Racial Ability",
+						tooltip = "Use racial DPS cooldown (Berserking / Blood Fury).",
+					},
+				},
+			},
+			{
+				header = "Recovery Items",
+				settings = {
+					{
+						type = "checkbox",
+						key = "use_healthstone",
+						default = true,
+						label = "Use Healthstone",
+						tooltip = "Use Healthstone when HP drops below threshold.",
+					},
+					{
+						type = "slider",
+						key = "healthstone_hp",
+						default = 30,
+						min = 15,
+						max = 50,
+						label = "Healthstone HP (%)",
+						tooltip = "Use Healthstone below this HP.",
+						format = "%d%%",
+					},
+					{
+						type = "checkbox",
+						key = "use_healing_potion",
+						default = true,
+						label = "Use Healing Potion",
+						tooltip = "Use Healing Potion when HP drops below threshold.",
+					},
+					{
+						type = "slider",
+						key = "healing_potion_hp",
+						default = 25,
+						min = 10,
+						max = 40,
+						label = "Healing Potion HP (%)",
+						tooltip = "Use Healing Potion below this HP.",
+						format = "%d%%",
+					},
+					{
+						type = "checkbox",
+						key = "use_mana_potion",
+						default = true,
+						label = "Use Mana Potion",
+						tooltip = "Use Super Mana Potion when mana drops below threshold.",
+					},
+					{
+						type = "slider",
+						key = "mana_potion_mana",
+						default = 20,
+						min = 10,
+						max = 50,
+						label = "Mana Potion Mana (%)",
+						tooltip = "Use Mana Potion below this mana %.",
+						format = "%d%%",
+					},
+					{
+						type = "checkbox",
+						key = "use_dark_rune",
+						default = true,
+						label = "Use Dark Rune",
+						tooltip = "Use Dark Rune / Demonic Rune when mana drops below threshold. Costs HP.",
+						wide = true,
+					},
+					{
+						type = "slider",
+						key = "dark_rune_mana",
+						default = 30,
+						min = 15,
+						max = 60,
+						label = "Dark Rune Mana (%)",
+						tooltip = "Use Dark Rune below this mana %.",
+						format = "%d%%",
+					},
+					{
+						type = "slider",
+						key = "dark_rune_min_hp",
+						default = 50,
+						min = 25,
+						max = 75,
+						label = "Dark Rune Min HP (%)",
+						tooltip = "Only use Dark Rune if HP is above this (rune costs 600-1000 HP).",
+						format = "%d%%",
+					},
+				},
+			},
+			{
+				header = "Utility",
+				settings = {
+					{
+						type = "checkbox",
+						key = "use_innervate_self",
+						default = true,
+						label = "Innervate Self (Solo)",
+						tooltip = "Use Innervate on yourself when low mana and solo.",
+					},
+					{
+						type = "slider",
+						key = "innervate_mana",
+						default = 30,
+						min = 15,
+						max = 50,
+						label = "Innervate Mana (%)",
+						tooltip = "Use Innervate below this mana %.",
+						format = "%d%%",
+					},
+				},
+			},
+			{
+				header = "Debug",
+				settings = {
+					{
+						type = "checkbox",
+						key = "debug_mode",
+						default = true,
+						label = "Debug Mode",
+						tooltip = "Print rotation debug messages.",
+					},
+					{
+						type = "checkbox",
+						key = "debug_system",
+						default = false,
+						label = "Debug System (Advanced)",
+						tooltip = "Print system debug messages (middleware, strategies).",
+					},
+				},
+			},
+		},
+	},
 
-    -- Tab 2: Cat (Feral DPS)
-    [2] = { name = "Cat", sections = {
-        { header = "Powershift", settings = {
-            { type = "checkbox", key = "auto_powershift", default = true, label = "Auto Powershift", tooltip = "Shift out/in for energy. Wolfshead Helm auto-detected." },
-            { type = "slider", key = "powershift_min_mana", default = 25, min = 10, max = 90, label = "Min Mana for Powershift (%)", tooltip = "Minimum mana % to powershift.", format = "%d%%" },
-        }},
-        { header = "Rip", settings = {
-            { type = "checkbox", key = "maintain_rip", default = true, label = "Maintain Rip", tooltip = "Keep Rip bleed DoT active." },
-            { type = "checkbox", key = "rip_only_elites", default = false, label = "Rip Only Elites/Bosses", tooltip = "Only Rip elite or boss targets." },
-            { type = "slider", key = "rip_min_cp", default = 4, min = 4, max = 5, label = "Rip Min Combo Points", tooltip = "Minimum combo points for Rip.", format = "%d" },
-            { type = "slider", key = "rip_refresh", default = 0, min = 0, max = 5, label = "Rip Refresh (sec)", tooltip = "Prepare refresh this many seconds before expiry.", format = "%d sec" },
-            { type = "slider", key = "rip_min_ttd", default = 12, min = 8, max = 20, label = "Rip Min TTD (sec)", tooltip = "Only Rip if target lives at least this long.", format = "%d sec" },
-        }},
-        { header = "Rake", settings = {
-            { type = "checkbox", key = "maintain_rake", default = true, label = "Maintain Rake", tooltip = "Keep Rake bleed active." },
-            { type = "slider", key = "rake_refresh", default = 0, min = 0, max = 4, label = "Rake Refresh (sec)", tooltip = "Refresh Rake with this many seconds remaining.", format = "%d sec" },
-        }},
-        { header = "Tiger's Fury", settings = {
-            { type = "checkbox", key = "use_tigers_fury", default = false, label = "Use Tiger's Fury", tooltip = "Normally not worth using rotationally. Enable for casual play." },
-            { type = "slider", key = "tigers_fury_energy", default = 100, min = 30, max = 100, label = "Tiger's Fury Min Energy", tooltip = "Only use above this energy.", format = "%d" },
-        }},
-        { header = "Ferocious Bite", settings = {
-            { type = "slider", key = "fb_min_energy", default = 35, min = 35, max = 70, label = "FB Min Energy", tooltip = "Only Bite above this energy. 35 is optimal.", format = "%d" },
-            { type = "slider", key = "fb_min_rip_duration", default = 6, min = 0, max = 12, label = "FB Min Rip Duration (sec)", tooltip = "Only Bite when Rip has more than this remaining.", format = "%d sec" },
-        }},
-        { header = "Execute", settings = {
-            { type = "slider", key = "bite_execute_hp", default = 25, min = 10, max = 35, label = "Bite Execute HP (%)", tooltip = "Bite aggressively when target HP below this.", format = "%d%%" },
-            { type = "slider", key = "bite_execute_ttd", default = 6, min = 4, max = 12, label = "Bite Execute TTD (sec)", tooltip = "Use Bite instead of Rip when target dies within this.", format = "%d sec" },
-        }},
-        { header = "Opener", settings = {
-            { type = "checkbox", key = "use_opener", default = true, label = "Use Combat Opener", tooltip = "Optimal opener from stealth (Ravage behind, Shred otherwise)." },
-            { type = "checkbox", key = "use_mangle_opener", default = false, label = "Mangle Fallback Opener", tooltip = "Use Mangle as opener when not behind target." },
-            { type = "checkbox", key = "use_rake_trick", default = true, label = "Use Energy Tricks", tooltip = "Rake/Bite trick at 35-39 energy before powershift." },
-        }},
-        { header = "AoE", settings = {
-            { type = "checkbox", key = "enable_aoe", default = true, label = "Enable AoE", tooltip = "Enable AoE rotation when multiple enemies detected." },
-            { type = "slider", key = "aoe_enemy_count", default = 3, min = 2, max = 6, label = "AoE Enemy Threshold", tooltip = "Switch to AoE with this many enemies.", format = "%d" },
-            { type = "checkbox", key = "spread_rake", default = true, label = "Spread Rake", tooltip = "Apply Rake to multiple targets in AoE." },
-            { type = "slider", key = "max_rake_targets", default = 4, min = 2, max = 6, label = "Max Rake Targets", tooltip = "Maximum targets to maintain Rake on.", format = "%d" },
-        }},
-        { header = "Focus & Prowl", settings = {
-            { type = "checkbox", key = "focus_prowl", default = true, label = "Prowl on Focus", tooltip = "Auto-Prowl when focus target is nearby." },
-            { type = "slider", key = "prowl_distance", default = 30, min = 10, max = 50, label = "Prowl Distance (yards)", tooltip = "Only Prowl within this distance.", format = "%d yd" },
-        }},
-    }},
+	-- Tab 2: Cat (Feral DPS)
+	[2] = {
+		name = "Cat",
+		sections = {
+			{
+				header = "Powershift",
+				settings = {
+					{
+						type = "checkbox",
+						key = "auto_powershift",
+						default = true,
+						label = "Auto Powershift",
+						tooltip = "Shift out/in for energy. Wolfshead Helm auto-detected.",
+					},
+					{
+						type = "slider",
+						key = "powershift_min_mana",
+						default = 25,
+						min = 10,
+						max = 90,
+						label = "Min Mana for Powershift (%)",
+						tooltip = "Minimum mana % to powershift.",
+						format = "%d%%",
+					},
+				},
+			},
+			{
+				header = "Rip",
+				settings = {
+					{
+						type = "checkbox",
+						key = "maintain_rip",
+						default = true,
+						label = "Maintain Rip",
+						tooltip = "Keep Rip bleed DoT active.",
+					},
+					{
+						type = "checkbox",
+						key = "rip_only_elites",
+						default = false,
+						label = "Rip Only Elites/Bosses",
+						tooltip = "Only Rip elite or boss targets.",
+					},
+					{
+						type = "slider",
+						key = "rip_min_cp",
+						default = 4,
+						min = 4,
+						max = 5,
+						label = "Rip Min Combo Points",
+						tooltip = "Minimum combo points for Rip.",
+						format = "%d",
+					},
+					{
+						type = "slider",
+						key = "rip_refresh",
+						default = 0,
+						min = 0,
+						max = 5,
+						label = "Rip Refresh (sec)",
+						tooltip = "Prepare refresh this many seconds before expiry.",
+						format = "%d sec",
+					},
+					{
+						type = "slider",
+						key = "rip_min_ttd",
+						default = 12,
+						min = 8,
+						max = 20,
+						label = "Rip Min TTD (sec)",
+						tooltip = "Only Rip if target lives at least this long.",
+						format = "%d sec",
+					},
+				},
+			},
+			{
+				header = "Rake",
+				settings = {
+					{
+						type = "checkbox",
+						key = "maintain_rake",
+						default = true,
+						label = "Maintain Rake",
+						tooltip = "Keep Rake bleed active.",
+					},
+					{
+						type = "slider",
+						key = "rake_refresh",
+						default = 0,
+						min = 0,
+						max = 4,
+						label = "Rake Refresh (sec)",
+						tooltip = "Refresh Rake with this many seconds remaining.",
+						format = "%d sec",
+					},
+				},
+			},
+			{
+				header = "Tiger's Fury",
+				settings = {
+					{
+						type = "checkbox",
+						key = "use_tigers_fury",
+						default = false,
+						label = "Use Tiger's Fury",
+						tooltip = "Normally not worth using rotationally. Enable for casual play.",
+					},
+					{
+						type = "slider",
+						key = "tigers_fury_energy",
+						default = 100,
+						min = 30,
+						max = 100,
+						label = "Tiger's Fury Min Energy",
+						tooltip = "Only use above this energy.",
+						format = "%d",
+					},
+				},
+			},
+			{
+				header = "Ferocious Bite",
+				settings = {
+					{
+						type = "slider",
+						key = "fb_min_energy",
+						default = 35,
+						min = 35,
+						max = 70,
+						label = "FB Min Energy",
+						tooltip = "Only Bite above this energy. 35 is optimal.",
+						format = "%d",
+					},
+					{
+						type = "slider",
+						key = "fb_min_rip_duration",
+						default = 6,
+						min = 0,
+						max = 12,
+						label = "FB Min Rip Duration (sec)",
+						tooltip = "Only Bite when Rip has more than this remaining.",
+						format = "%d sec",
+					},
+				},
+			},
+			{
+				header = "Execute",
+				settings = {
+					{
+						type = "slider",
+						key = "bite_execute_hp",
+						default = 25,
+						min = 10,
+						max = 35,
+						label = "Bite Execute HP (%)",
+						tooltip = "Bite aggressively when target HP below this.",
+						format = "%d%%",
+					},
+					{
+						type = "slider",
+						key = "bite_execute_ttd",
+						default = 6,
+						min = 4,
+						max = 12,
+						label = "Bite Execute TTD (sec)",
+						tooltip = "Use Bite instead of Rip when target dies within this.",
+						format = "%d sec",
+					},
+				},
+			},
+			{
+				header = "Opener",
+				settings = {
+					{
+						type = "checkbox",
+						key = "use_opener",
+						default = true,
+						label = "Use Combat Opener",
+						tooltip = "Optimal opener from stealth (Ravage behind, Shred otherwise).",
+					},
+					{
+						type = "checkbox",
+						key = "use_mangle_opener",
+						default = false,
+						label = "Mangle Fallback Opener",
+						tooltip = "Use Mangle as opener when not behind target.",
+					},
+					{
+						type = "checkbox",
+						key = "use_rake_trick",
+						default = true,
+						label = "Use Energy Tricks",
+						tooltip = "Rake/Bite trick at 35-39 energy before powershift.",
+					},
+				},
+			},
+			{
+				header = "AoE",
+				settings = {
+					{
+						type = "checkbox",
+						key = "enable_aoe",
+						default = true,
+						label = "Enable AoE",
+						tooltip = "Enable AoE rotation when multiple enemies detected.",
+					},
+					{
+						type = "slider",
+						key = "aoe_enemy_count",
+						default = 3,
+						min = 2,
+						max = 6,
+						label = "AoE Enemy Threshold",
+						tooltip = "Switch to AoE with this many enemies.",
+						format = "%d",
+					},
+					{
+						type = "checkbox",
+						key = "spread_rake",
+						default = true,
+						label = "Spread Rake",
+						tooltip = "Apply Rake to multiple targets in AoE.",
+					},
+					{
+						type = "slider",
+						key = "max_rake_targets",
+						default = 4,
+						min = 2,
+						max = 6,
+						label = "Max Rake Targets",
+						tooltip = "Maximum targets to maintain Rake on.",
+						format = "%d",
+					},
+				},
+			},
+			{
+				header = "Focus & Prowl",
+				settings = {
+					{
+						type = "checkbox",
+						key = "focus_prowl",
+						default = true,
+						label = "Prowl on Focus",
+						tooltip = "Auto-Prowl when focus target is nearby.",
+					},
+					{
+						type = "slider",
+						key = "prowl_distance",
+						default = 30,
+						min = 10,
+						max = 50,
+						label = "Prowl Distance (yards)",
+						tooltip = "Only Prowl within this distance.",
+						format = "%d yd",
+					},
+				},
+			},
+		},
+	},
 
-    -- Tab 3: Bear (Feral Tank)
-    [3] = { name = "Bear", sections = {
-        { header = "Off-Tank Mode", settings = {
-            { type = "checkbox", key = "bear_no_taunt", default = false, label = "Disable Taunts (Off-Tank)",
-              tooltip = "Disables Growl and Challenging Roar. Use when off-tanking." },
-        }},
-        { header = "Debuff Maintenance", settings = {
-            { type = "checkbox", key = "maintain_lacerate", default = true, label = "Maintain Lacerate", tooltip = "Keep Lacerate at 5 stacks." },
-            { type = "checkbox", key = "lacerate_boss_only", default = true, label = "Lacerate Boss Only", tooltip = "Only Lacerate boss targets." },
-            { type = "checkbox", key = "maintain_demo_roar", default = true, label = "Maintain Demo Roar", tooltip = "Keep Demoralizing Roar active." },
-            { type = "slider", key = "demo_roar_range", default = 7, min = 5, max = 10, label = "Demo Roar Scan Range", tooltip = "Yard radius to scan for enemies. Demo Roar is 10yd PBAoE.", format = "%d yd" },
-            { type = "slider", key = "demo_roar_min_bosses", default = 1, min = 1, max = 3, label = "Demo Roar Min Bosses", tooltip = "Min bosses in range to use Demo Roar. Default 1 = always on bosses.", format = "%d" },
-            { type = "slider", key = "demo_roar_min_elites", default = 2, min = 1, max = 5, label = "Demo Roar Min Elites", tooltip = "Min elites within 10yd to use Demo Roar. Default 2.", format = "%d" },
-            { type = "slider", key = "demo_roar_min_trash", default = 5, min = 2, max = 8, label = "Demo Roar Min Trash", tooltip = "Min trash mobs within 10yd to use Demo Roar. Default 5.", format = "%d" },
-        }},
-        { header = "Taunts", settings = {
-            { type = "checkbox", key = "use_growl", default = true, label = "Auto Growl", tooltip = "Taunt when you lose aggro." },
-            { type = "checkbox", key = "use_challenging_roar", default = true, label = "Use Challenging Roar", tooltip = "AoE taunt for emergency multi-target aggro loss. 10min CD." },
-            { type = "slider", key = "croar_range", default = 7, min = 5, max = 10, label = "C.Roar Scan Range", tooltip = "Yard radius to scan for loose enemies. C.Roar is 10yd PBAoE.", format = "%d yd" },
-            { type = "slider", key = "croar_min_bosses", default = 1, min = 1, max = 3, label = "C.Roar Min Bosses", tooltip = "Min loose bosses in range to use Challenging Roar. Default 1 = any loose boss.", format = "%d" },
-            { type = "slider", key = "croar_min_elites", default = 5, min = 1, max = 6, label = "C.Roar Min Elites", tooltip = "Min loose elites within range to use Challenging Roar. Default 5.", format = "%d" },
-        }},
-        { header = "Rage Management", settings = {
-            { type = "slider", key = "maul_rage_threshold", default = 40, min = 15, max = 80, label = "Maul Rage Threshold", tooltip = "Queue Maul above this rage. Lower = more DPS but drains rage faster. 40 recommended.", format = "%d" },
-            { type = "slider", key = "mangle_rage_threshold", default = 15, min = 15, max = 80, label = "Mangle Rage Threshold", tooltip = "Mangle is your highest-damage ability. 15 = on cooldown (recommended). Raise only if rage-starved.", format = "%d" },
-            { type = "slider", key = "swipe_rage_threshold", default = 15, min = 15, max = 80, label = "Swipe Rage Threshold", tooltip = "Only Swipe above this rage. 15 = on cooldown (minimum cost). Raise to preserve rage for higher-priority abilities.", format = "%d" },
-            { type = "slider", key = "swipe_min_targets", default = 2, min = 1, max = 4, label = "Swipe AoE Threshold", tooltip = "At this many enemies, Swipe takes priority over Mangle (AoE mode). Below this, Swipe is only used as filler when Lacerate is maintained.", format = "%d" },
-            { type = "checkbox", key = "swipe_cc_check", default = true, label = "Swipe CC Safety", tooltip = "Skip Swipe when a nearby mob has breakable CC (Polymorph, Trap, Sap, etc). Prevents breaking crowd control." },
-        }},
-        { header = "Emergency Abilities", settings = {
-            { type = "checkbox", key = "use_frenzied_regen", default = true, label = "Use Frenzied Regen", tooltip = "Converts rage to health when HP drops." },
-            { type = "checkbox", key = "use_enrage", default = true, label = "Use Enrage", tooltip = "Generate rage when low (reduces armor)." },
-            { type = "slider", key = "enrage_rage_threshold", default = 20, min = 10, max = 40, label = "Enrage Below Rage", tooltip = "Use Enrage when rage drops below this.", format = "%d" },
-        }},
-    }},
+	-- Tab 3: Bear (Feral Tank)
+	[3] = {
+		name = "Bear",
+		sections = {
+			{
+				header = "Off-Tank Mode",
+				settings = {
+					{
+						type = "checkbox",
+						key = "bear_no_taunt",
+						default = false,
+						label = "Disable Taunts (Off-Tank)",
+						tooltip = "Disables Growl and Challenging Roar. Use when off-tanking.",
+					},
+				},
+			},
+			{
+				header = "Debuff Maintenance",
+				settings = {
+					{
+						type = "checkbox",
+						key = "maintain_lacerate",
+						default = true,
+						label = "Maintain Lacerate",
+						tooltip = "Keep Lacerate at 5 stacks.",
+					},
+					{
+						type = "checkbox",
+						key = "lacerate_boss_only",
+						default = true,
+						label = "Lacerate Boss Only",
+						tooltip = "Only Lacerate boss targets.",
+					},
+					{
+						type = "checkbox",
+						key = "maintain_demo_roar",
+						default = true,
+						label = "Maintain Demo Roar",
+						tooltip = "Keep Demoralizing Roar active.",
+					},
+					{
+						type = "slider",
+						key = "demo_roar_range",
+						default = 7,
+						min = 5,
+						max = 10,
+						label = "Demo Roar Scan Range",
+						tooltip = "Yard radius to scan for enemies. Demo Roar is 10yd PBAoE.",
+						format = "%d yd",
+					},
+					{
+						type = "slider",
+						key = "demo_roar_min_bosses",
+						default = 1,
+						min = 1,
+						max = 3,
+						label = "Demo Roar Min Bosses",
+						tooltip = "Min bosses in range to use Demo Roar. Default 1 = always on bosses.",
+						format = "%d",
+					},
+					{
+						type = "slider",
+						key = "demo_roar_min_elites",
+						default = 2,
+						min = 1,
+						max = 5,
+						label = "Demo Roar Min Elites",
+						tooltip = "Min elites within 10yd to use Demo Roar. Default 2.",
+						format = "%d",
+					},
+					{
+						type = "slider",
+						key = "demo_roar_min_trash",
+						default = 5,
+						min = 2,
+						max = 8,
+						label = "Demo Roar Min Trash",
+						tooltip = "Min trash mobs within 10yd to use Demo Roar. Default 5.",
+						format = "%d",
+					},
+				},
+			},
+			{
+				header = "Taunts",
+				settings = {
+					{
+						type = "checkbox",
+						key = "use_growl",
+						default = true,
+						label = "Auto Growl",
+						tooltip = "Taunt when you lose aggro.",
+					},
+					{
+						type = "checkbox",
+						key = "use_challenging_roar",
+						default = true,
+						label = "Use Challenging Roar",
+						tooltip = "AoE taunt for emergency multi-target aggro loss. 10min CD.",
+					},
+					{
+						type = "slider",
+						key = "croar_range",
+						default = 7,
+						min = 5,
+						max = 10,
+						label = "C.Roar Scan Range",
+						tooltip = "Yard radius to scan for loose enemies. C.Roar is 10yd PBAoE.",
+						format = "%d yd",
+					},
+					{
+						type = "slider",
+						key = "croar_min_bosses",
+						default = 1,
+						min = 1,
+						max = 3,
+						label = "C.Roar Min Bosses",
+						tooltip = "Min loose bosses in range to use Challenging Roar. Default 1 = any loose boss.",
+						format = "%d",
+					},
+					{
+						type = "slider",
+						key = "croar_min_elites",
+						default = 5,
+						min = 1,
+						max = 6,
+						label = "C.Roar Min Elites",
+						tooltip = "Min loose elites within range to use Challenging Roar. Default 5.",
+						format = "%d",
+					},
+				},
+			},
+			{
+				header = "Threat Management",
+				settings = {
+					{
+						type = "checkbox",
+						key = "enable_tab_targeting",
+						default = true,
+						label = "Enable Tab Targeting",
+						tooltip = "Automatically switch targets to spread threat across multiple mobs. Picks up loose mobs, switches off CC'd targets, and spreads Lacerate for DPS optimization.",
+					},
+				},
+			},
+			{
+				header = "Rage Management",
+				settings = {
+					{
+						type = "slider",
+						key = "maul_rage_threshold",
+						default = 40,
+						min = 15,
+						max = 80,
+						label = "Maul Rage Threshold",
+						tooltip = "Queue Maul above this rage. Lower = more DPS but drains rage faster. 40 recommended.",
+						format = "%d",
+					},
+					{
+						type = "slider",
+						key = "mangle_rage_threshold",
+						default = 15,
+						min = 15,
+						max = 80,
+						label = "Mangle Rage Threshold",
+						tooltip = "Mangle is your highest-damage ability. 15 = on cooldown (recommended). Raise only if rage-starved.",
+						format = "%d",
+					},
+					{
+						type = "slider",
+						key = "swipe_rage_threshold",
+						default = 15,
+						min = 15,
+						max = 80,
+						label = "Swipe Rage Threshold",
+						tooltip = "Only Swipe above this rage. 15 = on cooldown (minimum cost). Raise to preserve rage for higher-priority abilities.",
+						format = "%d",
+					},
+					{
+						type = "slider",
+						key = "swipe_min_targets",
+						default = 2,
+						min = 1,
+						max = 4,
+						label = "Swipe AoE Threshold",
+						tooltip = "At this many enemies, Swipe takes priority over Mangle (AoE mode). Below this, Swipe is only used as filler when Lacerate is maintained.",
+						format = "%d",
+					},
+					{
+						type = "checkbox",
+						key = "swipe_cc_check",
+						default = true,
+						label = "Swipe CC Safety",
+						tooltip = "Skip Swipe when a nearby mob has breakable CC (Polymorph, Trap, Sap, etc). Prevents breaking crowd control.",
+					},
+				},
+			},
+			{
+				header = "Emergency Abilities",
+				settings = {
+					{
+						type = "checkbox",
+						key = "use_frenzied_regen",
+						default = true,
+						label = "Use Frenzied Regen",
+						tooltip = "Converts rage to health when HP drops.",
+					},
+					{
+						type = "checkbox",
+						key = "use_enrage",
+						default = true,
+						label = "Use Enrage",
+						tooltip = "Generate rage when low (reduces armor).",
+					},
+					{
+						type = "slider",
+						key = "enrage_rage_threshold",
+						default = 20,
+						min = 10,
+						max = 40,
+						label = "Enrage Below Rage",
+						tooltip = "Use Enrage when rage drops below this.",
+						format = "%d",
+					},
+				},
+			},
+		},
+	},
 
-    -- Tab 4: Caster (Healing & Recovery)
-    [4] = { name = "Caster", sections = {
-        { header = "Healing Thresholds", settings = {
-            { type = "slider", key = "rejuvenation_hp", default = 80, min = 50, max = 90, label = "Rejuvenation HP (%)", tooltip = "Apply Rejuvenation HoT when HP drops below this.", format = "%d%%" },
-            { type = "slider", key = "regrowth_hp", default = 50, min = 30, max = 70, label = "Regrowth HP (%)", tooltip = "Apply Regrowth when HP drops below this.", format = "%d%%" },
-            { type = "slider", key = "emergency_heal_hp", default = 30, min = 15, max = 50, label = "Emergency Heal HP (%)", tooltip = "Use Healing Touch below this (shifts out of form).", format = "%d%%" },
-            { type = "slider", key = "critical_heal_hp", default = 20, min = 10, max = 35, label = "Critical HP (%)", tooltip = "Critical HP threshold - triggers emergency healing.", format = "%d%%" },
-        }},
-        { header = "Mana", settings = {
-            { type = "slider", key = "mana_reserve", default = 600, min = 400, max = 1500, label = "Mana Reserve", tooltip = "Keep this much mana reserved for form shifts. Bear Form costs ~580.", format = "%d" },
-        }},
-        { header = "Dispels", settings = {
-            { type = "checkbox", key = "auto_remove_curse", default = true, label = "Auto Remove Curse", tooltip = "Automatically remove curses from yourself." },
-            { type = "checkbox", key = "auto_remove_poison", default = true, label = "Auto Remove Poison", tooltip = "Automatically remove poisons from yourself." },
-        }},
-        { header = "Self-Buffs", settings = {
-            { type = "checkbox", key = "use_motw", default = true, label = "Mark of the Wild", tooltip = "Auto-apply Mark of the Wild when missing (out of combat)." },
-            { type = "checkbox", key = "use_thorns", default = true, label = "Thorns", tooltip = "Auto-apply Thorns when missing (out of combat)." },
-            { type = "checkbox", key = "use_ooc", default = true, label = "Omen of Clarity", tooltip = "Auto-apply Omen of Clarity when missing (out of combat)." },
-        }},
-    }},
+	-- Tab 4: Caster (Healing & Recovery)
+	[4] = {
+		name = "Caster",
+		sections = {
+			{
+				header = "Healing Thresholds",
+				settings = {
+					{
+						type = "slider",
+						key = "rejuvenation_hp",
+						default = 80,
+						min = 50,
+						max = 90,
+						label = "Rejuvenation HP (%)",
+						tooltip = "Apply Rejuvenation HoT when HP drops below this.",
+						format = "%d%%",
+					},
+					{
+						type = "slider",
+						key = "regrowth_hp",
+						default = 50,
+						min = 30,
+						max = 70,
+						label = "Regrowth HP (%)",
+						tooltip = "Apply Regrowth when HP drops below this.",
+						format = "%d%%",
+					},
+					{
+						type = "slider",
+						key = "emergency_heal_hp",
+						default = 30,
+						min = 15,
+						max = 50,
+						label = "Emergency Heal HP (%)",
+						tooltip = "Use Healing Touch below this (shifts out of form).",
+						format = "%d%%",
+					},
+					{
+						type = "slider",
+						key = "critical_heal_hp",
+						default = 20,
+						min = 10,
+						max = 35,
+						label = "Critical HP (%)",
+						tooltip = "Critical HP threshold - triggers emergency healing.",
+						format = "%d%%",
+					},
+				},
+			},
+			{
+				header = "Mana",
+				settings = {
+					{
+						type = "slider",
+						key = "mana_reserve",
+						default = 600,
+						min = 400,
+						max = 1500,
+						label = "Mana Reserve",
+						tooltip = "Keep this much mana reserved for form shifts. Bear Form costs ~580.",
+						format = "%d",
+					},
+				},
+			},
+			{
+				header = "Dispels",
+				settings = {
+					{
+						type = "checkbox",
+						key = "auto_remove_curse",
+						default = true,
+						label = "Auto Remove Curse",
+						tooltip = "Automatically remove curses from yourself.",
+					},
+					{
+						type = "checkbox",
+						key = "auto_remove_poison",
+						default = true,
+						label = "Auto Remove Poison",
+						tooltip = "Automatically remove poisons from yourself.",
+					},
+				},
+			},
+			{
+				header = "Self-Buffs",
+				settings = {
+					{
+						type = "checkbox",
+						key = "use_motw",
+						default = true,
+						label = "Mark of the Wild",
+						tooltip = "Auto-apply Mark of the Wild when missing (out of combat).",
+					},
+					{
+						type = "checkbox",
+						key = "use_thorns",
+						default = true,
+						label = "Thorns",
+						tooltip = "Auto-apply Thorns when missing (out of combat).",
+					},
+					{
+						type = "checkbox",
+						key = "use_ooc",
+						default = true,
+						label = "Omen of Clarity",
+						tooltip = "Auto-apply Omen of Clarity when missing (out of combat).",
+					},
+				},
+			},
+		},
+	},
 
-    -- Tab 5: Balance (Moonkin)
-    [5] = { name = "Balance", sections = {
-        { header = "DoT Maintenance", settings = {
-            { type = "checkbox", key = "maintain_moonfire", default = true, label = "Maintain Moonfire", tooltip = "Keep Moonfire DoT active." },
-            { type = "checkbox", key = "maintain_insect_swarm", default = true, label = "Maintain Insect Swarm", tooltip = "Keep Insect Swarm active." },
-        }},
-        { header = "Force of Nature", settings = {
-            { type = "checkbox", key = "use_force_of_nature", default = true, label = "Use Force of Nature", tooltip = "Summon Treants (41pt Balance talent)." },
-            { type = "slider", key = "force_of_nature_min_ttd", default = 30, min = 15, max = 45, label = "Treants Min TTD (sec)", tooltip = "Only summon if target lives this long.", format = "%d sec" },
-        }},
-        { header = "AoE", settings = {
-            { type = "slider", key = "hurricane_min_targets", default = 3, min = 2, max = 5, label = "Hurricane Min Targets", tooltip = "Min targets for Hurricane.", format = "%d" },
-        }},
-        { header = "Mana Tiers", settings = {
-            { type = "slider", key = "balance_tier1_mana", default = 40, min = 30, max = 60, label = "Full Rotation Mana (%)", tooltip = "Above this: full rotation (Starfire + Moonfire + IS).", format = "%d%%" },
-            { type = "slider", key = "balance_tier2_mana", default = 20, min = 10, max = 35, label = "Conserve Mana (%)", tooltip = "Below this: drop Moonfire, only IS + Starfire.", format = "%d%%" },
-        }},
-    }},
+	-- Tab 5: Balance (Moonkin)
+	[5] = {
+		name = "Balance",
+		sections = {
+			{
+				header = "DoT Maintenance",
+				settings = {
+					{
+						type = "checkbox",
+						key = "maintain_moonfire",
+						default = true,
+						label = "Maintain Moonfire",
+						tooltip = "Keep Moonfire DoT active.",
+					},
+					{
+						type = "checkbox",
+						key = "maintain_insect_swarm",
+						default = true,
+						label = "Maintain Insect Swarm",
+						tooltip = "Keep Insect Swarm active.",
+					},
+				},
+			},
+			{
+				header = "Force of Nature",
+				settings = {
+					{
+						type = "checkbox",
+						key = "use_force_of_nature",
+						default = true,
+						label = "Use Force of Nature",
+						tooltip = "Summon Treants (41pt Balance talent).",
+					},
+					{
+						type = "slider",
+						key = "force_of_nature_min_ttd",
+						default = 30,
+						min = 15,
+						max = 45,
+						label = "Treants Min TTD (sec)",
+						tooltip = "Only summon if target lives this long.",
+						format = "%d sec",
+					},
+				},
+			},
+			{
+				header = "AoE",
+				settings = {
+					{
+						type = "slider",
+						key = "hurricane_min_targets",
+						default = 3,
+						min = 2,
+						max = 5,
+						label = "Hurricane Min Targets",
+						tooltip = "Min targets for Hurricane.",
+						format = "%d",
+					},
+				},
+			},
+			{
+				header = "Mana Tiers",
+				settings = {
+					{
+						type = "slider",
+						key = "balance_tier1_mana",
+						default = 40,
+						min = 30,
+						max = 60,
+						label = "Full Rotation Mana (%)",
+						tooltip = "Above this: full rotation (Starfire + Moonfire + IS).",
+						format = "%d%%",
+					},
+					{
+						type = "slider",
+						key = "balance_tier2_mana",
+						default = 20,
+						min = 10,
+						max = 35,
+						label = "Conserve Mana (%)",
+						tooltip = "Below this: drop Moonfire, only IS + Starfire.",
+						format = "%d%%",
+					},
+				},
+			},
+		},
+	},
 
-    -- Tab 6: Resto (Tree of Life Healer)
-    [6] = { name = "Resto", sections = {
-        { header = "Tree of Life Healing", settings = {
-            { type = "slider", key = "resto_emergency_hp", default = 20, min = 10, max = 35, label = "Emergency HP (%)", tooltip = "Triggers emergency healing (Swiftmend > NS+Regrowth).", format = "%d%%" },
-            { type = "slider", key = "resto_tank_heal_hp", default = 50, min = 30, max = 70, label = "Tank Heal HP (%)", tooltip = "Prioritize tank healing below this HP.", format = "%d%%" },
-            { type = "slider", key = "resto_standard_heal_hp", default = 70, min = 50, max = 85, label = "Standard Heal HP (%)", tooltip = "Apply Regrowth on targets below this HP.", format = "%d%%" },
-            { type = "slider", key = "resto_proactive_hp", default = 85, min = 70, max = 95, label = "Proactive HP (%)", tooltip = "Spread Rejuvenation on targets below this HP.", format = "%d%%" },
-        }},
-        { header = "Lifebloom", settings = {
-            { type = "slider", key = "resto_lifebloom_refresh", default = 2, min = 1, max = 4, label = "Lifebloom Refresh (sec)", tooltip = "Refresh 3-stack Lifebloom when this many seconds remain.", format = "%d sec" },
-        }},
-        { header = "Swiftmend", settings = {
-            { type = "slider", key = "resto_swiftmend_hp", default = 40, min = 20, max = 60, label = "Swiftmend HP (%)", tooltip = "Use Swiftmend for burst healing below this HP (requires Rejuv or Regrowth on target).", format = "%d%%" },
-        }},
-        { header = "Tank & Mana", settings = {
-            { type = "checkbox", key = "resto_prioritize_tank", default = true, label = "Prioritize Tank", tooltip = "Maintain Lifebloom 3-stack and HoTs on tank." },
-            { type = "slider", key = "resto_mana_conserve", default = 40, min = 20, max = 60, label = "Mana Conserve (%)", tooltip = "Below this mana: skip Regrowth, focus on Lifebloom + Rejuv only.", format = "%d%%" },
-        }},
-        { header = "Dispels", settings = {
-            { type = "checkbox", key = "resto_auto_dispel_curse", default = true, label = "Auto Remove Curse (Party)", tooltip = "Remove Curse from party members (castable in Tree form)." },
-            { type = "checkbox", key = "resto_auto_dispel_poison", default = true, label = "Auto Abolish Poison (Party)", tooltip = "Abolish Poison on party members (castable in Tree form)." },
-        }},
-    }},
+	-- Tab 6: Resto (Tree of Life Healer)
+	[6] = {
+		name = "Resto",
+		sections = {
+			{
+				header = "Tree of Life Healing",
+				settings = {
+					{
+						type = "slider",
+						key = "resto_emergency_hp",
+						default = 20,
+						min = 10,
+						max = 35,
+						label = "Emergency HP (%)",
+						tooltip = "Triggers emergency healing (Swiftmend > NS+Regrowth).",
+						format = "%d%%",
+					},
+					{
+						type = "slider",
+						key = "resto_tank_heal_hp",
+						default = 50,
+						min = 30,
+						max = 70,
+						label = "Tank Heal HP (%)",
+						tooltip = "Prioritize tank healing below this HP.",
+						format = "%d%%",
+					},
+					{
+						type = "slider",
+						key = "resto_standard_heal_hp",
+						default = 70,
+						min = 50,
+						max = 85,
+						label = "Standard Heal HP (%)",
+						tooltip = "Apply Regrowth on targets below this HP.",
+						format = "%d%%",
+					},
+					{
+						type = "slider",
+						key = "resto_proactive_hp",
+						default = 85,
+						min = 70,
+						max = 95,
+						label = "Proactive HP (%)",
+						tooltip = "Spread Rejuvenation on targets below this HP.",
+						format = "%d%%",
+					},
+				},
+			},
+			{
+				header = "Lifebloom",
+				settings = {
+					{
+						type = "slider",
+						key = "resto_lifebloom_refresh",
+						default = 2,
+						min = 1,
+						max = 4,
+						label = "Lifebloom Refresh (sec)",
+						tooltip = "Refresh 3-stack Lifebloom when this many seconds remain.",
+						format = "%d sec",
+					},
+				},
+			},
+			{
+				header = "Swiftmend",
+				settings = {
+					{
+						type = "slider",
+						key = "resto_swiftmend_hp",
+						default = 40,
+						min = 20,
+						max = 60,
+						label = "Swiftmend HP (%)",
+						tooltip = "Use Swiftmend for burst healing below this HP (requires Rejuv or Regrowth on target).",
+						format = "%d%%",
+					},
+				},
+			},
+			{
+				header = "Tank & Mana",
+				settings = {
+					{
+						type = "checkbox",
+						key = "resto_prioritize_tank",
+						default = true,
+						label = "Prioritize Tank",
+						tooltip = "Maintain Lifebloom 3-stack and HoTs on tank.",
+					},
+					{
+						type = "slider",
+						key = "resto_mana_conserve",
+						default = 40,
+						min = 20,
+						max = 60,
+						label = "Mana Conserve (%)",
+						tooltip = "Below this mana: skip Regrowth, focus on Lifebloom + Rejuv only.",
+						format = "%d%%",
+					},
+				},
+			},
+			{
+				header = "Dispels",
+				settings = {
+					{
+						type = "checkbox",
+						key = "resto_auto_dispel_curse",
+						default = true,
+						label = "Auto Remove Curse (Party)",
+						tooltip = "Remove Curse from party members (castable in Tree form).",
+					},
+					{
+						type = "checkbox",
+						key = "resto_auto_dispel_poison",
+						default = true,
+						label = "Auto Abolish Poison (Party)",
+						tooltip = "Abolish Poison on party members (castable in Tree form).",
+					},
+				},
+			},
+		},
+	},
 }
 
 print("|cFF00FF00[Diddy AIO]|r Druid schema loaded")
