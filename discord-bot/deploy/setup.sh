@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ─── Diddy AIO Discord Bot — Setup Script ───
+# ─── Flux AIO Discord Bot — Setup Script ───
 # Run on a fresh Linux VPS: bash discord-bot/deploy/setup.sh
 
 BOLD='\033[1m'
@@ -12,7 +12,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 NODE_VERSION="22"
-SERVICE_NAME="diddy-bot"
+SERVICE_NAME="flux-bot"
 
 info()  { echo -e "${CYAN}→${NC} $*"; }
 ok()    { echo -e "${GREEN}✓${NC} $*"; }
@@ -26,7 +26,7 @@ BOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$BOT_DIR/.." && pwd)"
 ENV_FILE="$BOT_DIR/.env"
 
-header "Diddy AIO Discord Bot — Setup"
+header "Flux AIO Discord Bot — Setup"
 echo "Bot directory:  $BOT_DIR"
 echo "Repo root:      $REPO_DIR"
 echo ""
@@ -180,7 +180,7 @@ SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
 # Generate the unit file
 UNIT_CONTENTS="[Unit]
-Description=Diddy AIO Discord Bot
+Description=Flux AIO Discord Bot
 After=network-online.target
 Wants=network-online.target
 

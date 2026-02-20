@@ -11,14 +11,14 @@
 local A_global = _G.Action
 if not A_global or A_global.PlayerClass ~= "PALADIN" then return end
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Paladin Healing]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Paladin Healing]|r Core module not loaded!")
     return
 end
 
 if not NS.Constants then
-    print("|cFFFF0000[Diddy AIO Paladin Healing]|r Constants not found in Core!")
+    print("|cFFFF0000[Flux AIO Paladin Healing]|r Constants not found in Core!")
     return
 end
 
@@ -184,4 +184,4 @@ NS.is_in_party = is_in_party
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Paladin]|r Healing module loaded")
+print("|cFF00FF00[Flux AIO Paladin]|r Healing module loaded")

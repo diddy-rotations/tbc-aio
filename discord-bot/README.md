@@ -1,4 +1,4 @@
-# Diddy AIO Discord Bot
+# Flux AIO Discord Bot
 
 A Discord bot that lets users request personalized rotation tweaks via Claude AI, and posts automatic release announcements from GitHub webhooks.
 
@@ -68,10 +68,10 @@ bash discord-bot/deploy/update.sh
 ### Useful systemd commands
 
 ```bash
-systemctl status diddy-bot        # Check status
-journalctl -u diddy-bot -f        # Follow live logs
-sudo systemctl restart diddy-bot  # Restart
-sudo systemctl stop diddy-bot     # Stop
+systemctl status flux-bot        # Check status
+journalctl -u flux-bot -f        # Follow live logs
+sudo systemctl restart flux-bot  # Restart
+sudo systemctl stop flux-bot     # Stop
 ```
 
 ## GitHub Release Webhook
@@ -160,7 +160,7 @@ discord-bot/
 ├── deploy/
 │   ├── setup.sh                 # First-time VPS setup (interactive)
 │   ├── update.sh                # Pull & restart
-│   └── diddy-bot.service        # systemd unit template
+│   └── flux-bot.service        # systemd unit template
 ├── .env.example                 # Environment variable template
 └── package.json
 ```

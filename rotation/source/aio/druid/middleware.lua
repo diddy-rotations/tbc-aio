@@ -15,15 +15,15 @@
 -- ============================================================
 
 -- Get namespace from Core module
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-   print("|cFFFF0000[Diddy AIO Middleware]|r Core module not loaded!")
+   print("|cFFFF0000[Flux AIO Middleware]|r Core module not loaded!")
    return
 end
 
 -- Validate dependencies
 if not NS.rotation_registry then
-   print("|cFFFF0000[Diddy AIO Middleware]|r Registry not found in Core!")
+   print("|cFFFF0000[Flux AIO Middleware]|r Registry not found in Core!")
    return
 end
 -- Import commonly used references
@@ -348,4 +348,4 @@ do
    })
 end
 
-print("|cFF00FF00[Diddy AIO Middleware]|r " .. #rotation_registry.middleware .. " middleware handlers registered.")
+print("|cFF00FF00[Flux AIO Middleware]|r " .. #rotation_registry.middleware .. " middleware handlers registered.")

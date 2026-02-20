@@ -8,9 +8,9 @@ local A = _G.Action
 if not A then return end
 if A.PlayerClass ~= "HUNTER" then return end
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Hunter Middleware]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Hunter Middleware]|r Core module not loaded!")
     return
 end
 
@@ -105,4 +105,4 @@ rotation_registry:register_middleware({
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Hunter]|r Middleware module loaded")
+print("|cFF00FF00[Flux AIO Hunter]|r Middleware module loaded")

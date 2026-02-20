@@ -12,9 +12,9 @@ if A.PlayerClass ~= "PRIEST" then
    return
 end
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-   print("|cFFFF0000[Diddy AIO Priest Shadow]|r Core module not loaded!")
+   print("|cFFFF0000[Flux AIO Priest Shadow]|r Core module not loaded!")
    return
 end
 
@@ -395,4 +395,4 @@ rotation_registry:register("shadow", {
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Priest]|r Shadow rotation loaded")
+print("|cFF00FF00[Flux AIO Priest]|r Shadow rotation loaded")

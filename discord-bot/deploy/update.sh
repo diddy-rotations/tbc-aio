@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ─── Diddy AIO Discord Bot — Update Script ───
+# ─── Flux AIO Discord Bot — Update Script ───
 # Pulls latest code, reinstalls deps, rebuilds rotation, restarts bot.
 
 BOLD='\033[1m'
@@ -15,7 +15,7 @@ ok()    { echo -e "${GREEN}✓${NC} $*"; }
 err()   { echo -e "${RED}✗${NC} $*" >&2; }
 header() { echo -e "\n${BOLD}$*${NC}"; }
 
-SERVICE_NAME="diddy-bot"
+SERVICE_NAME="flux-bot"
 
 # Load nvm if present (needed for non-interactive SSH sessions)
 export NVM_DIR="${HOME}/.nvm"
@@ -26,7 +26,7 @@ BOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$BOT_DIR/.." && pwd)"
 ROTATION_DIR="$REPO_DIR/rotation"
 
-header "Diddy AIO Discord Bot — Update"
+header "Flux AIO Discord Bot — Update"
 
 # ─── 1. Pull latest ───
 header "[1/4] Pulling latest code"

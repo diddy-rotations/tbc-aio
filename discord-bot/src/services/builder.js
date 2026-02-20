@@ -6,7 +6,7 @@ import { promisify } from 'util';
 import { config } from '../config.js';
 
 const execFileAsync = promisify(execFile);
-const TEMP_PREFIX = 'diddy-bot-';
+const TEMP_PREFIX = 'flux-bot-';
 
 export async function createWorkspace() {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), TEMP_PREFIX));

@@ -4,7 +4,7 @@ import path from 'path';
 import { glob } from 'fs/promises';
 import { config } from '../config.js';
 
-const SYSTEM_PROMPT = `You are a WoW TBC rotation customization assistant for the Diddy AIO addon.
+const SYSTEM_PROMPT = `You are a WoW TBC rotation customization assistant for the Flux AIO addon.
 Your job is to edit Lua source files to implement the user's requested rotation tweak.
 
 ## CONSTRAINTS (CRITICAL)
@@ -23,7 +23,7 @@ You have these tools:
 
 ## ARCHITECTURE
 
-All modules share the \`_G.DiddyAIO\` namespace (aliased as \`NS\`).
+All modules share the \`_G.FluxAIO\` namespace (aliased as \`NS\`).
 - \`NS.A\` = Action table (spell/ability definitions)
 - \`NS.Player\`, \`NS.Unit\` = Framework unit APIs
 - \`NS.rotation_registry\` = Strategy/middleware registry

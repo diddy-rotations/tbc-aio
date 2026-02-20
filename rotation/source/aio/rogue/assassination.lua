@@ -10,14 +10,14 @@
 local A_global = _G.Action
 if not A_global or A_global.PlayerClass ~= "ROGUE" then return end
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Assassination]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Assassination]|r Core module not loaded!")
     return
 end
 
 if not NS.rotation_registry then
-    print("|cFFFF0000[Diddy AIO Assassination]|r Registry not found!")
+    print("|cFFFF0000[Flux AIO Assassination]|r Registry not found!")
     return
 end
 
@@ -361,4 +361,4 @@ end -- scope block
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Rogue]|r Assassination strategies registered (11 strategies)")
+print("|cFF00FF00[Flux AIO Rogue]|r Assassination strategies registered (11 strategies)")

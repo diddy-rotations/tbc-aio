@@ -10,19 +10,19 @@
 -- ============================================================
 
 -- Get namespace from Core module
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-   print("|cFFFF0000[Diddy AIO Resto]|r Core module not loaded!")
+   print("|cFFFF0000[Flux AIO Resto]|r Core module not loaded!")
    return
 end
 
 -- Validate dependencies
 if not NS.rotation_registry then
-   print("|cFFFF0000[Diddy AIO Resto]|r Registry not found in Core!")
+   print("|cFFFF0000[Flux AIO Resto]|r Registry not found in Core!")
    return
 end
 if not NS.scan_healing_targets then
-   print("|cFFFF0000[Diddy AIO Resto]|r Healing module not loaded!")
+   print("|cFFFF0000[Flux AIO Resto]|r Healing module not loaded!")
    return
 end
 
@@ -360,4 +360,4 @@ do
 
 end  -- End Resto strategies do...end block
 
-print("|cFF00FF00[Diddy AIO Resto]|r 11 Tree of Life strategies registered.")
+print("|cFF00FF00[Flux AIO Resto]|r 11 Tree of Life strategies registered.")

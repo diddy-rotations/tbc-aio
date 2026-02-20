@@ -8,9 +8,9 @@ local A = _G.Action
 if not A then return end
 if A.PlayerClass ~= "ROGUE" then return end
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Rogue Middleware]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Rogue Middleware]|r Core module not loaded!")
     return
 end
 
@@ -251,4 +251,4 @@ rotation_registry:register_middleware({
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Rogue]|r Middleware module loaded (9 entries)")
+print("|cFF00FF00[Flux AIO Rogue]|r Middleware module loaded (9 entries)")

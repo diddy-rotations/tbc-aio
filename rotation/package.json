@@ -1,5 +1,5 @@
 {
-  "name": "@diddy/rotation",
+  "name": "@flux/rotation",
   "version": "1.4.0",
   "private": true,
   "main": "build.js",

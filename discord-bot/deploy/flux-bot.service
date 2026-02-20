@@ -1,15 +1,15 @@
-# Diddy AIO Discord Bot — systemd unit file
+# Flux AIO Discord Bot — systemd unit file
 # This is a reference template. setup.sh generates the actual service
 # with correct paths for your system.
 #
 # Manual install:
 #   1. Replace __USER__, __BOT_DIR__, __NODE_PATH__ below
-#   2. sudo cp diddy-bot.service /etc/systemd/system/
+#   2. sudo cp flux-bot.service /etc/systemd/system/
 #   3. sudo systemctl daemon-reload
-#   4. sudo systemctl enable --now diddy-bot
+#   4. sudo systemctl enable --now flux-bot
 
 [Unit]
-Description=Diddy AIO Discord Bot
+Description=Flux AIO Discord Bot
 After=network-online.target
 Wants=network-online.target
 
@@ -32,7 +32,7 @@ PrivateTmp=true
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=diddy-bot
+SyslogIdentifier=flux-bot
 
 [Install]
 WantedBy=multi-user.target

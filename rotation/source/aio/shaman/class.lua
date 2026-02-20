@@ -11,9 +11,9 @@ local A = _G.Action
 if not A then return end
 if A.PlayerClass ~= "SHAMAN" then return end
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Shaman]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Shaman]|r Core module not loaded!")
     return
 end
 
@@ -293,24 +293,24 @@ local function validate_playstyle_spells(playstyle)
         check_spell_availability(core, missing_spells, optional_missing)
     end
 
-    print("|cFF00FF00[Diddy AIO]|r Switched to " .. playstyle .. " playstyle")
+    print("|cFF00FF00[Flux AIO]|r Switched to " .. playstyle .. " playstyle")
 
     if #missing_spells > 0 then
-        print("|cFFFF0000[Diddy AIO]|r MISSING REQUIRED SPELLS:")
+        print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
         for _, spell_name in ipairs(missing_spells) do
-            print("|cFFFF0000[Diddy AIO]|r   - " .. spell_name)
+            print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
         end
     end
 
     if #optional_missing > 0 then
-        print("|cFFFF8800[Diddy AIO]|r Optional spells not available (will be skipped):")
+        print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
         for _, spell_name in ipairs(optional_missing) do
-            print("|cFFFF8800[Diddy AIO]|r   - " .. spell_name)
+            print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
         end
     end
 
     if #missing_spells == 0 and #optional_missing == 0 then
-        print("|cFF00FF00[Diddy AIO]|r All spells available!")
+        print("|cFF00FF00[Flux AIO]|r All spells available!")
     end
 end
 
@@ -378,4 +378,4 @@ rotation_registry:register_class({
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Shaman]|r Class module loaded")
+print("|cFF00FF00[Flux AIO Shaman]|r Class module loaded")

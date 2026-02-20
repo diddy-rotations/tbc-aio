@@ -10,15 +10,15 @@
 -- ============================================================
 
 -- Get namespace from Core module
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-   print("|cFFFF0000[Diddy AIO Cat]|r Core module not loaded!")
+   print("|cFFFF0000[Flux AIO Cat]|r Core module not loaded!")
    return
 end
 
 -- Validate dependencies
 if not NS.rotation_registry then
-   print("|cFFFF0000[Diddy AIO Cat]|r Registry not found in Core!")
+   print("|cFFFF0000[Flux AIO Cat]|r Registry not found in Core!")
    return
 end
 
@@ -62,7 +62,7 @@ local ENERGY_COST_RAVAGE = get_spell_energy_cost(A.Ravage) or 60
 local ENERGY_COST_TIGERS_FURY = get_spell_energy_cost(A.TigersFury) or 30
 
 if ENERGY_COST_RIP ~= 30 or ENERGY_COST_RAKE ~= 35 or ENERGY_COST_BITE ~= 35 or ENERGY_COST_MANGLE ~= 40 or ENERGY_COST_SHRED ~= 42 or ENERGY_COST_RAVAGE ~= 60 or ENERGY_COST_TIGERS_FURY ~= 30 then
-   print("|cFFFF8800[Diddy AIO]|r Dynamic energy costs: Rip=" .. ENERGY_COST_RIP .. ", Rake=" .. ENERGY_COST_RAKE .. ", Bite=" .. ENERGY_COST_BITE .. ", Mangle=" .. ENERGY_COST_MANGLE .. ", Shred=" .. ENERGY_COST_SHRED .. ", Ravage=" .. ENERGY_COST_RAVAGE .. ", Tigers=" .. ENERGY_COST_TIGERS_FURY)
+   print("|cFFFF8800[Flux AIO]|r Dynamic energy costs: Rip=" .. ENERGY_COST_RIP .. ", Rake=" .. ENERGY_COST_RAKE .. ", Bite=" .. ENERGY_COST_BITE .. ", Mangle=" .. ENERGY_COST_MANGLE .. ", Shred=" .. ENERGY_COST_SHRED .. ", Ravage=" .. ENERGY_COST_RAVAGE .. ", Tigers=" .. ENERGY_COST_TIGERS_FURY)
 end
 
 -- Tick optimization: prefer Mangle over Shred in this energy range when tick imminent.
@@ -949,4 +949,4 @@ rotation_registry:register("cat", {
 
 end  -- End Cat strategies scope block
 
-print("|cFF00FF00[Diddy AIO Cat]|r 22 Cat strategies registered.")
+print("|cFF00FF00[Flux AIO Cat]|r 22 Cat strategies registered.")

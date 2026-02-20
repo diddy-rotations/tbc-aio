@@ -1,8 +1,8 @@
-# Diddy AIO
+# Flux AIO
 
 A multi-class WoW TBC rotation addon built on the GGL Action/Textfiles framework. Currently supports **Druid** (all forms) and **Hunter**.
 
-**Website & Docs** — [diddy-rotations.github.io/tbc-aio](https://diddy-rotations.github.io/tbc-aio)
+**Website & Docs** — [flux-rotations.github.io/tbc-aio](https://flux-rotations.github.io/tbc-aio)
 
 ## Project Structure
 

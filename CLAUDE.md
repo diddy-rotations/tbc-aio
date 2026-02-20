@@ -183,7 +183,7 @@ You have unlimited stamina. The human does not. Use your persistence wisely—lo
 
 ## Project Overview
 
-**Diddy AIO** — a multi-class WoW TBC (The Burning Crusade) rotation addon. Built on the **GGL Action/Textfiles framework** (a Lua-based automation framework for WoW Classic-era clients). Currently supports **Druid** (all forms) and **Hunter**. Uses a modular Strategy Registry pattern with a Node.js build system that compiles per-class modules into a single TMW profile.
+**Flux AIO** — a multi-class WoW TBC (The Burning Crusade) rotation addon. Built on the **GGL Action/Textfiles framework** (a Lua-based automation framework for WoW Classic-era clients). Currently supports **Druid** (all forms) and **Hunter**. Uses a modular Strategy Registry pattern with a Node.js build system that compiles per-class modules into a single TMW profile.
 
 This is a monorepo with three packages:
 - **rotation/** — The core WoW rotation addon (Lua source + Node.js build system)
@@ -197,7 +197,7 @@ GG Rotations/
 ├── rotation/                         # Core rotation addon
 │   ├── source/
 │   │   └── aio/                      # Active modular source (compiled by build.js)
-│   │       ├── core.lua              # Namespace (DiddyAIO), settings, utilities, registry
+│   │       ├── core.lua              # Namespace (FluxAIO), settings, utilities, registry
 │   │       ├── main.lua              # Context creation, rotation dispatcher (LOAD LAST)
 │   │       ├── settings.lua          # Custom tabbed settings UI + minimap button
 │   │       ├── ui.lua                # ProfileUI schema generator (framework backing store)
@@ -312,9 +312,9 @@ rotation_registry:register_class({
 ```
 
 ### Global Namespace
-All modules share the `_G.DiddyAIO` namespace (aliased as `NS` locally):
+All modules share the `_G.FluxAIO` namespace (aliased as `NS` locally):
 ```lua
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 local A = NS.A
 local Player = NS.Player
 local Unit = NS.Unit
@@ -322,7 +322,7 @@ local rotation_registry = NS.rotation_registry
 ```
 
 ### Settings Schema
-Settings are defined in per-class `schema.lua` files via `_G.DiddyAIO_SETTINGS_SCHEMA`. This single schema drives:
+Settings are defined in per-class `schema.lua` files via `_G.FluxAIO_SETTINGS_SCHEMA`. This single schema drives:
 1. `ui.lua` → generates `A.Data.ProfileUI[2]` (framework backing store)
 2. `settings.lua` → renders the custom tabbed Settings UI
 3. `core.lua` → `refresh_settings()` builds `cached_settings` from schema keys
@@ -374,9 +374,9 @@ local value = A.GetToggle(2, "SettingName")
 ### Module Import Pattern
 ```lua
 -- Shared modules use NS
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-   print("|cFFFF0000[Diddy AIO ModuleName]|r Core module not loaded!")
+   print("|cFFFF0000[Flux AIO ModuleName]|r Core module not loaded!")
    return
 end
 

@@ -3,7 +3,7 @@
 --
 -- Visual debug panel with real-time Player/Target/Debuffs/PvP/Pet state.
 -- Toggle via schema setting "show_debug_panel" (Tab 5 "Pet & Diag")
--- or /diddy debug panel.
+-- or /flux debug panel.
 
 local _G, string, tostring, math =
       _G, string, tostring, math
@@ -13,9 +13,9 @@ local A = _G.Action
 if not A then return end
 if A.PlayerClass ~= "HUNTER" then return end
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Hunter Debug]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Hunter Debug]|r Core module not loaded!")
     return
 end
 
@@ -393,4 +393,4 @@ end)
 
 NS.HunterDebug = HunterDebug
 
-print("|cFF00FF00[Diddy AIO Hunter]|r Debug panel loaded")
+print("|cFF00FF00[Flux AIO Hunter]|r Debug panel loaded")

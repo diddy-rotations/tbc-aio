@@ -10,14 +10,14 @@
 local A_global = _G.Action
 if not A_global or A_global.PlayerClass ~= "MAGE" then return end
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Frost]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Frost]|r Core module not loaded!")
     return
 end
 
 if not NS.rotation_registry then
-    print("|cFFFF0000[Diddy AIO Frost]|r Registry not found!")
+    print("|cFFFF0000[Flux AIO Frost]|r Registry not found!")
     return
 end
 
@@ -244,4 +244,4 @@ end -- scope block
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Mage]|r Frost module loaded")
+print("|cFF00FF00[Flux AIO Mage]|r Frost module loaded")

@@ -1,12 +1,12 @@
--- Diddy AIO - ProfileUI Generator
--- Reads _G.DiddyAIO_SETTINGS_SCHEMA and generates A.Data.ProfileUI[2]
+-- Flux AIO - ProfileUI Generator
+-- Reads _G.FluxAIO_SETTINGS_SCHEMA and generates A.Data.ProfileUI[2]
 -- Generic: works for any class that provides a schema
 
 local _G = _G
 local A = _G.Action
 if not A then return end
 
-local schema = _G.DiddyAIO_SETTINGS_SCHEMA
+local schema = _G.FluxAIO_SETTINGS_SCHEMA
 if not schema then return end
 
 -- ============================================================================
@@ -39,7 +39,7 @@ local function generate_profile_ui(s)
 
     -- Title header
     profile_ui[#profile_ui + 1] = {
-        { E = "Header", L = { enUS = "Diddy AIO Rotation Settings" }, S = 16 }
+        { E = "Header", L = { enUS = "Flux AIO Rotation Settings" }, S = 16 }
     }
 
     -- Iterate all tabs in the schema
@@ -89,4 +89,4 @@ A.Data.ProfileUI = {
     [2] = generate_profile_ui(schema),
 }
 
-print("|cFF00FF00[Diddy AIO]|r ProfileUI generated")
+print("|cFF00FF00[Flux AIO]|r ProfileUI generated")

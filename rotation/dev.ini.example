@@ -14,5 +14,5 @@ YOURNAME = C:\Path\To\WoW\WTF\Account\YOURNAME\SavedVariables\TellMeWhen.lua
 
 [profiles]
 ; Override profile names per class (optional)
-; Default: "Diddy <ClassName>" (e.g., "Diddy Druid")
+; Default: "Flux <ClassName>" (e.g., "Flux Druid")
 ; druid = Chancity Druid

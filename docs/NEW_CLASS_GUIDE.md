@@ -1,6 +1,6 @@
 # Creating a New Class: Complete Implementation Guide
 
-This document captures every pattern, contract, and gotcha needed to add a new class (e.g. Mage) to the Diddy AIO rotation system. It was written by exhaustively reading every file in the codebase.
+This document captures every pattern, contract, and gotcha needed to add a new class (e.g. Mage) to the Flux AIO rotation system. It was written by exhaustively reading every file in the codebase.
 
 ---
 
@@ -51,10 +51,10 @@ The build system (`rotation/build.js`) auto-discovers class directories under `s
 **How it works:**
 1. `discoverClasses(aioDir)` scans for subdirectories → finds `druid/`, `hunter/`, `mage/`
 2. `discoverModules(className, aioDir)` collects shared modules + class modules
-3. Each module gets a `Name` (e.g. `Diddy_Mage_Schema`) and an `Order` value
+3. Each module gets a `Name` (e.g. `Flux_Mage_Schema`) and an `Order` value
 4. Modules are compiled into TMW CodeSnippets in the output `TellMeWhen.lua`
 
-**Profile naming**: By default, `"Diddy Mage"` (capitalized class name). Override in `dev.ini` under `[profiles]`.
+**Profile naming**: By default, `"Flux Mage"` (capitalized class name). Override in `dev.ini` under `[profiles]`.
 
 **Build commands**:
 ```bash
@@ -73,9 +73,9 @@ The build system enforces this order via `ORDER_MAP`. You cannot change it witho
 
 | Order | File | Slot | What It Does |
 |-------|------|------|-------------|
-| 1 | `schema.lua` | class | Defines `_G.DiddyAIO_SETTINGS_SCHEMA`, enables profile |
+| 1 | `schema.lua` | class | Defines `_G.FluxAIO_SETTINGS_SCHEMA`, enables profile |
 | 2 | `ui.lua` | shared | Generates `A.Data.ProfileUI[2]` from schema |
-| 3 | `core.lua` | shared | Creates `_G.DiddyAIO` namespace, registry, utilities |
+| 3 | `core.lua` | shared | Creates `_G.FluxAIO` namespace, registry, utilities |
 | 4 | `class.lua` | class | Defines `Action[PlayerClass]`, registers class, sets `NS.A` |
 | 5 | `healing.lua` | class | Healing utilities (if needed, same order as settings) |
 | 5 | `settings.lua` | shared | Custom tabbed settings UI + minimap button |
@@ -84,8 +84,8 @@ The build system enforces this order via `ORDER_MAP`. You cannot change it witho
 | 8 | `main.lua` | shared | Context creation, rotation dispatcher (ALWAYS LAST) |
 
 **Key insight**: `schema.lua` loads BEFORE `core.lua`. This means:
-- `schema.lua` can only use `_G.Action` (the base framework), NOT `_G.DiddyAIO`
-- `class.lua` loads AFTER `core.lua`, so it CAN use `_G.DiddyAIO`
+- `schema.lua` can only use `_G.Action` (the base framework), NOT `_G.FluxAIO`
+- `class.lua` loads AFTER `core.lua`, so it CAN use `_G.FluxAIO`
 - All playstyle modules load after `class.lua` and can use everything
 
 ---
@@ -113,7 +113,7 @@ This is **required**. Without it, `core.lua` will refuse to load and print an er
 
 ### 4c. Define the Settings Schema
 ```lua
-_G.DiddyAIO_SETTINGS_SCHEMA = {
+_G.FluxAIO_SETTINGS_SCHEMA = {
     [1] = { name = "General", sections = {
         { header = "Section Name", settings = {
             { type = "checkbox", key = "setting_key", default = true,
@@ -165,9 +165,9 @@ local A = _G.Action
 if not A then return end
 if A.PlayerClass ~= "MAGE" then return end
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Mage]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Mage]|r Core module not loaded!")
     return
 end
 ```
@@ -271,7 +271,7 @@ local function validate_playstyle_spells(playstyle)
     end
 
     -- Print results (copy pattern from Druid/Hunter)
-    print("|cFF00FF00[Diddy AIO]|r Switched to " .. playstyle .. " playstyle")
+    print("|cFF00FF00[Flux AIO]|r Switched to " .. playstyle .. " playstyle")
     -- ... print missing/optional
 end
 
@@ -340,14 +340,14 @@ Middleware runs every frame BEFORE playstyle strategies. Use it for cross-playst
 
 ### Boilerplate
 ```lua
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Mage Middleware]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Mage Middleware]|r Core module not loaded!")
     return
 end
 
 if not NS.rotation_registry then
-    print("|cFFFF0000[Diddy AIO Mage Middleware]|r Registry not found!")
+    print("|cFFFF0000[Flux AIO Mage Middleware]|r Registry not found!")
     return
 end
 
@@ -410,13 +410,13 @@ Each playstyle (e.g. `fire.lua`, `frost.lua`) contains strategies for that spec.
 
 ### Boilerplate
 ```lua
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Fire]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Fire]|r Core module not loaded!")
     return
 end
 if not NS.rotation_registry then
-    print("|cFFFF0000[Diddy AIO Fire]|r Registry not found!")
+    print("|cFFFF0000[Flux AIO Fire]|r Registry not found!")
     return
 end
 
@@ -544,10 +544,10 @@ These files are class-agnostic and serve all classes:
 
 | File | Purpose |
 |------|---------|
-| `core.lua` | Namespace (`_G.DiddyAIO`), settings cache, registry, utilities, debug system |
+| `core.lua` | Namespace (`_G.FluxAIO`), settings cache, registry, utilities, debug system |
 | `main.lua` | Context creation, rotation dispatcher (A[3]), suggestion icon (A[1]) |
-| `ui.lua` | Generates `A.Data.ProfileUI[2]` from `_G.DiddyAIO_SETTINGS_SCHEMA` |
-| `settings.lua` | Custom tabbed settings UI, minimap button, `/diddy` slash command |
+| `ui.lua` | Generates `A.Data.ProfileUI[2]` from `_G.FluxAIO_SETTINGS_SCHEMA` |
+| `settings.lua` | Custom tabbed settings UI, minimap button, `/flux` slash command |
 
 **You should not need to modify these** when adding a new class. They read from the schema and class config dynamically.
 
@@ -699,7 +699,7 @@ The context table is created fresh each frame by `main.lua:create_context()` and
 ### How Settings Flow
 
 ```
-schema.lua defines _G.DiddyAIO_SETTINGS_SCHEMA
+schema.lua defines _G.FluxAIO_SETTINGS_SCHEMA
     ↓
 ui.lua reads schema → generates A.Data.ProfileUI[2] (framework backing store)
     ↓
@@ -770,7 +770,7 @@ rotation_registry:register_middleware({
 
 ## 13. Common Utility Functions
 
-All available on `NS` (the `_G.DiddyAIO` namespace):
+All available on `NS` (the `_G.FluxAIO` namespace):
 
 ### Casting Helpers
 ```lua

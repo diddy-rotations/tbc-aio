@@ -1,6 +1,6 @@
--- Diddy AIO - Custom Settings UI
+-- Flux AIO - Custom Settings UI
 -- Tabbed settings frame with minimap button
--- Generic: reads from _G.DiddyAIO_SETTINGS_SCHEMA and class_config
+-- Generic: reads from _G.FluxAIO_SETTINGS_SCHEMA and class_config
 
 -- ============================================================================
 -- FRAMEWORK VALIDATION
@@ -12,15 +12,15 @@ local format = string.format
 local floor, max, min = math.floor, math.max, math.min
 local unpack = unpack
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Settings]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Settings]|r Core module not loaded!")
     return
 end
 
 local A = NS.A
 if not A then
-    print("|cFFFF0000[Diddy AIO Settings]|r Action framework not available!")
+    print("|cFFFF0000[Flux AIO Settings]|r Action framework not available!")
     return
 end
 
@@ -375,7 +375,7 @@ end
 -- ============================================================================
 -- TAB DEFINITIONS (from shared schema)
 -- ============================================================================
-local TAB_DEFS = _G.DiddyAIO_SETTINGS_SCHEMA
+local TAB_DEFS = _G.FluxAIO_SETTINGS_SCHEMA
 
 -- ============================================================================
 -- TAB PANEL BUILDER
@@ -524,7 +524,7 @@ end
 -- MAIN FRAME
 -- ============================================================================
 local function create_main_frame()
-    local f = CreateFrame("Frame", "DiddyAIOSettingsFrame", UIParent, "BackdropTemplate")
+    local f = CreateFrame("Frame", "FluxAIOSettingsFrame", UIParent, "BackdropTemplate")
     f:SetSize(THEME.frame_w, THEME.frame_h)
     f:SetPoint("CENTER")
     f:SetBackdrop(BACKDROP_THIN)
@@ -538,7 +538,7 @@ local function create_main_frame()
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
     f:SetFrameStrata("HIGH")
 
-    -- Title icon (favicon-style "D")
+    -- Title icon (favicon-style "F")
     local title_icon = CreateFrame("Frame", nil, f, "BackdropTemplate")
     title_icon:SetSize(20, 20)
     title_icon:SetPoint("TOPLEFT", THEME.pad, -8)
@@ -549,7 +549,7 @@ local function create_main_frame()
     local title_icon_txt = title_icon:CreateFontString(nil, "OVERLAY")
     title_icon_txt:SetFont("Fonts\\FRIZQT__.TTF", 12, "OUTLINE")
     title_icon_txt:SetPoint("CENTER", 1, 0)
-    title_icon_txt:SetText("D")
+    title_icon_txt:SetText("F")
     title_icon_txt:SetTextColor(THEME.accent[1], THEME.accent[2], THEME.accent[3])
 
     -- Title
@@ -633,7 +633,7 @@ local function create_main_frame()
 
     f.content_top = tab_y - THEME.tab_h - 1
 
-    tinsert(UISpecialFrames, "DiddyAIOSettingsFrame")
+    tinsert(UISpecialFrames, "FluxAIOSettingsFrame")
 
     f:SetScript("OnHide", function() close_active_dropdown() end)
     f:Hide()
@@ -665,7 +665,7 @@ NS.toggle_settings = toggle_settings
 local minimap_angle = 220
 
 local function create_minimap_button()
-    local btn = CreateFrame("Button", "DiddyAIOMinimapBtn", Minimap)
+    local btn = CreateFrame("Button", "FluxAIOMinimapBtn", Minimap)
     btn:SetSize(32, 32)
     btn:SetFrameStrata("MEDIUM")
     btn:SetFrameLevel(8)
@@ -678,7 +678,7 @@ local function create_minimap_button()
     local txt = btn:CreateFontString(nil, "ARTWORK")
     txt:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
     txt:SetPoint("CENTER", icon, 0, 0)
-    txt:SetText("D")
+    txt:SetText("F")
     txt:SetTextColor(THEME.accent[1], THEME.accent[2], THEME.accent[3])
 
     local border = btn:CreateTexture(nil, "OVERLAY")
@@ -736,13 +736,13 @@ local minimap_btn = create_minimap_button()
 -- ============================================================================
 -- SLASH COMMANDS
 -- ============================================================================
-SLASH_DIDDYAIO1 = "/diddy"
-SLASH_DIDDYAIO2 = "/daio"
-SlashCmdList["DIDDYAIO"] = function()
+SLASH_FLUXAIO1 = "/flux"
+SLASH_FLUXAIO2 = "/faio"
+SlashCmdList["FLUXAIO"] = function()
     toggle_settings()
 end
 
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Settings]|r Custom UI loaded! Use minimap button or /diddy")
+print("|cFF00FF00[Flux AIO Settings]|r Custom UI loaded! Use minimap button or /flux")

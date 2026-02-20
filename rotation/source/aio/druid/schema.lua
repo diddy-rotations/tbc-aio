@@ -1,5 +1,5 @@
 -- Druid Settings Schema
--- Defines _G.DiddyAIO_SETTINGS_SCHEMA for Druid class
+-- Defines _G.FluxAIO_SETTINGS_SCHEMA for Druid class
 -- Must load before ui.lua, core.lua, and settings.lua
 
 local _G = _G
@@ -22,7 +22,7 @@ A.Data.ProfileEnabled[A.CurrentProfile] = true
 -- Keys are snake_case -- the same string used everywhere:
 --   GetToggle(2, key), SetToggle({2, key, ...}), cached_settings[key], context.settings[key]
 
-_G.DiddyAIO_SETTINGS_SCHEMA = {
+_G.FluxAIO_SETTINGS_SCHEMA = {
     -- Tab 1: General
     [1] = { name = "General", sections = {
         { header = "Shared Combat", settings = {
@@ -206,4 +206,4 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
     }},
 }
 
-print("|cFF00FF00[Diddy AIO]|r Druid schema loaded")
+print("|cFF00FF00[Flux AIO]|r Druid schema loaded")

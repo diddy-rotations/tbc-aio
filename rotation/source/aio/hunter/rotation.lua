@@ -8,9 +8,9 @@ local A = _G.Action
 if not A then return end
 if A.PlayerClass ~= "HUNTER" then return end
 
-local NS = _G.DiddyAIO
+local NS = _G.FluxAIO
 if not NS then
-    print("|cFFFF0000[Diddy AIO Hunter Rotation]|r Core module not loaded!")
+    print("|cFFFF0000[Flux AIO Hunter Rotation]|r Core module not loaded!")
     return
 end
 
@@ -531,4 +531,4 @@ rotation_registry:register("ranged", strategies)
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Hunter]|r Rotation module loaded (" .. #strategies .. " strategies)")
+print("|cFF00FF00[Flux AIO Hunter]|r Rotation module loaded (" .. #strategies .. " strategies)")

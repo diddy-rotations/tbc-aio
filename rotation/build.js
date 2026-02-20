@@ -1,5 +1,5 @@
 /**
- * Diddy AIO Build Script
+ * Flux AIO Build Script
  *
  * Discovers class modules, builds CodeSnippets, and writes TMW profiles.
  * Used both as a CLI tool and as a module imported by dev-watch.
@@ -141,7 +141,7 @@ function discoverModules(className, aioDir) {
             // Insert remaining class files (Order 7) before main
             for (const f of remainingClass) {
                 modules.push({
-                    name: `Diddy_${toPascalCase(className)}_${toPascalCase(f)}`,
+                    name: `Flux_${toPascalCase(className)}_${toPascalCase(f)}`,
                     order: ORDER_MAP[f] || 7,
                     filePath: path.join(classDir, f),
                 });
@@ -151,7 +151,7 @@ function discoverModules(className, aioDir) {
         if (slot.slot === 'shared') {
             if (sharedFiles.includes(slot.source)) {
                 modules.push({
-                    name: `Diddy_${toPascalCase(slot.source)}`,
+                    name: `Flux_${toPascalCase(slot.source)}`,
                     order: ORDER_MAP[slot.source],
                     filePath: path.join(aioDir, slot.source),
                 });
@@ -160,7 +160,7 @@ function discoverModules(className, aioDir) {
             // class-specific
             if (classFiles.includes(slot.source)) {
                 modules.push({
-                    name: `Diddy_${toPascalCase(className)}_${toPascalCase(slot.source)}`,
+                    name: `Flux_${toPascalCase(className)}_${toPascalCase(slot.source)}`,
                     order: ORDER_MAP[slot.source],
                     filePath: path.join(classDir, slot.source),
                 });
@@ -188,7 +188,7 @@ function getProfileName(className, config) {
     if (config && config.profiles && config.profiles[className]) {
         return config.profiles[className];
     }
-    return `Diddy ${className.charAt(0).toUpperCase() + className.slice(1)}`;
+    return `Flux ${className.charAt(0).toUpperCase() + className.slice(1)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -477,7 +477,7 @@ function listProfileNames(lines) {
 
 /**
  * Purge profiles from SV that don't match any discovered class.
- * Only purges profiles matching the "Diddy *" naming convention.
+ * Only purges profiles matching the "Flux *" naming convention.
  */
 function purgeStaleProfiles(lines, validNames, config) {
     const allNames = listProfileNames(lines);
@@ -488,7 +488,7 @@ function purgeStaleProfiles(lines, validNames, config) {
         if (validNames.has(name)) continue;
 
         // Check if this is a managed profile (matches our naming convention or config overrides)
-        const isManaged = name.startsWith('Diddy ') ||
+        const isManaged = name.startsWith('Flux ') ||
             (config && config.profiles && Object.values(config.profiles).includes(name));
 
         if (!isManaged) continue;

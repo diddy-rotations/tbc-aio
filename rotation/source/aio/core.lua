@@ -1,4 +1,4 @@
--- Diddy AIO - Core Module
+-- Flux AIO - Core Module
 -- Generic rotation engine: namespace, settings, utilities, registry
 -- Class-agnostic: class files register via rotation_registry:register_class()
 
@@ -14,21 +14,21 @@ local UnitAffectingCombat = _G.UnitAffectingCombat
 local A = _G.Action
 
 if not A then
-   print("|cFFFF0000[Diddy AIO]|r Action/Textfiles framework not loaded!")
+   print("|cFFFF0000[Flux AIO]|r Action/Textfiles framework not loaded!")
    return
 end
 
 if not A.Data.ProfileEnabled[A.CurrentProfile] then
-   print("|cFFFF0000[Diddy AIO]|r WARNING: ProfileEnabled is not set!")
-   print("|cFFFF0000[Diddy AIO]|r Did you install the schema snippet first?")
+   print("|cFFFF0000[Flux AIO]|r WARNING: ProfileEnabled is not set!")
+   print("|cFFFF0000[Flux AIO]|r Did you install the schema snippet first?")
    return
 end
 
 -- ============================================================================
 -- GLOBAL NAMESPACE CREATION
 -- ============================================================================
-_G.DiddyAIO = _G.DiddyAIO or {}
-local NS = _G.DiddyAIO
+_G.FluxAIO = _G.FluxAIO or {}
+local NS = _G.FluxAIO
 
 -- Base framework references (available before class Actions are defined)
 local Player = A.Player
@@ -224,7 +224,7 @@ NS.is_spell_available = is_spell_available
 -- ============================================================================
 -- REFRESH SETTINGS (schema-driven)
 -- ============================================================================
-local SETTINGS_SCHEMA = _G.DiddyAIO_SETTINGS_SCHEMA
+local SETTINGS_SCHEMA = _G.FluxAIO_SETTINGS_SCHEMA
 
 local function refresh_settings()
    local now = GetTime()
@@ -254,9 +254,9 @@ local function refresh_settings()
    end
 
    if debug_mode and #changed_list > 0 then
-      print("|cFF00FFFF[Diddy AIO]|r Settings changed at " .. format("%.1f", now))
+      print("|cFF00FFFF[Flux AIO]|r Settings changed at " .. format("%.1f", now))
       for _, change in ipairs(changed_list) do
-         print("|cFF00FFFF[Diddy AIO]|r   " .. change)
+         print("|cFF00FFFF[Flux AIO]|r   " .. change)
       end
    end
 
@@ -313,7 +313,7 @@ end
 local function CreateDebugLogFrame()
    if DebugLogFrame then return DebugLogFrame end
 
-   local f = CreateFrame("Frame", "DiddyAIODebugFrame", UIParent, "BackdropTemplate")
+   local f = CreateFrame("Frame", "FluxAIODebugFrame", UIParent, "BackdropTemplate")
    f:SetSize(500, 300)
    f:SetPoint("TOPLEFT", 50, -100)
    f:SetBackdrop(DBG_BACKDROP)
@@ -330,7 +330,7 @@ local function CreateDebugLogFrame()
    -- Title
    local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
    title:SetPoint("TOPLEFT", 12, -8)
-   title:SetText("Diddy AIO Debug Log")
+   title:SetText("Flux AIO Debug Log")
    title:SetTextColor(DBG_THEME.accent[1], DBG_THEME.accent[2], DBG_THEME.accent[3])
 
    -- Close button
@@ -390,7 +390,7 @@ local function CreateDebugLogFrame()
    f.textDisplay = textDisplay
 
    -- Copy popup
-   local copyPopup = CreateFrame("Frame", "DiddyAIOCopyPopup", UIParent, "BackdropTemplate")
+   local copyPopup = CreateFrame("Frame", "FluxAIOCopyPopup", UIParent, "BackdropTemplate")
    copyPopup:SetSize(450, 200)
    copyPopup:SetPoint("CENTER")
    copyPopup:SetBackdrop(DBG_BACKDROP)
@@ -483,7 +483,7 @@ local function CreateDebugLogFrame()
    -- Hint text
    local hint = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
    hint:SetPoint("BOTTOMLEFT", 8, 8)
-   hint:SetText("/diddylog to toggle")
+   hint:SetText("/fluxlog to toggle")
    hint:SetTextColor(DBG_THEME.text_dim[1], DBG_THEME.text_dim[2], DBG_THEME.text_dim[3])
 
    f:Hide()
@@ -528,10 +528,10 @@ end
 NS.CreateDebugLogFrame = CreateDebugLogFrame
 NS.RefreshDebugLogFrame = RefreshDebugLogFrame
 
--- /diddylog slash command
-SLASH_DIDDYLOG1 = "/diddylog"
-SLASH_DIDDYLOG2 = "/dlog"
-SlashCmdList["DIDDYLOG"] = function()
+-- /fluxlog slash command
+SLASH_FLUXLOG1 = "/fluxlog"
+SLASH_FLUXLOG2 = "/flog"
+SlashCmdList["FLUXLOG"] = function()
    if not DebugLogFrame then
       CreateDebugLogFrame()
    end
@@ -707,7 +707,7 @@ end
 function rotation_registry:register(playstyle, strategies, config)
    local map = self.strategy_maps[playstyle]
    if not map then
-      print("|cFFFF0000[Diddy AIO]|r ERROR: Unknown playstyle: " .. tostring(playstyle))
+      print("|cFFFF0000[Flux AIO]|r ERROR: Unknown playstyle: " .. tostring(playstyle))
       return
    end
 
@@ -820,4 +820,4 @@ NS.named = named
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Core]|r Module loaded")
+print("|cFF00FF00[Flux AIO Core]|r Module loaded")
