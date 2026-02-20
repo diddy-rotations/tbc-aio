@@ -2,7 +2,7 @@
 
 A multi-class WoW TBC rotation addon built on the GGL Action/Textfiles framework. Currently supports **Druid** (all forms) and **Hunter**.
 
-**Website & Docs** — [flux-aio.github.io/tbc](https://flux-aio.github.io/tbc)
+**Website & Docs** — [flux-rotations.github.io/tbc](https://flux-rotations.github.io/tbc)
 
 ## Project Structure
 
