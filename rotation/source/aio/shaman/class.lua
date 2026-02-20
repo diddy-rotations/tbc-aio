@@ -183,17 +183,17 @@ local totem_state = {
     air_remaining = 0,
 }
 
--- Slot key lookup (avoid string concat in combat)
-local SLOT_KEYS = { "fire", "earth", "water", "air" }
+-- Pre-computed field name keys (avoid string concat in combat hot path)
+local SLOT_ACTIVE_KEYS = { "fire_active", "earth_active", "water_active", "air_active" }
+local SLOT_REMAINING_KEYS = { "fire_remaining", "earth_remaining", "water_remaining", "air_remaining" }
 
 local function refresh_totem_state()
     local now = GetTime()
     for slot = 1, 4 do
         local have, name, start, dur = GetTotemInfo(slot)
         local active = have and name ~= "" and name ~= nil
-        local key = SLOT_KEYS[slot]
-        totem_state[key .. "_active"] = active
-        totem_state[key .. "_remaining"] = active and ((start + dur) - now) or 0
+        totem_state[SLOT_ACTIVE_KEYS[slot]] = active
+        totem_state[SLOT_REMAINING_KEYS[slot]] = active and ((start + dur) - now) or 0
     end
 end
 
@@ -321,7 +321,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Shaman",
-    version = "v1.2.3",
+    version = "v1.2.4",
     playstyles = { "elemental", "enhancement", "restoration" },
     idle_playstyle_name = nil,
 

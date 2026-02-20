@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "ROGUE" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Subtlety]|r Core module not loaded!")
@@ -40,6 +43,7 @@ local subtlety_state = {
     hemo_debuff_active = false,
     shadowstep_buff_active = false,
     master_of_subtlety_active = false,
+    expose_armor_active = false,
     pooling = false,
 }
 
@@ -56,6 +60,7 @@ local function get_subtlety_state(context)
     subtlety_state.hemo_debuff_active = (Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.HEMORRHAGE) or 0) > 0
     subtlety_state.shadowstep_buff_active = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.SHADOWSTEP_BUFF) or 0) > 0
     subtlety_state.master_of_subtlety_active = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.MASTER_OF_SUBTLETY) or 0) > 0
+    subtlety_state.expose_armor_active = (Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.EXPOSE_ARMOR) or 0) > 0
 
     return subtlety_state
 end
@@ -196,7 +201,10 @@ local Subtlety_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
-        return true
+        if A.BloodFury:IsReady(PLAYER_UNIT) then return true end
+        if A.Berserking:IsReady(PLAYER_UNIT) then return true end
+        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
+        return false
     end,
 
     execute = function(icon, context, state)
@@ -213,7 +221,29 @@ local Subtlety_Racial = {
     end,
 }
 
--- [7] Rupture — at 5 CP, not active, TTD > threshold
+-- [7] Expose Armor — at 5 CP, debuff not active
+local Subtlety_ExposeArmor = {
+    requires_combat = true,
+    requires_enemy = true,
+    requires_stealth = false,
+    setting_key = "use_expose_armor",
+    min_cp = 5,
+
+    matches = function(context, state)
+        if state.pooling then return false end
+        return not state.expose_armor_active
+    end,
+
+    execute = function(icon, context, state)
+        if context.energy >= Constants.ENERGY.EXPOSE_ARMOR and A.ExposeArmor:IsReady(TARGET_UNIT) then
+            return A.ExposeArmor:Show(icon), format("[SUBTLETY] Expose Armor - CP: %d", context.cp)
+        end
+        state.pooling = true
+        return nil
+    end,
+}
+
+-- [8] Rupture — at 5 CP, not active, TTD > threshold
 local Subtlety_Rupture = {
     requires_combat = true,
     requires_enemy = true,
@@ -222,6 +252,7 @@ local Subtlety_Rupture = {
     min_cp = 5,
 
     matches = function(context, state)
+        if state.pooling then return false end
         if state.rupture_active and state.rupture_duration >= 2 then return false end
         local min_ttd = context.settings.subtlety_rupture_min_ttd or 12
         if context.ttd < min_ttd then return false end
@@ -288,6 +319,7 @@ rotation_registry:register("subtlety", {
     named("Preparation",    Subtlety_Preparation),
     named("Trinkets",       Subtlety_Trinkets),
     named("Racial",         Subtlety_Racial),
+    named("ExposeArmor",    Subtlety_ExposeArmor),
     named("Rupture",        Subtlety_Rupture),
     named("Eviscerate",     Subtlety_Eviscerate),
     named("Hemorrhage",     Subtlety_Hemorrhage),
@@ -306,4 +338,4 @@ end -- scope block
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Rogue]|r Subtlety strategies registered (9 strategies)")
+print("|cFF00FF00[Diddy AIO Rogue]|r Subtlety strategies registered (10 strategies)")

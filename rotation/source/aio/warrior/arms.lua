@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "WARRIOR" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Arms]|r Core module not loaded!")
@@ -303,10 +306,6 @@ local Arms_VictoryRush = {
     requires_enemy = true,
     spell = A.VictoryRush,
 
-    matches = function(context, state)
-        return true
-    end,
-
     execute = function(icon, context, state)
         return try_cast(A.VictoryRush, icon, TARGET_UNIT, "[ARMS] Victory Rush")
     end,
@@ -321,10 +320,10 @@ rotation_registry:register("arms", {
     named("Whirlwind",       Arms_Whirlwind),
     named("SweepingStrikes", Arms_SweepingStrikes),
     named("Execute",         Arms_Execute),
+    named("Overpower",       Arms_Overpower),
     named("SunderMaintain",  Arms_SunderMaintain),
     named("ThunderClap",     Arms_ThunderClap),
     named("DemoShout",       Arms_DemoShout),
-    named("Overpower",       Arms_Overpower),
     named("Slam",            Arms_Slam),
     named("VictoryRush",     Arms_VictoryRush),
     named("HeroicStrike",    Arms_HeroicStrike),

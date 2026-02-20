@@ -225,7 +225,7 @@ rotation_registry:register_middleware({
 -- ============================================================================
 rotation_registry:register_middleware({
     name = "Shaman_CurePoison",
-    priority = 200,
+    priority = 350,
 
     matches = function(context)
         if not context.settings.use_cure_poison then return false end
@@ -248,7 +248,7 @@ rotation_registry:register_middleware({
 -- ============================================================================
 rotation_registry:register_middleware({
     name = "Shaman_CureDisease",
-    priority = 195,
+    priority = 340,
 
     matches = function(context)
         if not context.settings.use_cure_disease then return false end
@@ -271,7 +271,7 @@ rotation_registry:register_middleware({
 -- ============================================================================
 rotation_registry:register_middleware({
     name = "Shaman_Purge",
-    priority = 190,
+    priority = 200,
 
     matches = function(context)
         if not context.settings.use_purge then return false end
@@ -301,23 +301,35 @@ rotation_registry:register_middleware({
         if context.in_combat then return false end
         if context.is_mounted then return false end
         local playstyle = context.settings.playstyle or "elemental"
-        if playstyle ~= "enhancement" then return false end
-        -- Check if MH or OH imbue is missing
-        -- GetWeaponEnchantInfo() returns: hasMainHandEnchant, mainHandExpiration, mainHandCharges, hasOffHandEnchant, ...
-        local hasMH, _, _, hasOH = _G.GetWeaponEnchantInfo()
-        if not hasMH or not hasOH then return true end
+        if playstyle ~= "enhancement" and playstyle ~= "elemental" then return false end
+        local hasMH, _, _, _, hasOH = _G.GetWeaponEnchantInfo()
+        if playstyle == "enhancement" then
+            -- Enh: MH (Windfury) + OH (Flametongue)
+            if not hasMH or not hasOH then return true end
+        else
+            -- Ele: MH (Flametongue) only
+            if not hasMH then return true end
+        end
         return false
     end,
 
     execute = function(icon, context)
-        local hasMH, _, _, hasOH = _G.GetWeaponEnchantInfo()
-        -- MH: Windfury Weapon
-        if not hasMH and A.WindfuryWeapon:IsReady(PLAYER_UNIT) then
-            return A.WindfuryWeapon:Show(icon), "[MW] Windfury Weapon (MH)"
-        end
-        -- OH: Flametongue Weapon
-        if not hasOH and A.FlametongueWeapon:IsReady(PLAYER_UNIT) then
-            return A.FlametongueWeapon:Show(icon), "[MW] Flametongue Weapon (OH)"
+        local playstyle = context.settings.playstyle or "elemental"
+        local hasMH, _, _, _, hasOH = _G.GetWeaponEnchantInfo()
+        if playstyle == "enhancement" then
+            -- MH: Windfury Weapon
+            if not hasMH and A.WindfuryWeapon:IsReady(PLAYER_UNIT) then
+                return A.WindfuryWeapon:Show(icon), "[MW] Windfury Weapon (MH)"
+            end
+            -- OH: Flametongue Weapon
+            if not hasOH and A.FlametongueWeapon:IsReady(PLAYER_UNIT) then
+                return A.FlametongueWeapon:Show(icon), "[MW] Flametongue Weapon (OH)"
+            end
+        else
+            -- Ele: MH Flametongue only (caster weapon)
+            if not hasMH and A.FlametongueWeapon:IsReady(PLAYER_UNIT) then
+                return A.FlametongueWeapon:Show(icon), "[MW] Flametongue Weapon (MH)"
+            end
         end
         return nil
     end,

@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "WARLOCK" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Destruction]|r Core module not loaded!")
@@ -92,6 +95,8 @@ local Destro_MaintainImmolate = {
     setting_key = "destro_use_immolate",
 
     matches = function(context, state)
+        -- Only maintain Immolate for fire build (shadow build doesn't need it)
+        if not state.is_fire_build then return false end
         if context.is_moving then return false end
         return state.immolate_duration < 3  -- 2.0s cast (1.5s w/ Bane)
     end,
@@ -111,6 +116,8 @@ local Destro_Conflagrate = {
     setting_key = "destro_use_conflagrate",
 
     matches = function(context, state)
+        -- Only for fire build (shadow build doesn't maintain Immolate)
+        if not state.is_fire_build then return false end
         -- Conflagrate requires Immolate to be on target (it consumes it)
         return state.immolate_duration > 0
     end,
@@ -149,6 +156,9 @@ local Destro_Shadowfury = {
     setting_key = "destro_use_shadowfury",
 
     matches = function(context, state)
+        -- Fire build: use on CD (DPS gain even single-target)
+        if state.is_fire_build then return true end
+        -- Shadow build: only use for AoE
         local threshold = context.settings.aoe_threshold or 0
         if threshold == 0 then return false end
         if context.enemy_count < threshold then return false end

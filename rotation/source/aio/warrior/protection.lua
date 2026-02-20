@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "WARRIOR" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Protection]|r Core module not loaded!")
@@ -28,6 +31,67 @@ local is_spell_available = NS.is_spell_available
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
+
+-- WoW APIs for taunt logic
+local UnitExists = _G.UnitExists
+local UnitIsUnit = _G.UnitIsUnit
+local UnitIsPlayer = _G.UnitIsPlayer
+local UnitClassification = _G.UnitClassification
+local MultiUnits = A.MultiUnits
+
+-- ============================================================================
+-- TAUNT HELPER FUNCTIONS (matching Druid Growl/Challenging Roar pattern)
+-- ============================================================================
+
+-- Reliable aggro check: target is targeting us
+local function has_target_aggro()
+    return UnitExists("targettarget") and UnitIsUnit("targettarget", PLAYER_UNIT)
+end
+
+-- Check if target is CC'd above a threshold
+local function is_target_cc_locked(threshold)
+    local cc_remaining = Unit(TARGET_UNIT):InCC() or 0
+    return cc_remaining > threshold
+end
+
+-- Check if target's target is a healer (for Taunt exception)
+local function is_targettarget_healer()
+    if not UnitExists("targettarget") then return false end
+    return Unit("targettarget"):IsHealer() == true
+end
+
+-- Count nearby enemies by classification
+-- @param max_range: yard radius to check
+-- @param loose_only: if true, only count mobs NOT targeting us
+-- @return elites, bosses, trash
+local function count_nearby_enemies(max_range, loose_only)
+    local plates = MultiUnits:GetActiveUnitPlates()
+    local elites, bosses, trash = 0, 0, 0
+    if not plates then return 0, 0, 0 end
+    for unitID in pairs(plates) do
+        local skip = false
+        if loose_only then
+            local tt = unitID .. "target"
+            if not UnitExists(tt) or UnitIsUnit(tt, PLAYER_UNIT) then
+                skip = true
+            end
+        end
+        if not skip then
+            local range = Unit(unitID):GetRange()
+            if range and range <= max_range then
+                local class = UnitClassification(unitID)
+                if class == "worldboss" then
+                    bosses = bosses + 1
+                elseif class == "elite" or class == "rareelite" then
+                    elites = elites + 1
+                else
+                    trash = trash + 1
+                end
+            end
+        end
+    end
+    return elites, bosses, trash
+end
 
 -- ============================================================================
 -- PROTECTION STATE (context_builder)
@@ -82,11 +146,7 @@ local Prot_ShieldBlock = {
 local Prot_ShieldSlam = {
     requires_combat = true,
     requires_enemy = true,
-
-    matches = function(context, state)
-        -- Shield Slam is a Prot talent — IsReady + is_spell_available handle checks
-        return A.ShieldSlam:IsReady(TARGET_UNIT)
-    end,
+    spell = A.ShieldSlam,
 
     execute = function(icon, context, state)
         return try_cast(A.ShieldSlam, icon, TARGET_UNIT, "[PROT] Shield Slam")
@@ -187,7 +247,68 @@ local Prot_DemoShout = {
     end,
 }
 
--- [8] Heroic Strike / Cleave (off-GCD rage dump)
+-- [8] Taunt (single-target taunt — smart: classification filtering, CC/TTD checks)
+local Prot_Taunt = {
+    requires_combat = true,
+    requires_enemy = true,
+    is_gcd_gated = false,
+    spell = A.Taunt,
+    setting_key = "prot_use_taunt",
+
+    matches = function(context, state)
+        if context.settings.prot_no_taunt then return false end
+        -- Only taunt NPCs, not players
+        if UnitIsPlayer(TARGET_UNIT) then return false end
+        -- Skip if target is CC'd (taunting wastes 10s CD)
+        if is_target_cc_locked(Constants.TAUNT.CC_THRESHOLD) then return false end
+        -- Skip if we already have aggro
+        if has_target_aggro() then return false end
+        -- Only taunt elites and bosses — don't waste 10s CD on trash
+        local classification = UnitClassification(TARGET_UNIT)
+        if classification ~= "elite" and classification ~= "worldboss" and classification ~= "rareelite" then return false end
+        -- TTD check: skip dying elites to save taunt CD
+        -- Exception: ALWAYS taunt if elite is hitting a healer
+        local targeting_healer = is_targettarget_healer()
+        if not targeting_healer and context.ttd < Constants.TAUNT.MIN_TTD then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        local targeting_healer = is_targettarget_healer()
+        local reason = targeting_healer and "HEALER TARGETED" or "taunting"
+        return try_cast(A.Taunt, icon, TARGET_UNIT,
+            format("[PROT] Taunt - Lost aggro - %s (TTD: %.0fs)", reason, context.ttd))
+    end,
+}
+
+-- [9] Challenging Shout (AoE taunt — fires when enough loose enemies by classification)
+local Prot_ChallengingShout = {
+    requires_combat = true,
+    is_gcd_gated = false,
+    spell = A.ChallengingShout,
+    spell_target = PLAYER_UNIT,
+    setting_key = "prot_use_challenging_shout",
+
+    matches = function(context, state)
+        if context.settings.prot_no_taunt then return false end
+        local scan_range = Constants.TAUNT.CSHOUT_RANGE
+        local elites, bosses, trash = count_nearby_enemies(scan_range, true)
+        if elites == 0 and bosses == 0 and trash == 0 then return false end
+        local min_bosses = context.settings.prot_cshout_min_bosses or Constants.TAUNT.CSHOUT_MIN_BOSSES
+        local min_elites = context.settings.prot_cshout_min_elites or Constants.TAUNT.CSHOUT_MIN_ELITES
+        local min_trash  = context.settings.prot_cshout_min_trash or Constants.TAUNT.CSHOUT_MIN_TRASH
+        return bosses >= min_bosses or elites >= min_elites or trash >= min_trash
+    end,
+
+    execute = function(icon, context, state)
+        local scan_range = Constants.TAUNT.CSHOUT_RANGE
+        local elites, bosses, trash = count_nearby_enemies(scan_range, true)
+        return try_cast(A.ChallengingShout, icon, PLAYER_UNIT,
+            format("[PROT] Challenging Shout - EMERGENCY - %d boss, %d elite, %d trash loose", bosses, elites, trash))
+    end,
+}
+
+-- [10] Heroic Strike / Cleave (off-GCD rage dump)
 local Prot_HeroicStrike = {
     requires_combat = true,
     requires_enemy = true,
@@ -219,14 +340,16 @@ local Prot_HeroicStrike = {
 -- REGISTRATION
 -- ============================================================================
 rotation_registry:register("protection", {
-    named("ShieldBlock",    Prot_ShieldBlock),
-    named("ShieldSlam",     Prot_ShieldSlam),
-    named("Revenge",        Prot_Revenge),
-    named("Devastate",      Prot_Devastate),
-    named("SunderArmor",    Prot_SunderArmor),
-    named("ThunderClap",    Prot_ThunderClap),
-    named("DemoShout",      Prot_DemoShout),
-    named("HeroicStrike",   Prot_HeroicStrike),
+    named("ShieldBlock",       Prot_ShieldBlock),
+    named("ShieldSlam",        Prot_ShieldSlam),
+    named("Revenge",           Prot_Revenge),
+    named("Devastate",         Prot_Devastate),
+    named("SunderArmor",       Prot_SunderArmor),
+    named("ThunderClap",       Prot_ThunderClap),
+    named("DemoShout",         Prot_DemoShout),
+    named("Taunt",             Prot_Taunt),
+    named("ChallengingShout",  Prot_ChallengingShout),
+    named("HeroicStrike",      Prot_HeroicStrike),
 }, {
     context_builder = get_prot_state,
 })

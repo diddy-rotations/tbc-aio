@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "MAGE" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Arcane]|r Core module not loaded!")
@@ -97,10 +100,12 @@ local Arcane_IcyVeins = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.IcyVeins,
+    spell_target = PLAYER_UNIT,
     setting_key = "arcane_use_icy_veins",
 
     matches = function(context, state)
-        if context.icy_veins_active then return false end
+        -- Only use CDs during burn phase
+        if not state.is_burning then return false end
         return true
     end,
 
@@ -113,9 +118,12 @@ local Arcane_IcyVeins = {
 local Arcane_ColdSnap = {
     requires_combat = true,
     spell = A.ColdSnap,
+    spell_target = PLAYER_UNIT,
     setting_key = "arcane_use_cold_snap",
 
     matches = function(context, state)
+        -- Only reset CDs during burn phase
+        if not state.is_burning then return false end
         local iv_cd = A.IcyVeins:GetCooldown() or 0
         if iv_cd < 20 then return false end
         return true
@@ -131,10 +139,10 @@ local Arcane_ArcanePower = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.ArcanePower,
+    spell_target = PLAYER_UNIT,
     setting_key = "arcane_use_arcane_power",
 
     matches = function(context, state)
-        if context.arcane_power_active then return false end
         if not state.is_burning then return false end
         return true
     end,
@@ -149,10 +157,10 @@ local Arcane_PresenceOfMind = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.PresenceOfMind,
+    spell_target = PLAYER_UNIT,
     setting_key = "arcane_use_pom",
 
     matches = function(context, state)
-        if context.pom_active then return false end
         if not state.is_burning then return false end
         return true
     end,
@@ -281,7 +289,7 @@ local Arcane_BurnAB = {
     end,
 }
 
--- [9] Conserve phase — N Arcane Blasts per cycle
+-- [9] Conserve phase — N Arcane Blasts per cycle (use ab_stacks as cast counter)
 local Arcane_ConserveAB = {
     requires_combat = true,
     requires_enemy = true,
@@ -290,20 +298,17 @@ local Arcane_ConserveAB = {
     matches = function(context, state)
         if context.is_moving then return false end
         if not state.is_conserving then return false end
+        -- Use ab_stacks as the reliable cast counter (0-3 stacks tracks AB casts)
         local max_casts = context.settings.arcane_blasts_between_fillers or Constants.ARCANE.DEFAULT_BLASTS_BEFORE_FILLER
-        if state.casts_this_cycle >= max_casts then return false end
+        if context.ab_stacks >= max_casts then return false end
         return true
     end,
 
     execute = function(icon, context, state)
-        local result = try_cast(A.ArcaneBlast, icon, TARGET_UNIT,
+        return try_cast(A.ArcaneBlast, icon, TARGET_UNIT,
             format("[ARCANE] Arcane Blast (CONSERVE %d/%d)",
-                state.casts_this_cycle + 1,
+                context.ab_stacks + 1,
                 context.settings.arcane_blasts_between_fillers or Constants.ARCANE.DEFAULT_BLASTS_BEFORE_FILLER))
-        if result then
-            arcane_casts_this_cycle = arcane_casts_this_cycle + 1
-        end
-        return result
     end,
 }
 

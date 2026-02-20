@@ -96,7 +96,23 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [2] PW:S on tank (if no Weakened Soul)
+    -- [2] Emergency Flash Heal (critically low target)
+    named("EmergencyFlashHeal", {
+        matches = function(context, state)
+            if not context.in_combat then return false end
+            if context.is_moving then return false end
+            local threshold = context.settings.disc_emergency_hp or 25
+            return state.lowest_hp < threshold and state.lowest_unit ~= nil
+        end,
+        execute = function(icon, context, state)
+            if A.FlashHeal:IsReady(state.lowest_unit) then
+                return A.FlashHeal:Show(icon), format("[DISC] Emergency FH -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
+            end
+            return nil
+        end,
+    }),
+
+    -- [3] PW:S on tank (if no Weakened Soul)
     named("ShieldTank", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -115,7 +131,7 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [3] Prayer of Mending (instant, 10s CD)
+    -- [4] Prayer of Mending (instant, 10s CD)
     named("PrayerOfMending", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -131,7 +147,7 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [4] Inner Focus + Greater Heal (off-GCD trigger + free GH)
+    -- [5] Inner Focus + Greater Heal (off-GCD trigger + free GH)
     named("InnerFocusGreaterHeal", {
         is_gcd_gated = false,
         matches = function(context, state)
@@ -151,7 +167,7 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [5] Power Infusion (off-GCD, self or focus)
+    -- [6] Power Infusion (off-GCD, self or focus)
     named("PowerInfusion", {
         is_gcd_gated = false,
         matches = function(context, state)
@@ -170,23 +186,48 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [6] Emergency Flash Heal
-    named("EmergencyFlashHeal", {
+    -- [7] Trinkets (off-GCD)
+    named("Trinkets", {
+        is_gcd_gated = false,
         matches = function(context, state)
             if not context.in_combat then return false end
-            if context.is_moving then return false end
-            local threshold = context.settings.disc_emergency_hp or 25
-            return state.lowest_hp < threshold and state.lowest_unit ~= nil
+            if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
+            if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
+            return false
         end,
         execute = function(icon, context, state)
-            if A.FlashHeal:IsReady(state.lowest_unit) then
-                return A.FlashHeal:Show(icon), format("[DISC] Emergency FH -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
+            if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
+                return A.Trinket1:Show(icon), "[DISC] Trinket 1"
+            end
+            if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
+                return A.Trinket2:Show(icon), "[DISC] Trinket 2"
             end
             return nil
         end,
     }),
 
-    -- [7] PW:S on non-tank (if not tank-only mode)
+    -- [8] Racial (off-GCD)
+    named("Racial", {
+        is_gcd_gated = false,
+        setting_key = "use_racial",
+        matches = function(context, state)
+            if not context.in_combat then return false end
+            if is_spell_available(A.Berserking) and A.Berserking:IsReady(PLAYER_UNIT) then return true end
+            if is_spell_available(A.ArcaneTorrent) and A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
+            return false
+        end,
+        execute = function(icon, context, state)
+            if is_spell_available(A.Berserking) and A.Berserking:IsReady(PLAYER_UNIT) then
+                return A.Berserking:Show(icon), "[DISC] Berserking"
+            end
+            if is_spell_available(A.ArcaneTorrent) and A.ArcaneTorrent:IsReady(PLAYER_UNIT) then
+                return A.ArcaneTorrent:Show(icon), "[DISC] Arcane Torrent"
+            end
+            return nil
+        end,
+    }),
+
+    -- [9] PW:S on non-tank (if not tank-only mode)
     named("ShieldOthers", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -206,7 +247,7 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [8] Renew on tank (maintain HoT)
+    -- [10] Renew on tank (maintain HoT)
     named("RenewTank", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -226,7 +267,7 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [9] Greater Heal (sustained healing, with Inner Focus buff if active)
+    -- [11] Greater Heal (sustained healing, with Inner Focus buff if active)
     named("GreaterHeal", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -243,7 +284,7 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [10] Flash Heal (moderate urgency)
+    -- [12] Flash Heal (moderate urgency)
     named("FlashHeal", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -260,7 +301,7 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [11] Renew on injured (HoT spread)
+    -- [13] Renew on injured (HoT spread)
     named("RenewSpread", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -278,7 +319,7 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [12] Prayer of Healing (group damage)
+    -- [14] Prayer of Healing (group damage)
     named("PrayerOfHealing", {
         matches = function(context, state)
             if not context.in_combat then return false end

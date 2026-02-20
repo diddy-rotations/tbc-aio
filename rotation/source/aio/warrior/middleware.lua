@@ -91,7 +91,7 @@ rotation_registry:register_middleware({
     end,
 
     execute = function(icon, context)
-        local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
+        local castLeft = Unit(TARGET_UNIT):IsCastingRemains()
         if castLeft and castLeft > 0 then
             if A.SpellReflection:IsReady(PLAYER_UNIT) then
                 return A.SpellReflection:Show(icon), format("[MW] Spell Reflection - Cast: %.1fs", castLeft)

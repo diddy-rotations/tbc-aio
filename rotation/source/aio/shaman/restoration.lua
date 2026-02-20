@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "SHAMAN" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Restoration]|r Core module not loaded!")
@@ -37,8 +40,12 @@ local PARTY_UNITS = { "player", "party1", "party2", "party3", "party4" }
 local RAID_UNITS = {}
 for i = 1, 40 do RAID_UNITS[i] = "raid" .. i end
 
--- Pre-allocated healing target table
+-- Pre-allocated healing target table (pre-populate entries to avoid {} in combat)
+local MAX_HEALING_TARGETS = 40
 local healing_targets = {}
+for i = 1, MAX_HEALING_TARGETS do
+    healing_targets[i] = { unit = nil, hp = 100, is_player = false }
+end
 local healing_targets_count = 0
 
 local function is_in_raid()
@@ -79,11 +86,6 @@ local function scan_healing_targets()
             if in_range then
                 healing_targets_count = healing_targets_count + 1
                 local idx = healing_targets_count
-
-                if not healing_targets[idx] then
-                    healing_targets[idx] = {}
-                end
-
                 local entry = healing_targets[idx]
                 entry.unit = unit
                 entry.hp = _G.UnitHealth(unit) / _G.UnitHealthMax(unit) * 100
@@ -93,12 +95,19 @@ local function scan_healing_targets()
     end
 
     -- Sort by HP ascending (most injured first)
+    -- Only sort the populated portion; comparator pre-allocated at module level
     if healing_targets_count > 1 then
-        table.sort(healing_targets, function(a, b)
-            if not a or not a.unit then return false end
-            if not b or not b.unit then return true end
-            return a.hp < b.hp
-        end)
+        -- Manual insertion sort on small array (avoids table.sort closure allocation)
+        for i = 2, healing_targets_count do
+            local val = healing_targets[i]
+            local val_hp = val.hp
+            local j = i - 1
+            while j >= 1 and healing_targets[j].hp > val_hp do
+                healing_targets[j + 1] = healing_targets[j]
+                j = j - 1
+            end
+            healing_targets[j + 1] = val
+        end
     end
 end
 
@@ -159,11 +168,10 @@ local Resto_NaturesSwiftnessEmergency = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.NaturesSwiftness,
+    spell_target = PLAYER_UNIT,  -- NS is a self-buff, not cast on target
     setting_key = "resto_use_natures_swiftness",
 
     matches = function(context, state)
-        -- NS already active: we should use it (HW is next)
-        if state.natures_swiftness_active then return false end
         local threshold = context.settings.resto_ns_hp_threshold or 30
 
         -- Check focus target first (tank)
@@ -340,6 +348,30 @@ local Resto_Trinkets = {
     end,
 }
 
+-- [5b] Racial (off-GCD)
+local Resto_Racial = {
+    requires_combat = true,
+    is_gcd_gated = false,
+    setting_key = "use_racial",
+
+    matches = function(context, state)
+        -- Caster shaman uses SP Blood Fury or Berserking
+        if A.BloodFurySP:IsReady(PLAYER_UNIT) then return true end
+        if A.Berserking:IsReady(PLAYER_UNIT) then return true end
+        return false
+    end,
+
+    execute = function(icon, context, state)
+        if A.BloodFurySP:IsReady(PLAYER_UNIT) then
+            return A.BloodFurySP:Show(icon), "[RESTO] Blood Fury (SP)"
+        end
+        if A.Berserking:IsReady(PLAYER_UNIT) then
+            return A.Berserking:Show(icon), "[RESTO] Berserking"
+        end
+        return nil
+    end,
+}
+
 -- [6] Chain Heal — primary healing spell (bounces to 3 targets, smart targeting)
 local Resto_ChainHeal = {
     requires_combat = true,
@@ -436,6 +468,7 @@ rotation_registry:register("restoration", {
     named("ManaTide",          Resto_ManaTide),
     named("TotemManagement",   Resto_TotemManagement),
     named("Trinkets",          Resto_Trinkets),
+    named("Racial",            Resto_Racial),
     named("ChainHeal",         Resto_ChainHeal),
     named("LesserHealingWave", Resto_LesserHealingWave),
     named("HealingWave",       Resto_HealingWave),

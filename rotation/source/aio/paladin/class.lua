@@ -179,6 +179,12 @@ local Constants = {
         PROT_CONSEC_PCT = 30, -- Prot is less aggressive on mana gating
     },
 
+    -- Taunt thresholds (matching Druid Growl/Challenging Roar pattern)
+    TAUNT = {
+        CC_THRESHOLD       = 2,     -- Skip CC'd mobs with > 2s remaining
+        MIN_TTD            = 4,     -- Skip dying mobs (unless targeting healer)
+    },
+
     -- All aura buff IDs for checking if any aura is active
     AURA_BUFF_IDS = { 27149, 27150, 19746, 20218, 27151, 27152, 27153, 32223 },
 
@@ -284,7 +290,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Paladin",
-    version = "v1.2.3",
+    version = "v1.2.4",
     playstyles = { "retribution", "protection", "holy" },
     idle_playstyle_name = nil,
 

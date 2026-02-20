@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "PALADIN" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Protection]|r Core module not loaded!")
@@ -29,8 +32,12 @@ local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
 
--- WoW API for creature type check (Exorcism: Undead/Demon only)
+-- WoW APIs
 local UnitCreatureType = _G.UnitCreatureType
+local UnitExists = _G.UnitExists
+local UnitIsUnit = _G.UnitIsUnit
+local UnitIsPlayer = _G.UnitIsPlayer
+local UnitClassification = _G.UnitClassification
 
 -- ============================================================================
 -- PROTECTION STATE (context_builder)
@@ -62,6 +69,27 @@ local function get_prot_state(context)
     prot_state.can_exorcism = context.mana_pct > Constants.MANA.EXORCISM_PCT
 
     return prot_state
+end
+
+-- ============================================================================
+-- TAUNT HELPER FUNCTIONS (matching Druid Growl/Warrior Taunt pattern)
+-- ============================================================================
+
+-- Reliable aggro check: target is targeting us
+local function has_target_aggro()
+    return UnitExists("targettarget") and UnitIsUnit("targettarget", PLAYER_UNIT)
+end
+
+-- Check if target is CC'd above a threshold
+local function is_target_cc_locked(threshold)
+    local cc_remaining = Unit(TARGET_UNIT):InCC() or 0
+    return cc_remaining > threshold
+end
+
+-- Check if targettarget (the friendly being attacked) is a healer
+local function is_targettarget_healer()
+    if not UnitExists("targettarget") then return false end
+    return Unit("targettarget"):IsHealer() == true
 end
 
 -- ============================================================================
@@ -110,11 +138,11 @@ local Prot_AvengingWrath = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.AvengingWrath,
+    spell_target = PLAYER_UNIT,
+    setting_key = "use_avenging_wrath",
 
     matches = function(context, state)
-        if not context.settings.use_avenging_wrath then return false end
         if context.forbearance_active then return false end
-        if context.avenging_wrath_active then return false end
         return true
     end,
 
@@ -242,6 +270,7 @@ local Prot_Exorcism = {
 
     matches = function(context, state)
         if not context.settings.prot_use_exorcism then return false end
+        if context.is_moving then return false end
         if not state.target_undead_or_demon then return false end
         if not state.can_exorcism then return false end
         return true
@@ -306,28 +335,42 @@ local Prot_AvengersShield = {
     end,
 }
 
--- [13] Righteous Defense (taunt — target a friendly being attacked)
+-- [13] Righteous Defense (smart taunt — classification filtering, CC/TTD checks)
+-- RD targets a FRIENDLY unit and taunts up to 3 enemies attacking that friendly.
+-- Flow: our target (enemy) lost aggro on us → cast RD on targettarget (the friendly it's attacking).
 local Prot_RighteousDefense = {
     requires_combat = true,
+    requires_enemy = true,
     spell = A.RighteousDefense,
     setting_key = "prot_use_righteous_defense",
 
     matches = function(context, state)
-        if not context.settings.prot_use_righteous_defense then return false end
-        -- Check if focus target exists and is being attacked by our target
-        if not _G.UnitExists("focus") then return false end
-        if Unit("focus"):IsDead() then return false end
-        -- Focus must be under attack (focus's target is attacking them, not us)
-        local focus_target = "focustarget"
-        if not _G.UnitExists(focus_target) then return false end
-        -- If focus's attacker is NOT targeting us, they need a taunt
-        if Unit(focus_target):IsUnit(PLAYER_UNIT) then return false end
+        if context.settings.prot_no_taunt then return false end
+        -- Only taunt NPCs, not players
+        if UnitIsPlayer(TARGET_UNIT) then return false end
+        -- Skip if target is CC'd (taunting wastes 15s CD)
+        if is_target_cc_locked(Constants.TAUNT.CC_THRESHOLD) then return false end
+        -- Skip if we already have aggro
+        if has_target_aggro() then return false end
+        -- Only taunt elites and bosses — don't waste 15s CD on trash
+        local classification = UnitClassification(TARGET_UNIT)
+        if classification ~= "elite" and classification ~= "worldboss" and classification ~= "rareelite" then return false end
+        -- Need a valid friendly to cast RD on (targettarget = the party member our target is attacking)
+        if not UnitExists("targettarget") then return false end
+        -- TTD check: skip dying mobs to save taunt CD
+        -- Exception: ALWAYS taunt if mob is attacking a healer
+        local targeting_healer = is_targettarget_healer()
+        if not targeting_healer and context.ttd < Constants.TAUNT.MIN_TTD then return false end
         return true
     end,
 
     execute = function(icon, context, state)
-        if A.RighteousDefense:IsReady("focus") then
-            return A.RighteousDefense:Show(icon), "[PROT] Righteous Defense (taunt)"
+        -- Cast RD on the friendly being attacked (targettarget)
+        if A.RighteousDefense:IsReady("targettarget") then
+            local targeting_healer = is_targettarget_healer()
+            local reason = targeting_healer and "HEALER TARGETED" or "taunting"
+            return A.RighteousDefense:Show(icon),
+                format("[PROT] Righteous Defense - Lost aggro - %s (TTD: %.0fs)", reason, context.ttd)
         end
         return nil
     end,
@@ -338,15 +381,15 @@ local Prot_RighteousDefense = {
 -- ============================================================================
 rotation_registry:register("protection", {
     named("RighteousFuryCheck",  Prot_RighteousFuryCheck),
-    named("AvengingWrath",       Prot_AvengingWrath),
-    named("Trinket1",            Prot_Trinket1),
-    named("Trinket2",            Prot_Trinket2),
-    named("RighteousDefense",    Prot_RighteousDefense),
-    named("HolyShield",          Prot_HolyShield),
+    named("AvengersShield",      Prot_AvengersShield),       -- pull window (3s) — must fire early
+    named("AvengingWrath",       Prot_AvengingWrath),        -- off-GCD
+    named("Trinket1",            Prot_Trinket1),             -- off-GCD
+    named("Trinket2",            Prot_Trinket2),             -- off-GCD
     named("EstablishSeal",       Prot_EstablishSeal),
-    named("Judgement",           Prot_Judgement),
+    named("HolyShield",          Prot_HolyShield),
     named("Consecration",        Prot_Consecration),
-    named("AvengersShield",      Prot_AvengersShield),
+    named("Judgement",           Prot_Judgement),             -- off-GCD
+    named("RighteousDefense",    Prot_RighteousDefense),
     named("Exorcism",            Prot_Exorcism),
     named("HolyShieldFallback",  Prot_HolyShieldFallback),
     named("HammerOfWrath",       Prot_HammerOfWrath),

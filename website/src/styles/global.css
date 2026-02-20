@@ -318,7 +318,8 @@ code {
   padding: 0.1rem 0.45rem; border-radius: 3px; margin-bottom: 0.75rem;
 }
 .tag-major { background: var(--accent-bg); border: 1px solid var(--accent-border); color: var(--accent-hover); }
-.tag-minor { background: #131316; border: 1px solid var(--border); color: var(--text-dim); }
+.tag-minor { background: #131827; border: 1px solid #1f2d4d; color: #5b9bd5; }
+.tag-patch { background: #0f1f1a; border: 1px solid #1a3d2f; color: var(--green); }
 
 /* FAQ */
 .faq-item { border-bottom: 1px solid var(--border); scroll-margin-top: 60px; }

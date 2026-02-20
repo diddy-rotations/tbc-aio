@@ -8,6 +8,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "PALADIN" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Holy]|r Core module not loaded!")
@@ -37,9 +40,6 @@ local format = string.format
 
 -- Import from Healing module
 local scan_healing_targets = NS.scan_healing_targets
-local get_tank_target = NS.get_tank_target
-local get_lowest_hp_target = NS.get_lowest_hp_target
-local all_members_above_hp = NS.all_members_above_hp
 local get_cleanse_target = NS.get_cleanse_target
 
 -- ============================================================================
@@ -51,7 +51,6 @@ local holy_state = {
     divine_favor_active = false,
     divine_illumination_active = false,
     lowest = nil,           -- lowest HP target entry from scan
-    tank = nil,             -- tank target entry
     emergency_count = 0,    -- targets below critical threshold
     cleanse_target = nil,   -- first target needing dispel
 }
@@ -70,7 +69,6 @@ local function get_holy_state(context)
 
     -- Reset
     holy_state.lowest = nil
-    holy_state.tank = nil
     holy_state.emergency_count = 0
     holy_state.cleanse_target = nil
 
@@ -80,11 +78,6 @@ local function get_holy_state(context)
             -- Lowest HP (targets sorted ascending, first = lowest)
             if not holy_state.lowest then
                 holy_state.lowest = entry
-            end
-
-            -- Tank detection
-            if not holy_state.tank and entry.is_tank then
-                holy_state.tank = entry
             end
 
             -- Emergency count (below 40% HP)
@@ -112,12 +105,12 @@ local Holy_DivineIllumination = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.DivineIllumination,
+    spell_target = PLAYER_UNIT,
+    setting_key = "holy_use_divine_illumination",
 
     matches = function(context, state)
-        if not context.settings.holy_use_divine_illumination then return false end
-        if state.divine_illumination_active then return false end
         -- Use when mana is getting low to save on HL spam
-        if context.mana_pct > 80 then return false end
+        if context.mana_pct > 60 then return false end
         return true
     end,
 
@@ -132,10 +125,10 @@ local Holy_DivineFavor = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.DivineFavor,
+    spell_target = PLAYER_UNIT,
+    setting_key = "holy_use_divine_favor",
 
     matches = function(context, state)
-        if not context.settings.holy_use_divine_favor then return false end
-        if state.divine_favor_active then return false end
         -- Use when someone needs a big heal (emergency)
         if state.emergency_count <= 0 then return false end
         return true
@@ -150,6 +143,7 @@ local Holy_DivineFavor = {
 local Holy_HolyShockHeal = {
     requires_combat = true,
     spell = A.HolyShock,
+    setting_key = "holy_use_holy_shock",
 
     matches = function(context, state)
         if not state.lowest then return false end
@@ -262,6 +256,19 @@ local Holy_JudgementMaintain = {
     end,
 
     execute = function(icon, context, state)
+        local judge_type = context.settings.holy_judge_debuff or "light"
+        -- Ensure correct seal is active before judging (judgement consumes current seal)
+        if judge_type == "light" and not context.seal_light_active then
+            if A.SealOfLight:IsReady(PLAYER_UNIT) then
+                return A.SealOfLight:Show(icon), "[HOLY] Seal of Light (for JoL)"
+            end
+            return nil
+        elseif judge_type == "wisdom" and not context.seal_wisdom_active then
+            if A.SealOfWisdom:IsReady(PLAYER_UNIT) then
+                return A.SealOfWisdom:Show(icon), "[HOLY] Seal of Wisdom (for JoW)"
+            end
+            return nil
+        end
         return try_cast(A.Judgement, icon, TARGET_UNIT, "[HOLY] Judgement (maintain debuff)")
     end,
 }

@@ -197,7 +197,12 @@ local function get_curse_spell(context)
             tongues = A.CurseOfTongues,
         }
     end
-    return CURSE_SPELLS[context.settings.curse_type]
+    local curse_type = context.settings.curse_type
+    -- CoD does zero damage if target dies before 60s tick — fall back to CoA
+    if curse_type == "doom" and context.ttd > 0 and context.ttd < 60 then
+        return CURSE_SPELLS["agony"]
+    end
+    return CURSE_SPELLS[curse_type]
 end
 
 NS.CURSE_DEBUFF_IDS = CURSE_DEBUFF_IDS
@@ -287,7 +292,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Warlock",
-    version = "v1.2.3",
+    version = "v1.2.4",
     playstyles = { "affliction", "demonology", "destruction" },
     idle_playstyle_name = nil,
 

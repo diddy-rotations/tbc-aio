@@ -190,9 +190,19 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "prot_hs_rage_threshold", default = 60, min = 40, max = 90, label = "HS Rage Threshold",
               tooltip = "Queue Heroic Strike above this rage.", format = "%d" },
         }},
-        { header = "Tanking", settings = {
-            { type = "checkbox", key = "prot_no_taunt", default = false, label = "Disable Taunt",
-              tooltip = "Disable Taunt (for off-tank or DPS warrior in tank gear)." },
+        { header = "Taunts", settings = {
+            { type = "checkbox", key = "prot_no_taunt", default = false, label = "Disable Taunts (Off-Tank)",
+              tooltip = "Disables Taunt and Challenging Shout. Use when off-tanking." },
+            { type = "checkbox", key = "prot_use_taunt", default = true, label = "Auto Taunt",
+              tooltip = "Taunt when you lose aggro on an elite or boss." },
+            { type = "checkbox", key = "prot_use_challenging_shout", default = true, label = "Use Challenging Shout",
+              tooltip = "AoE taunt for emergency multi-target aggro loss. 10min CD." },
+            { type = "slider", key = "prot_cshout_min_bosses", default = 1, min = 1, max = 3,
+              label = "C.Shout Min Bosses", tooltip = "Min loose bosses in range to use Challenging Shout.", format = "%d" },
+            { type = "slider", key = "prot_cshout_min_elites", default = 3, min = 1, max = 6,
+              label = "C.Shout Min Elites", tooltip = "Min loose elites in range to use Challenging Shout.", format = "%d" },
+            { type = "slider", key = "prot_cshout_min_trash", default = 5, min = 2, max = 10,
+              label = "C.Shout Min Trash", tooltip = "Min loose trash mobs in range to use Challenging Shout.", format = "%d" },
         }},
     }},
 

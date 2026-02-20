@@ -115,10 +115,10 @@ rotation_registry:register_middleware({
     end,
 
     execute = function(icon, context)
-        -- Only use when we have significant threat (framework threat check)
+        -- Use when we're the tank target or about to pull aggro
+        -- IsTanking returns true when we're highest on threat — use as trigger
         local isTanking = Unit(PLAYER_UNIT):IsTanking(TARGET_UNIT)
-        if not isTanking then return nil end
-        if A.Soulshatter:IsReady(PLAYER_UNIT) then
+        if isTanking and A.Soulshatter:IsReady(PLAYER_UNIT) then
             return A.Soulshatter:Show(icon), "[MW] Soulshatter (threat)"
         end
         return nil

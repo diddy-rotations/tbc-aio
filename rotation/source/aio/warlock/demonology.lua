@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "WARLOCK" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Demonology]|r Core module not loaded!")
@@ -91,7 +94,6 @@ local Demo_FelDomResummon = {
 
 -- [2] Soul Link — maintain pet+player damage sharing buff
 local Demo_SoulLink = {
-    requires_combat = false,
     spell = A.SoulLink,
     setting_key = "demo_use_soul_link",
 
@@ -128,7 +130,6 @@ local Demo_HealthFunnel = {
 
 -- [2] Demonic Sacrifice — sacrifice pet if DS build + no buff active
 local Demo_DemonicSacrifice = {
-    requires_combat = false,  -- Can sacrifice OOC too
     spell = A.DemonicSacrifice,
     setting_key = "demo_use_sacrifice",
 

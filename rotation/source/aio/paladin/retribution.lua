@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "PALADIN" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Retribution]|r Core module not loaded!")
@@ -89,11 +92,11 @@ local Ret_AvengingWrath = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.AvengingWrath,
+    spell_target = PLAYER_UNIT,
+    setting_key = "use_avenging_wrath",
 
     matches = function(context, state)
-        if not context.settings.use_avenging_wrath then return false end
         if context.forbearance_active then return false end
-        if context.avenging_wrath_active then return false end
         return true
     end,
 
@@ -285,6 +288,7 @@ local Ret_Exorcism = {
 
     matches = function(context, state)
         if not context.settings.ret_use_exorcism then return false end
+        if context.is_moving then return false end
         if not state.target_undead_or_demon then return false end
         if not state.can_exorcism then return false end
         -- Don't clip twist window

@@ -237,10 +237,6 @@ rotation_registry:register_middleware({
         if not context.in_combat then return false end
         if not context.settings.use_haste_potion then return false end
         if context.combat_time < 2 then return false end
-        -- Use during Blade Flurry or Adrenaline Rush burst window, or on pull for non-Combat specs
-        local has_bf = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.BLADE_FLURRY) or 0) > 0
-        local has_ar = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.ADRENALINE_RUSH) or 0) > 0
-        if not has_bf and not has_ar and context.combat_time > 3 then return false end
         return true
     end,
 
@@ -255,4 +251,4 @@ rotation_registry:register_middleware({
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Rogue]|r Middleware module loaded (10 entries)")
+print("|cFF00FF00[Diddy AIO Rogue]|r Middleware module loaded (9 entries)")

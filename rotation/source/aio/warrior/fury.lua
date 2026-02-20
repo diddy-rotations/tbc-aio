@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "WARRIOR" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Fury]|r Core module not loaded!")
@@ -326,10 +329,6 @@ local Fury_VictoryRush = {
     requires_enemy = true,
     spell = A.VictoryRush,
 
-    matches = function(context, state)
-        return true
-    end,
-
     execute = function(icon, context, state)
         return try_cast(A.VictoryRush, icon, TARGET_UNIT, "[FURY] Victory Rush")
     end,
@@ -347,8 +346,8 @@ rotation_registry:register("fury", {
     named("SunderMaintain",  Fury_SunderMaintain),
     named("ThunderClap",     Fury_ThunderClap),
     named("DemoShout",       Fury_DemoShout),
-    named("Slam",            Fury_Slam),
     named("Overpower",       Fury_Overpower),
+    named("Slam",            Fury_Slam),
     named("VictoryRush",     Fury_VictoryRush),
     named("Hamstring",       Fury_Hamstring),
     named("HeroicStrike",    Fury_HeroicStrike),

@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "SHAMAN" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Enhancement]|r Core module not loaded!")
@@ -32,32 +35,8 @@ local format = string.format
 local GetTime = _G.GetTime
 
 -- ============================================================================
--- ENHANCEMENT STATE (context_builder)
--- ============================================================================
--- Pre-allocated state table — no inline {} in combat
-local enh_state = {
-    stormstrike_debuff_duration = 0,
-    flame_shock_duration = 0,
-    shamanistic_rage_active = false,
-    shamanistic_focus_active = false,
-    flurry_charges = 0,
-}
-
-local function get_enh_state(context)
-    if context._enh_valid then return enh_state end
-    context._enh_valid = true
-
-    enh_state.stormstrike_debuff_duration = context.stormstrike_debuff
-    enh_state.flame_shock_duration = context.flame_shock_duration
-    enh_state.shamanistic_rage_active = context.shamanistic_rage_active
-    enh_state.shamanistic_focus_active = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.SHAMANISTIC_FOCUS) or 0) > 0
-    enh_state.flurry_charges = Unit(PLAYER_UNIT):HasBuffsStacks(Constants.BUFF_ID.FLURRY) or 0
-
-    return enh_state
-end
-
--- ============================================================================
 -- TOTEM TWIST STATE (module-level, persists across frames)
+-- Must be declared before context_builder so check_combat_reset is available
 -- ============================================================================
 -- Windfury + Grace of Air twist timing
 local wf_twist = {
@@ -90,6 +69,35 @@ local function check_combat_reset(in_combat)
 end
 
 -- ============================================================================
+-- ENHANCEMENT STATE (context_builder)
+-- ============================================================================
+-- Pre-allocated state table — no inline {} in combat
+local enh_state = {
+    stormstrike_debuff_duration = 0,
+    flame_shock_duration = 0,
+    shamanistic_rage_active = false,
+    shamanistic_focus_active = false,
+    flurry_charges = 0,
+}
+
+local function get_enh_state(context)
+    if context._enh_valid then return enh_state end
+    context._enh_valid = true
+
+    -- Reset twist state on combat exit (must be in context_builder, not in
+    -- requires_combat strategies which never see in_combat=false)
+    check_combat_reset(context.in_combat)
+
+    enh_state.stormstrike_debuff_duration = context.stormstrike_debuff
+    enh_state.flame_shock_duration = context.flame_shock_duration
+    enh_state.shamanistic_rage_active = context.shamanistic_rage_active
+    enh_state.shamanistic_focus_active = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.SHAMANISTIC_FOCUS) or 0) > 0
+    enh_state.flurry_charges = Unit(PLAYER_UNIT):HasBuffsStacks(Constants.BUFF_ID.FLURRY) or 0
+
+    return enh_state
+end
+
+-- ============================================================================
 -- STRATEGIES
 -- ============================================================================
 do
@@ -99,10 +107,10 @@ local Enh_ShamanisticRage = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.ShamanisticRage,
+    spell_target = PLAYER_UNIT,
     setting_key = "enh_use_shamanistic_rage",
 
     matches = function(context, state)
-        if state.shamanistic_rage_active then return false end
         local threshold = context.settings.enh_shamanistic_rage_pct or 30
         if context.mana_pct > threshold then return false end
         return true
@@ -166,7 +174,6 @@ local Enh_TotemManagement = {
     requires_combat = true,
 
     matches = function(context, state)
-        check_combat_reset(context.in_combat)
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
 
         -- Fire totem (skip if fire nova twist is handling it)
@@ -387,10 +394,6 @@ local Enh_Stormstrike = {
     spell = A.Stormstrike,
     setting_key = "enh_use_stormstrike",
 
-    matches = function(context, state)
-        return true
-    end,
-
     execute = function(icon, context, state)
         return try_cast(A.Stormstrike, icon, TARGET_UNIT, "[ENH] Stormstrike")
     end,
@@ -421,16 +424,16 @@ local Enh_Shock = {
     execute = function(icon, context, state)
         local s = context.settings
 
-        -- Stormstrike synergy: prefer Earth Shock when SS +20% nature debuff is active
-        if state.stormstrike_debuff_duration > 0 then
-            local result = try_cast(A.EarthShock, icon, TARGET_UNIT, "[ENH] Earth Shock (SS synergy)")
-            if result then return result end
-        end
-
-        -- Flame Shock if weaving and DoT is down
+        -- Flame Shock weaving takes priority — maintain DoT before spending shocks on filler
         if s.enh_weave_flame_shock and state.flame_shock_duration <= 2 then
             local result = try_cast(A.FlameShock, icon, TARGET_UNIT,
                 format("[ENH] Flame Shock - DoT: %.1fs", state.flame_shock_duration))
+            if result then return result end
+        end
+
+        -- Stormstrike synergy: prefer Earth Shock when SS +20% nature debuff is active
+        if state.stormstrike_debuff_duration > 0 then
+            local result = try_cast(A.EarthShock, icon, TARGET_UNIT, "[ENH] Earth Shock (SS synergy)")
             if result then return result end
         end
 
@@ -450,11 +453,8 @@ local Enh_Shock = {
 local Enh_FireElemental = {
     requires_combat = true,
     spell = A.FireElementalTotem,
+    spell_target = PLAYER_UNIT,
     setting_key = "enh_use_fire_elemental",
-
-    matches = function(context, state)
-        return true
-    end,
 
     execute = function(icon, context, state)
         return try_cast(A.FireElementalTotem, icon, PLAYER_UNIT, "[ENH] Fire Elemental Totem")
@@ -482,10 +482,7 @@ local Enh_AoE = {
         if A.MagmaTotem:IsReady(PLAYER_UNIT) then
             return try_cast(A.MagmaTotem, icon, PLAYER_UNIT, "[ENH] Magma Totem (AoE)")
         end
-        -- Chain Lightning if available
-        if A.ChainLightning:IsReady(TARGET_UNIT) then
-            return try_cast(A.ChainLightning, icon, TARGET_UNIT, "[ENH] Chain Lightning (AoE)")
-        end
+        -- Fall through to regular melee rotation (no CL — 2s cast breaks melee momentum)
         return nil
     end,
 }

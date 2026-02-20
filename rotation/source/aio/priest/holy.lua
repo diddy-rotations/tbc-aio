@@ -213,7 +213,25 @@ rotation_registry:register("holy", {
         end,
     }),
 
-    -- [9] Greater Heal (sustained healing, target above flash threshold)
+    -- [9] Inner Focus (off-GCD, fire before Greater Heal)
+    named("InnerFocus", {
+        is_gcd_gated = false,
+        matches = function(context, state)
+            if not context.in_combat then return false end
+            if not context.settings.holy_use_inner_focus then return false end
+            if context.has_inner_focus then return false end
+            if not is_spell_available(A.InnerFocus) then return false end
+            if not A.InnerFocus:IsReady(PLAYER_UNIT) then return false end
+            -- Only use if someone needs healing
+            if not state.lowest_unit then return false end
+            return state.lowest_hp < 80
+        end,
+        execute = function(icon, context, state)
+            return try_cast(A.InnerFocus, icon, PLAYER_UNIT, "[HOLY] Inner Focus (+ Greater Heal)")
+        end,
+    }),
+
+    -- [10] Greater Heal (sustained healing, target above flash threshold)
     named("GreaterHeal", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -231,7 +249,7 @@ rotation_registry:register("holy", {
         end,
     }),
 
-    -- [10] Flash Heal (urgent healing)
+    -- [11] Flash Heal (urgent healing)
     named("FlashHeal", {
         matches = function(context, state)
             if not context.in_combat then return false end
@@ -248,7 +266,48 @@ rotation_registry:register("holy", {
         end,
     }),
 
-    -- [11] Prayer of Healing (group damage)
+    -- [12] Trinkets (off-GCD, fires same frame as GCD heal)
+    named("Trinkets", {
+        is_gcd_gated = false,
+        matches = function(context, state)
+            if not context.in_combat then return false end
+            if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
+            if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
+            return false
+        end,
+        execute = function(icon, context, state)
+            if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
+                return A.Trinket1:Show(icon), "[HOLY] Trinket 1"
+            end
+            if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
+                return A.Trinket2:Show(icon), "[HOLY] Trinket 2"
+            end
+            return nil
+        end,
+    }),
+
+    -- [13] Racial (off-GCD, fires same frame as GCD heal)
+    named("Racial", {
+        is_gcd_gated = false,
+        setting_key = "use_racial",
+        matches = function(context, state)
+            if not context.in_combat then return false end
+            if is_spell_available(A.Berserking) and A.Berserking:IsReady(PLAYER_UNIT) then return true end
+            if is_spell_available(A.ArcaneTorrent) and A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
+            return false
+        end,
+        execute = function(icon, context, state)
+            if is_spell_available(A.Berserking) and A.Berserking:IsReady(PLAYER_UNIT) then
+                return A.Berserking:Show(icon), "[HOLY] Berserking"
+            end
+            if is_spell_available(A.ArcaneTorrent) and A.ArcaneTorrent:IsReady(PLAYER_UNIT) then
+                return A.ArcaneTorrent:Show(icon), "[HOLY] Arcane Torrent"
+            end
+            return nil
+        end,
+    }),
+
+    -- [14] Prayer of Healing (group damage)
     named("PrayerOfHealing", {
         matches = function(context, state)
             if not context.in_combat then return false end

@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "SHAMAN" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Elemental]|r Core module not loaded!")
@@ -43,10 +46,17 @@ local ele_state = {
 
 -- Module-level LB counter for fixed_ratio mode (persists across frames, reset on CL cast)
 local lb_casts_since_cl = 0
+local last_combat_state = false
 
 local function get_ele_state(context)
     if context._ele_valid then return ele_state end
     context._ele_valid = true
+
+    -- Reset LB counter on combat exit (prevent stale state between fights)
+    if last_combat_state and not context.in_combat then
+        lb_casts_since_cl = 0
+    end
+    last_combat_state = context.in_combat
 
     ele_state.clearcasting_charges = context.clearcasting_charges
     ele_state.elemental_mastery_active = context.has_elemental_mastery
@@ -66,12 +76,8 @@ local Ele_ElementalMastery = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.ElementalMastery,
+    spell_target = PLAYER_UNIT,
     setting_key = "ele_use_elemental_mastery",
-
-    matches = function(context, state)
-        if state.elemental_mastery_active then return false end
-        return true
-    end,
 
     execute = function(icon, context, state)
         return try_cast(A.ElementalMastery, icon, PLAYER_UNIT, "[ELE] Elemental Mastery")
@@ -183,11 +189,8 @@ local Ele_TotemManagement = {
 local Ele_FireElemental = {
     requires_combat = true,
     spell = A.FireElementalTotem,
+    spell_target = PLAYER_UNIT,
     setting_key = "ele_use_fire_elemental",
-
-    matches = function(context, state)
-        return true
-    end,
 
     execute = function(icon, context, state)
         return try_cast(A.FireElementalTotem, icon, PLAYER_UNIT, "[ELE] Fire Elemental Totem")
@@ -344,13 +347,13 @@ rotation_registry:register("elemental", {
     named("Trinkets",         Ele_Trinkets),
     named("Racial",           Ele_Racial),
     named("TotemManagement",  Ele_TotemManagement),
+    named("FireElemental",    Ele_FireElemental),    -- long CD, must be above filler
+    named("FlameShock",       Ele_FlameShock),       -- DoT maintenance before AoE/fillers
     named("AoE",              Ele_AoE),
-    named("FlameShock",       Ele_FlameShock),
     named("ChainLightning",   Ele_ChainLightning),
     named("EarthShock",       Ele_EarthShock),
-    named("FireElemental",    Ele_FireElemental),
     named("MovementSpell",    Ele_MovementSpell),
-    named("LightningBolt",    Ele_LightningBolt),
+    named("LightningBolt",    Ele_LightningBolt),    -- primary filler, always last
 }, {
     context_builder = get_ele_state,
 })

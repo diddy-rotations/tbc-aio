@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "WARLOCK" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Affliction]|r Core module not loaded!")
@@ -87,10 +90,10 @@ local Aff_MaintainCurse = {
 
     matches = function(context, state)
         if context.settings.curse_type == "none" then return false end
-        -- CoA has accelerating ticks — last ticks deal most damage, avoid clipping
+        -- CoA has accelerating ticks — last ticks deal most damage, never clip early
         local threshold = 1.5
         if context.settings.curse_type == "agony" then
-            threshold = 0.5
+            threshold = 0
         end
         return state.curse_duration < threshold
     end,
@@ -309,12 +312,12 @@ local Aff_LifeTap = {
 rotation_registry:register("affliction", {
     named("ShadowTrance",        Aff_ShadowTrance),
     named("MaintainCurse",       Aff_MaintainCurse),
-    named("AoE",                 Aff_AoE),
     named("MaintainUA",          Aff_MaintainUA),
     named("MaintainCorruption",  Aff_MaintainCorruption),
     named("MaintainSiphonLife",  Aff_MaintainSiphonLife),
     named("MaintainImmolate",    Aff_MaintainImmolate),
     named("DrainSoul",           Aff_DrainSoul),
+    named("AoE",                 Aff_AoE),              -- below DoT maintenance
     named("Trinkets",            Aff_Trinkets),
     named("Racial",              Aff_Racial),
     named("ShadowBolt",          Aff_ShadowBolt),

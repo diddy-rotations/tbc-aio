@@ -124,8 +124,12 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Exorcism on Undead/Demon targets (only when mana > 40%)." },
             { type = "checkbox", key = "prot_use_hammer_of_wrath", default = true, label = "Hammer of Wrath",
               tooltip = "Use Hammer of Wrath on targets below 20% HP." },
+        }},
+        { header = "Taunts", settings = {
+            { type = "checkbox", key = "prot_no_taunt", default = false, label = "Disable Taunts (Off-Tank)",
+              tooltip = "Disables Righteous Defense. Use when off-tanking." },
             { type = "checkbox", key = "prot_use_righteous_defense", default = true, label = "Auto Taunt",
-              tooltip = "Auto-taunt enemies off friendly targets with Righteous Defense." },
+              tooltip = "Auto-taunt elite/boss enemies off friendly targets with Righteous Defense. Only fires on elites/bosses, skips CC'd and dying mobs." },
         }},
     }},
 
@@ -136,6 +140,8 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Flash of Light when target below this HP%. Most mana-efficient heal.", format = "%d%%" },
             { type = "slider", key = "holy_holy_light_hp", default = 60, min = 20, max = 80, label = "Holy Light HP (%)",
               tooltip = "Use Holy Light when target below this HP%. Big heal for heavy damage.", format = "%d%%" },
+            { type = "checkbox", key = "holy_use_holy_shock", default = true, label = "Holy Shock",
+              tooltip = "Use Holy Shock as instant heal (21s CD, 41-pt Holy talent)." },
             { type = "slider", key = "holy_holy_shock_hp", default = 50, min = 20, max = 80, label = "Holy Shock HP (%)",
               tooltip = "Use Holy Shock instant heal when target below this HP%.", format = "%d%%" },
         }},

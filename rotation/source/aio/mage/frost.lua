@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "MAGE" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Frost]|r Core module not loaded!")
@@ -33,19 +36,18 @@ local format = string.format
 -- ============================================================================
 -- Pre-allocated state table — no inline {} in combat
 local frost_state = {
-    target_frozen = false,
     water_ele_active = false,
+    target_frozen = false,
 }
 
 local function get_frost_state(context)
     if context._frost_valid then return frost_state end
     context._frost_valid = true
 
-    -- Check if target is frozen (Frost Nova or Water Elemental Freeze)
-    local frost_nova_dur = Unit(TARGET_UNIT):HasDeBuffs(A.FrostNova.ID) or 0
-    local freeze_dur = Unit(TARGET_UNIT):HasDeBuffs(A.Freeze.ID) or 0
-    frost_state.target_frozen = frost_nova_dur > 0 or freeze_dur > 0
     frost_state.water_ele_active = Unit("pet"):IsExists() and not Unit("pet"):IsDead()
+    -- Track frozen state for Ice Lance 3x damage optimization
+    frost_state.target_frozen = (Unit(TARGET_UNIT):HasDeBuffs(122) or 0) > 0    -- Frost Nova
+                             or (Unit(TARGET_UNIT):HasDeBuffs(33395) or 0) > 0   -- Freeze (Water Ele)
 
     return frost_state
 end
@@ -60,12 +62,8 @@ local Frost_IcyVeins = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.IcyVeins,
+    spell_target = PLAYER_UNIT,
     setting_key = "frost_use_icy_veins",
-
-    matches = function(context, state)
-        if context.icy_veins_active then return false end
-        return true
-    end,
 
     execute = function(icon, context, state)
         return try_cast(A.IcyVeins, icon, PLAYER_UNIT, "[FROST] Icy Veins")
@@ -76,12 +74,8 @@ local Frost_IcyVeins = {
 local Frost_WaterElemental = {
     requires_combat = true,
     spell = A.SummonWaterElemental,
+    spell_target = PLAYER_UNIT,
     setting_key = "frost_use_water_elemental",
-
-    matches = function(context, state)
-        if state.water_ele_active then return false end
-        return true
-    end,
 
     execute = function(icon, context, state)
         return try_cast(A.SummonWaterElemental, icon, PLAYER_UNIT, "[FROST] Summon Water Elemental")
@@ -92,13 +86,14 @@ local Frost_WaterElemental = {
 local Frost_ColdSnap = {
     requires_combat = true,
     spell = A.ColdSnap,
+    spell_target = PLAYER_UNIT,
     setting_key = "frost_use_cold_snap",
 
     matches = function(context, state)
-        -- Use when either major frost CD is on long cooldown
+        -- Use when BOTH major frost CDs are on long cooldown (maximize Cold Snap value)
         local iv_cd = A.IcyVeins:GetCooldown() or 0
         local we_cd = A.SummonWaterElemental:GetCooldown() or 0
-        if iv_cd < 20 and we_cd < 20 then return false end
+        if iv_cd < 20 or we_cd < 20 then return false end
         return true
     end,
 

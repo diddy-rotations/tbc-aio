@@ -26,6 +26,30 @@ local GetNumGroupMembers = _G.GetNumGroupMembers
 
 local PLAYER_UNIT = "player"
 local TARGET_UNIT = "target"
+local MultiUnits = A.MultiUnits
+local UnitExists = _G.UnitExists
+local UnitIsUnit = _G.UnitIsUnit
+
+-- Count enemies targeting the player by classification (nameplate scan)
+local UnitClassification = _G.UnitClassification
+local function count_mobs_targeting_me()
+    local plates = MultiUnits:GetActiveUnitPlates()
+    local bosses, elites, trash = 0, 0, 0
+    for unitID in pairs(plates) do
+        local tt = unitID .. "target"
+        if UnitExists(tt) and UnitIsUnit(tt, PLAYER_UNIT) then
+            local class = UnitClassification(unitID)
+            if class == "worldboss" then
+                bosses = bosses + 1
+            elseif class == "elite" or class == "rareelite" then
+                elites = elites + 1
+            else
+                trash = trash + 1
+            end
+        end
+    end
+    return bosses, elites, trash
+end
 
 -- ============================================================================
 -- DESPERATE PRAYER (Emergency self-heal — highest priority)
@@ -60,10 +84,14 @@ rotation_registry:register_middleware({
     matches = function(context)
         if not context.in_combat then return false end
         if not context.settings.use_fade then return false end
-        -- Use Fade if we have aggro (target is targeting us)
-        local target_target = Unit("targettarget"):IsExists() and Unit("targettarget"):IsUnit(PLAYER_UNIT)
-        if not target_target then return false end
-        return true
+        -- Group-only: solo Fade is pointless (mob comes right back)
+        if context.settings.fade_group_only and (GetNumGroupMembers() or 0) == 0 then return false end
+        -- Nameplate scan: count mobs targeting us by classification
+        local bosses, elites, trash = count_mobs_targeting_me()
+        if bosses >= (context.settings.fade_min_bosses or 1) then return true end
+        if elites >= (context.settings.fade_min_elites or 1) then return true end
+        if trash >= (context.settings.fade_min_trash or 3) then return true end
+        return false
     end,
 
     execute = function(icon, context)

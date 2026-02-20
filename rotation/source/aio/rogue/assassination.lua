@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "ROGUE" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Assassination]|r Core module not loaded!")
@@ -41,6 +44,7 @@ local assassination_state = {
     deadly_poison_duration = 0,
     cold_blood_active = false,
     find_weakness_active = false,
+    expose_armor_active = false,
     pooling = false,
 }
 
@@ -58,6 +62,7 @@ local function get_assassination_state(context)
     assassination_state.deadly_poison_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.DEADLY_POISON) or 0
     assassination_state.cold_blood_active = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.COLD_BLOOD) or 0) > 0
     assassination_state.find_weakness_active = (Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.FIND_WEAKNESS) or 0) > 0
+    assassination_state.expose_armor_active = (Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.EXPOSE_ARMOR) or 0) > 0
 
     return assassination_state
 end
@@ -130,7 +135,6 @@ local Assassination_ColdBlood = {
     setting_key = "assassination_use_cold_blood",
 
     matches = function(context, state)
-        if state.cold_blood_active then return false end
         -- Only use when we have CP for a finisher soon
         local min_cp = context.settings.assassination_min_cp_finisher or 4
         return context.cp >= min_cp
@@ -168,7 +172,10 @@ local Assassination_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
-        return true
+        if A.BloodFury:IsReady(PLAYER_UNIT) then return true end
+        if A.Berserking:IsReady(PLAYER_UNIT) then return true end
+        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
+        return false
     end,
 
     execute = function(icon, context, state)
@@ -185,7 +192,29 @@ local Assassination_Racial = {
     end,
 }
 
--- [6] Rupture — at 4-5 CP, not active, TTD > threshold
+-- [6] Expose Armor — at 5 CP, debuff not active
+local Assassination_ExposeArmor = {
+    requires_combat = true,
+    requires_enemy = true,
+    requires_stealth = false,
+    setting_key = "use_expose_armor",
+    min_cp = 5,
+
+    matches = function(context, state)
+        if state.pooling then return false end
+        return not state.expose_armor_active
+    end,
+
+    execute = function(icon, context, state)
+        if context.energy >= Constants.ENERGY.EXPOSE_ARMOR and A.ExposeArmor:IsReady(TARGET_UNIT) then
+            return A.ExposeArmor:Show(icon), format("[ASSASSINATION] Expose Armor - CP: %d", context.cp)
+        end
+        state.pooling = true
+        return nil
+    end,
+}
+
+-- [7] Rupture — at 4-5 CP, not active, TTD > threshold
 local Assassination_Rupture = {
     requires_combat = true,
     requires_enemy = true,
@@ -193,6 +222,7 @@ local Assassination_Rupture = {
     setting_key = "assassination_use_rupture",
 
     matches = function(context, state)
+        if state.pooling then return false end
         local min_cp = context.settings.assassination_min_cp_finisher or 4
         if context.cp < min_cp then return false end
         if state.rupture_active and state.rupture_duration >= 2 then return false end
@@ -308,6 +338,7 @@ rotation_registry:register("assassination", {
     named("ColdBlood",      Assassination_ColdBlood),
     named("Trinkets",       Assassination_Trinkets),
     named("Racial",         Assassination_Racial),
+    named("ExposeArmor",    Assassination_ExposeArmor),
     named("Rupture",        Assassination_Rupture),
     named("Envenom",        Assassination_Envenom),
     named("Eviscerate",     Assassination_Eviscerate),
@@ -328,4 +359,4 @@ end -- scope block
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Diddy AIO Rogue]|r Assassination strategies registered (10 strategies)")
+print("|cFF00FF00[Diddy AIO Rogue]|r Assassination strategies registered (11 strategies)")

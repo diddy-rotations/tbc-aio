@@ -107,6 +107,7 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               options = {
                   { value = "totem_of_wrath", text = "Totem of Wrath" },
                   { value = "searing", text = "Searing Totem" },
+                  { value = "magma", text = "Magma Totem" },
                   { value = "flametongue", text = "Flametongue Totem" },
               }},
             { type = "dropdown", key = "ele_earth_totem", default = "strength_of_earth", label = "Earth Totem",

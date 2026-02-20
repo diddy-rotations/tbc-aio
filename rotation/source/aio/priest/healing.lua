@@ -59,7 +59,7 @@ local scan_count = 0
 -- Determine if a unit is likely the tank (focus target, or has most threat)
 local function is_tank_unit(unit)
     -- If we have a focus target and the unit matches it, consider it the tank
-    if _G.UnitExists("focus") and Unit(unit):IsUnit("focus") then
+    if _G.UnitExists("focus") and _G.UnitIsUnit(unit, "focus") then
         return true
     end
     return false

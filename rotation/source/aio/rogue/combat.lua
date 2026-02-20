@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "ROGUE" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Combat]|r Core module not loaded!")
@@ -180,7 +183,10 @@ local Combat_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
-        return true
+        if A.BloodFury:IsReady(PLAYER_UNIT) then return true end
+        if A.Berserking:IsReady(PLAYER_UNIT) then return true end
+        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
+        return false
     end,
 
     execute = function(icon, context, state)
@@ -226,6 +232,7 @@ local Combat_Rupture = {
     setting_key = "combat_use_rupture",
 
     matches = function(context, state)
+        if state.pooling then return false end
         if context.cp < 5 then return false end
         if state.rupture_active then
             local refresh = context.settings.combat_rupture_refresh or 2

@@ -193,6 +193,12 @@ rotation_registry:register_middleware({
         if A.ManaEmerald:IsReady(PLAYER_UNIT) then
             return A.ManaEmerald:Show(icon), format("[MW] Mana Emerald - Mana: %.0f%%", context.mana_pct)
         end
+        if A.ManaRuby:IsReady(PLAYER_UNIT) then
+            return A.ManaRuby:Show(icon), format("[MW] Mana Ruby - Mana: %.0f%%", context.mana_pct)
+        end
+        if A.ManaCitrine:IsReady(PLAYER_UNIT) then
+            return A.ManaCitrine:Show(icon), format("[MW] Mana Citrine - Mana: %.0f%%", context.mana_pct)
+        end
         return nil
     end,
 })
@@ -305,7 +311,6 @@ rotation_registry:register_middleware({
     priority = Priority.MIDDLEWARE.SELF_BUFF_OOC + 10,
 
     matches = function(context)
-        if context.in_combat then return false end
         if context.is_mounted then return false end
         -- Check if any armor buff is active
         local has_armor = (Unit(PLAYER_UNIT):HasBuffs(Constants.ARMOR_BUFF_IDS) or 0) > 0

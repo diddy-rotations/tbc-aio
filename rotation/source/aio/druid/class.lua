@@ -655,7 +655,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.2.0",
+   version = "v1.2.4",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 
@@ -689,6 +689,19 @@ rotation_registry:register_class({
       ctx._cat_valid = false
       ctx._bear_valid = false
       ctx._resto_valid = false
+
+      -- Fallback melee range detection: GetRange() can return nil or incorrect values
+      -- for some users. Use a melee spell's IsInRange as a more reliable check.
+      if not ctx.in_melee_range and ctx.has_valid_enemy_target then
+         local stance = ctx.stance
+         if stance == Constants.STANCE.CAT then
+            ctx.in_melee_range = A.MangleCat:IsInRange(TARGET_UNIT) == true
+         elseif stance == Constants.STANCE.BEAR then
+            ctx.in_melee_range = A.MangleBear:IsInRange(TARGET_UNIT) == true
+         else
+            ctx.in_melee_range = A.Wrath:IsInRange(TARGET_UNIT) == true
+         end
+      end
    end,
 })
 

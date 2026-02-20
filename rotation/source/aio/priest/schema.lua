@@ -54,6 +54,14 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Auto-cleanse diseases on party members." },
             { type = "checkbox", key = "use_fade", default = true, label = "Auto Fade",
               tooltip = "Use Fade when pulling healing threat." },
+            { type = "checkbox", key = "fade_group_only", default = true, label = "Fade Group Only",
+              tooltip = "Only use Fade when in a party or raid (solo Fade is pointless)." },
+            { type = "slider", key = "fade_min_bosses", default = 1, min = 1, max = 3, label = "Fade Boss Count",
+              tooltip = "Fade if this many bosses are targeting you.", format = "%d" },
+            { type = "slider", key = "fade_min_elites", default = 1, min = 1, max = 5, label = "Fade Elite Count",
+              tooltip = "Fade if this many elites are targeting you.", format = "%d" },
+            { type = "slider", key = "fade_min_trash", default = 3, min = 1, max = 10, label = "Fade Trash Count",
+              tooltip = "Fade if this many trash mobs are targeting you.", format = "%d" },
         }},
         { header = "Recovery Items", settings = {
             { type = "slider", key = "healthstone_hp", default = 35, min = 0, max = 100, label = "Healthstone HP (%)",
@@ -144,6 +152,8 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Binding Heal when self HP below this%.", format = "%d%%" },
             { type = "checkbox", key = "holy_use_poh", default = true, label = "Prayer of Healing",
               tooltip = "Use Prayer of Healing for group damage." },
+            { type = "checkbox", key = "holy_use_inner_focus", default = true, label = "Inner Focus",
+              tooltip = "Use Inner Focus before Greater Heal for free cast + 25% crit." },
         }},
     }},
 

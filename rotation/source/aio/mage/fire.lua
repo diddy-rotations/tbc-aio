@@ -7,6 +7,9 @@
 -- Always access settings through context.settings in matches/execute.
 -- ============================================================
 
+local A_global = _G.Action
+if not A_global or A_global.PlayerClass ~= "MAGE" then return end
+
 local NS = _G.DiddyAIO
 if not NS then
     print("|cFFFF0000[Diddy AIO Fire]|r Core module not loaded!")
@@ -59,10 +62,10 @@ local Fire_MaintainScorch = {
     requires_combat = true,
     requires_enemy = true,
     spell = A.Scorch,
+    setting_key = "fire_maintain_scorch",
 
     matches = function(context, state)
         if context.is_moving then return false end
-        if not context.settings.fire_maintain_scorch then return false end
         local refresh = context.settings.fire_scorch_refresh or Constants.SCORCH.DEFAULT_REFRESH
         return state.scorch_stacks < Constants.SCORCH.MAX_STACKS or state.scorch_duration < refresh
     end,
@@ -78,10 +81,10 @@ local Fire_Combustion = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.Combustion,
+    spell_target = PLAYER_UNIT,
     setting_key = "fire_use_combustion",
 
     matches = function(context, state)
-        if context.combustion_active then return false end
         local hp_threshold = context.settings.fire_combustion_below_hp or 0
         if hp_threshold > 0 and context.target_hp > hp_threshold then return false end
         return true
@@ -97,12 +100,8 @@ local Fire_IcyVeins = {
     requires_combat = true,
     is_gcd_gated = false,
     spell = A.IcyVeins,
+    spell_target = PLAYER_UNIT,
     setting_key = "fire_use_icy_veins",
-
-    matches = function(context, state)
-        if context.icy_veins_active then return false end
-        return true
-    end,
 
     execute = function(icon, context, state)
         return try_cast(A.IcyVeins, icon, PLAYER_UNIT, "[FIRE] Icy Veins")
@@ -162,7 +161,8 @@ local Fire_BlastWave = {
     setting_key = "fire_use_blast_wave",
 
     matches = function(context, state)
-        if not context.in_melee_range then return false end
+        local min_enemies = context.settings.fire_melee_aoe_min_enemies or 2
+        if context.enemy_count_melee < min_enemies then return false end
         return true
     end,
 
@@ -179,7 +179,8 @@ local Fire_DragonsBreath = {
     setting_key = "fire_use_dragons_breath",
 
     matches = function(context, state)
-        if not context.in_melee_range then return false end
+        local min_enemies = context.settings.fire_melee_aoe_min_enemies or 2
+        if context.enemy_count_melee < min_enemies then return false end
         return true
     end,
 
@@ -194,10 +195,6 @@ local Fire_FireBlastWeave = {
     requires_enemy = true,
     spell = A.FireBlast,
     setting_key = "fire_weave_fire_blast",
-
-    matches = function(context, state)
-        return true
-    end,
 
     execute = function(icon, context, state)
         return try_cast(A.FireBlast, icon, TARGET_UNIT, "[FIRE] Fire Blast")

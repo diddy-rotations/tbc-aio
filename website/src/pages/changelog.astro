@@ -15,8 +15,13 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
-      <h2>v1.2.3 <span class="changelog-date">2026</span></h2>
-      <span class="changelog-tag tag-minor">Patch</span>
+      <h2>v1.2.4 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3><a href={url('/classes/druid')} class="class-link c-druid">Druid</a></h3>
+      <ul class="features">
+        <li>Added fallback melee range detection using spell IsInRange (fixes nil GetRange for some users)</li>
+      </ul>
 
       <h3><a href={url('/classes/mage')} class="class-link c-mage">Mage</a></h3>
       <ul class="features">
@@ -32,6 +37,30 @@ import { url } from '../config';
         <li>Added Crusader Aura to aura detection</li>
         <li>Fixed enemy count range to 8yd (Consecration radius)</li>
         <li>Protection: Reordered priorities &mdash; Holy Shield and Seal before Avenger&rsquo;s Shield</li>
+        <li>Protection: Smart taunt system &mdash; Righteous Defense now only fires on elites/bosses, skips CC&rsquo;d and dying mobs, prioritizes healer protection</li>
+        <li>Added Disable Taunts (Off-Tank) master switch for Protection</li>
+      </ul>
+
+      <h3><a href={url('/classes/priest')} class="class-link c-priest">Priest</a></h3>
+      <ul class="features">
+        <li>Discipline: Added Emergency Flash Heal (highest priority), Trinket, and Racial strategies</li>
+        <li>Discipline: Reordered priorities &mdash; Emergency FH before PW:S</li>
+        <li>Holy: Added Inner Focus strategy (off-GCD before Greater Heal)</li>
+        <li>Holy: Added Trinket and Racial strategies</li>
+        <li>Fade now uses nameplate scanning with boss/elite/trash count thresholds</li>
+        <li>Fixed healing.lua tank detection (UnitIsUnit API call)</li>
+        <li>Shadow/Smite: Fixed Starshards and Devouring Plague to check IsReady</li>
+        <li>Smite: Fixed Holy Fire to work with and without weave mode</li>
+      </ul>
+
+      <h3><a href={url('/classes/rogue')} class="class-link c-rogue">Rogue</a></h3>
+      <ul class="features">
+        <li>Added Expose Armor strategy to Assassination and Subtlety specs</li>
+        <li>Fixed Racial strategies to check IsReady before matching (all 3 specs)</li>
+        <li>Added pooling gate to Rupture (all specs) to prevent energy waste</li>
+        <li>Added PlayerClass guards to all spec modules</li>
+        <li>Removed unused feint_threat_pct schema setting</li>
+        <li>Haste Potion no longer restricted to Blade Flurry/AR windows</li>
       </ul>
 
       <h3><a href={url('/classes/shaman')} class="class-link c-shaman">Shaman</a></h3>
@@ -58,12 +87,15 @@ import { url } from '../config';
         <li>Arms: Fixed Sweeping Strikes to be on-GCD (TBC behavior)</li>
         <li>Arms/Fury: Added Thunder Clap and Demoralizing Shout maintenance strategies</li>
         <li>Fury: Rampage now always used when stacks &lt; 5 (builds to max before refresh-only mode)</li>
+        <li>Protection: Smart taunt system &mdash; Taunt now only fires on elites/bosses, skips CC&rsquo;d and dying mobs, prioritizes healer protection</li>
+        <li>Protection: Added Challenging Shout (AoE taunt) with configurable boss/elite/trash thresholds</li>
+        <li>Added Disable Taunts (Off-Tank) master switch for Protection</li>
       </ul>
     </section>
 
     <section class="section changelog-entry">
       <h2>v1.2.2 <span class="changelog-date">2026</span></h2>
-      <span class="changelog-tag tag-minor">Patch</span>
+      <span class="changelog-tag tag-patch">Patch</span>
 
       <h3><a href={url('/classes/hunter')} class="class-link c-hunter">Hunter</a></h3>
       <ul class="features">
@@ -114,9 +146,9 @@ import { url } from '../config';
 
     <section class="section changelog-entry">
       <h2>v1.2.1 <span class="changelog-date">2026</span></h2>
-      <span class="changelog-tag tag-minor">Patch</span>
+      <span class="changelog-tag tag-patch">Patch</span>
 
-      <h3>Warrior</h3>
+      <h3><a href={url('/classes/warrior')} class="class-link c-warrior">Warrior</a></h3>
       <ul class="features">
         <li>Fixed Fury Rampage refresh logic &mdash; removed redundant stack check, now only refreshes when duration is low (stacks build naturally via refreshes)</li>
       </ul>
@@ -141,7 +173,7 @@ import { url } from '../config';
 
     <section class="section changelog-entry">
       <h2>v1.1.1 <span class="changelog-date">2026</span></h2>
-      <span class="changelog-tag tag-minor">Patch</span>
+      <span class="changelog-tag tag-patch">Patch</span>
 
       <h3>Settings UI</h3>
       <ul class="features">
@@ -153,7 +185,7 @@ import { url } from '../config';
       <h2>v1.1.0 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-minor">Minor</span>
 
-      <h3>Bear Form</h3>
+      <h3><a href={url('/classes/druid')} class="class-link c-druid">Druid</a></h3>
       <ul class="features">
         <li>Fixed Off-Tank mode tooltip &mdash; correctly states it disables Growl and Challenging Roar (Maul was never affected)</li>
       </ul>
@@ -171,7 +203,7 @@ import { url } from '../config';
         <li>Schema-driven settings &mdash; one schema generates the UI, framework backing store, and cached runtime access</li>
       </ul>
 
-      <h3>Druid</h3>
+      <h3><a href={url('/classes/druid')} class="class-link c-druid">Druid</a></h3>
       <ul class="features">
         <li>5 playstyles: Cat DPS, Bear Tank, Balance Moonkin, Resto Tree, and Caster recovery</li>
         <li>Per-spell cat strategies with energy pooling, combo point tracking, and powershift support</li>
@@ -182,7 +214,7 @@ import { url } from '../config';
         <li>Form-aware automation &mdash; rotation respects current form, suggestion icon recommends shifts</li>
       </ul>
 
-      <h3>Hunter</h3>
+      <h3><a href={url('/classes/hunter')} class="class-link c-hunter">Hunter</a></h3>
       <ul class="features">
         <li>Full ranged DPS rotation with auto-shot clip tracking</li>
         <li>Shot weaving: Steady Shot, Arcane Shot, Multi-Shot with proper clipping prevention</li>

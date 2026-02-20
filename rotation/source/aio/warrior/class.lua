@@ -51,6 +51,7 @@ Action[A.PlayerClass] = {
     Whirlwind          = Create({ Type = "Spell", ID = 1680 }),
     VictoryRush        = Create({ Type = "Spell", ID = 34428 }),
     Taunt              = Create({ Type = "Spell", ID = 355 }),
+    ChallengingShout   = Create({ Type = "Spell", ID = 1161, Click = { unit = "player", type = "spell", spell = 1161 } }),
 
     -- Shouts
     BattleShout        = Create({ Type = "Spell", ID = 6673, useMaxRank = true, Click = { unit = "player", type = "spell" } }),
@@ -157,6 +158,16 @@ local Constants = {
 
     -- All shout buff IDs for checking if any shout is active
     SHOUT_BUFF_IDS = { 2048, 469 },
+
+    -- Taunt thresholds (matching Druid Growl/Challenging Roar pattern)
+    TAUNT = {
+        CC_THRESHOLD       = 2,     -- Skip CC'd mobs with > 2s remaining
+        MIN_TTD            = 4,     -- Skip dying mobs (unless targeting healer)
+        CSHOUT_RANGE       = 10,    -- Challenging Shout scan range (10yd PBAoE)
+        CSHOUT_MIN_BOSSES  = 1,     -- Min loose bosses for Challenging Shout
+        CSHOUT_MIN_ELITES  = 3,     -- Min loose elites for Challenging Shout
+        CSHOUT_MIN_TRASH   = 5,     -- Min loose trash for Challenging Shout
+    },
 }
 
 NS.Constants = Constants
@@ -241,7 +252,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Warrior",
-    version = "v1.2.3",
+    version = "v1.2.4",
     playstyles = { "arms", "fury", "protection" },
     idle_playstyle_name = nil,
 
@@ -271,6 +282,8 @@ rotation_registry:register_class({
         ctx.rampage_stacks = Unit("player"):HasBuffsStacks(Constants.BUFF_ID.RAMPAGE) or 0
         ctx.rampage_duration = Unit("player"):HasBuffs(Constants.BUFF_ID.RAMPAGE) or 0
         ctx.shield_block_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.SHIELD_BLOCK) or 0) > 0
+        ctx.enrage_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.ENRAGE) or 0) > 0
+        ctx.flurry_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.FLURRY) or 0) > 0
 
         -- Cache invalidation flags for per-playstyle context_builders
         ctx._arms_valid = false

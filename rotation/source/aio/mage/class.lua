@@ -82,6 +82,8 @@ Action[A.PlayerClass] = {
     DarkRune           = Create({ Type = "Item", ID = 20520, Click = { unit = "player", type = "item", item = 20520 } }),
     DemonicRune        = Create({ Type = "Item", ID = 12662, Click = { unit = "player", type = "item", item = 12662 } }),
     ManaEmerald        = Create({ Type = "Item", ID = 22044, Click = { unit = "player", type = "item", item = 22044 } }),
+    ManaRuby           = Create({ Type = "Item", ID = 8008,  Click = { unit = "player", type = "item", item = 8008 } }),
+    ManaCitrine        = Create({ Type = "Item", ID = 8007,  Click = { unit = "player", type = "item", item = 8007 } }),
 
     -- Healthstones
     HealthstoneMaster = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
@@ -242,7 +244,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Mage",
-    version = "v1.2.3",
+    version = "v1.2.4",
     playstyles = { "fire", "frost", "arcane" },
     idle_playstyle_name = nil,
 

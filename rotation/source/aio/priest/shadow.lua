@@ -125,7 +125,7 @@ rotation_registry:register("shadow", {
             if not context.in_combat then return false end
             if not context.has_valid_enemy_target then return false end
             if not context.settings.shadow_use_starshards then return false end
-            return is_spell_available(A.Starshards)
+            return is_spell_available(A.Starshards) and A.Starshards:IsReady(TARGET_UNIT)
         end,
         execute = function(icon, context, state)
             return try_cast(A.Starshards, icon, TARGET_UNIT, "[SHADOW] Starshards")
@@ -141,7 +141,7 @@ rotation_registry:register("shadow", {
             -- Don't reapply if already active
             local dp_remaining = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.DEVOURING_PLAGUE, "player", true) or 0
             if dp_remaining > 3 then return false end
-            return is_spell_available(A.DevouringPlague)
+            return is_spell_available(A.DevouringPlague) and A.DevouringPlague:IsReady(TARGET_UNIT)
         end,
         execute = function(icon, context, state)
             return try_cast(A.DevouringPlague, icon, TARGET_UNIT, "[SHADOW] Devouring Plague")

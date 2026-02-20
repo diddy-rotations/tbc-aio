@@ -93,7 +93,7 @@ rotation_registry:register("smite", {
             if not context.in_combat then return false end
             if not context.has_valid_enemy_target then return false end
             if not context.settings.smite_use_starshards then return false end
-            return is_spell_available(A.Starshards)
+            return is_spell_available(A.Starshards) and A.Starshards:IsReady(TARGET_UNIT)
         end,
         execute = function(icon, context, state)
             return try_cast(A.Starshards, icon, TARGET_UNIT, "[SMITE] Starshards")
@@ -108,7 +108,7 @@ rotation_registry:register("smite", {
             if not context.settings.smite_use_devouring_plague then return false end
             local dp_remaining = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.DEVOURING_PLAGUE, "player", true) or 0
             if dp_remaining > 3 then return false end
-            return is_spell_available(A.DevouringPlague)
+            return is_spell_available(A.DevouringPlague) and A.DevouringPlague:IsReady(TARGET_UNIT)
         end,
         execute = function(icon, context, state)
             return try_cast(A.DevouringPlague, icon, TARGET_UNIT, "[SMITE] Devouring Plague")
@@ -170,14 +170,14 @@ rotation_registry:register("smite", {
         end,
     }),
 
-    -- [8] Holy Fire (off CD, non-weave fallback)
+    -- [8] Holy Fire (off CD, normal priority outside weave window)
     named("HolyFire", {
         matches = function(context, state)
             if not context.in_combat then return false end
             if not context.has_valid_enemy_target then return false end
             if context.is_moving then return false end
-            -- If weave mode is on, only use HF via weave window (strategy above)
-            if context.settings.smite_holy_fire_weave then return false end
+            -- If weave mode is on and we're in the weave window, skip (handled by HolyFireWeave above)
+            if context.settings.smite_holy_fire_weave and state.in_weave_window then return false end
             return state.hf_ready
         end,
         execute = function(icon, context, state)

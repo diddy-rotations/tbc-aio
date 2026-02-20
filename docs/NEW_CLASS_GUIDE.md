@@ -579,6 +579,61 @@ A[3] called by TMW
            └─ if matches(context, state) → execute(icon, context, state)
 ```
 
+### CRITICAL: check_prerequisites — Strategies vs Middleware
+
+**Strategies** go through `check_prerequisites()` (core.lua:743-755) BEFORE `matches()` is called. This means the following strategy table properties are auto-checked and should NOT be duplicated inside `matches()`:
+
+| Property | What it checks | Don't duplicate in matches |
+|----------|---------------|---------------------------|
+| `requires_combat` | `context.in_combat` must match | `if not context.in_combat` |
+| `requires_enemy` | `context.has_valid_enemy_target` must match | `if not context.has_valid_enemy_target` |
+| `requires_in_range` | `context.in_melee_range` must match | `if not context.in_melee_range` |
+| `setting_key` | `context.settings[key]` must be truthy | `if not context.settings[key]` |
+| `spell` | `spell:IsReady(spell_target or TARGET_UNIT)` + availability | `if not spell:IsReady(target)` |
+
+For self-cast spells (totems, self-buffs), set `spell_target = PLAYER_UNIT` so the `IsReady()` check uses the correct target.
+
+```lua
+-- GOOD: let check_prerequisites handle everything, matches only has real logic
+local MyStrategy = {
+    requires_combat = true,
+    requires_enemy = true,
+    spell = A.MySpell,
+    spell_target = PLAYER_UNIT,  -- for self-cast
+    setting_key = "use_my_spell",
+
+    -- matches only needed for logic NOT covered by properties above
+    matches = function(context, state)
+        if state.dot_duration > 2 then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state) ... end,
+}
+
+-- BAD: redundant checks that check_prerequisites already handles
+local MyStrategy = {
+    requires_combat = true,
+    spell = A.MySpell,
+    setting_key = "use_my_spell",
+
+    matches = function(context, state)
+        if not context.in_combat then return false end        -- REDUNDANT (requires_combat)
+        if not context.settings.use_my_spell then return false end  -- REDUNDANT (setting_key)
+        return A.MySpell:IsReady(TARGET_UNIT)                 -- REDUNDANT (spell)
+    end,
+}
+```
+
+**Buff-active checks on cooldown abilities are also redundant.** For any ability where the buff duration is shorter than the cooldown (e.g., Icy Veins: 20s buff / 3min CD), the buff being active guarantees the spell is on cooldown, so `IsReady()` returns false. Don't add "if buff_active then return false" — the `spell` property handles it. This applies to: Icy Veins, Combustion, Arcane Power, Presence of Mind, Cold Blood, Elemental Mastery, Shamanistic Rage, Nature's Swiftness, Avenging Wrath, Divine Illumination, Divine Favor, Water Elemental, etc.
+
+**Exception:** Permanent toggle buffs with no cooldown (e.g., Righteous Fury) — `IsReady()` always returns true, so you DO need the buff check. Also, external debuffs like Forbearance that block casting are NOT checked by `IsReady()` — those checks are real logic and must stay in `matches()`.
+
+**Middleware does NOT go through `check_prerequisites`.** The `execute_middleware()` function (main.lua:48-72) calls `mw.matches(context)` directly. This means:
+- ALL checks inside middleware `matches()` are necessary — nothing is auto-checked
+- Properties like `spell`, `setting_key`, `requires_combat` on middleware tables are **ignored** during execution (only `priority` and `is_gcd_gated` are used)
+- Middleware must manually check combat state, settings, spell readiness, etc.
+
 ### Return Contract
 
 Both `matches` and `execute` follow the same pattern:
