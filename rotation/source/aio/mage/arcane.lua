@@ -159,12 +159,13 @@ local Arcane_PresenceOfMind = {
     end,
 }
 
--- [5] Trinkets (off-GCD, stack with AP window)
+-- [5] Trinkets (off-GCD, burn phase only — suppress during conserve)
 local Arcane_Trinkets = {
     requires_combat = true,
     is_gcd_gated = false,
 
     matches = function(context, state)
+        if not state.is_burning then return false end
         if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
         if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
         return false
@@ -181,13 +182,14 @@ local Arcane_Trinkets = {
     end,
 }
 
--- [6] Racial (off-GCD)
+-- [6] Racial (off-GCD, burn phase only — DPS racials wasted during conserve)
 local Arcane_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
     setting_key = "use_racial",
 
     matches = function(context, state)
+        if not state.is_burning then return false end
         if A.Berserking:IsReady(PLAYER_UNIT) then return true end
         if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
         return false

@@ -270,6 +270,8 @@ local Ret_HammerOfWrath = {
     matches = function(context, state)
         if not context.settings.ret_use_hammer_of_wrath then return false end
         if not state.target_below_20 then return false end
+        -- Skip when mana is critical — strip to SoB+CS+Judge only (wowsims)
+        if state.low_mana then return false end
         -- Don't clip twist
         if state.should_twist and state.in_twist_window then return false end
         return true

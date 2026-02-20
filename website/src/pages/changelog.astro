@@ -15,6 +15,21 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.3.1 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3><a href={url('/classes/mage')} class="class-link c-mage">Mage</a></h3>
+      <ul class="features">
+        <li>Arcane: Trinkets and racial cooldowns now suppressed during conserve phase &mdash; they are held for the next burn window instead of wasted on low-value casts</li>
+      </ul>
+
+      <h3><a href={url('/classes/paladin')} class="class-link c-paladin">Paladin</a></h3>
+      <ul class="features">
+        <li>Retribution: Hammer of Wrath now skipped when mana is critically low (&le;1000) &mdash; rotation strips to Seal of Blood + Crusader Strike + Judgement only</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.3.0 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-minor">Minor</span>
 

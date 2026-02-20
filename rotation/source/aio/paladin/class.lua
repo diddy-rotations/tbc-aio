@@ -290,7 +290,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Paladin",
-    version = "v1.3.0",
+    version = "v1.3.1",
     playstyles = { "retribution", "protection", "holy" },
     idle_playstyle_name = nil,
 

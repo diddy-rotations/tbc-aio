@@ -244,7 +244,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Mage",
-    version = "v1.3.0",
+    version = "v1.3.1",
     playstyles = { "fire", "frost", "arcane" },
     idle_playstyle_name = nil,
 
