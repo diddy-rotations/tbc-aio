@@ -111,7 +111,7 @@ import { url } from '../../config';
           <li>Tracks AB debuff stacks and duration</li>
           <li>Configurable max AB stacks before switching to filler in conserve phase</li>
           <li>Filler spell selection: Frostbolt, Arcane Missiles, or Scorch (configurable)</li>
-          <li>Cycle counter resets when AB stacks drop to 0</li>
+          <li>Filler fires when AB stacks reach max or when stacks are about to drop (clipping prevention)</li>
         </ul>
 
         <h4>Cooldown Stacking</h4>
@@ -154,7 +154,7 @@ import { url } from '../../config';
         <ul class="features">
           <li>Healthstone auto-use at configurable HP threshold</li>
           <li>Healing Potion at configurable HP threshold</li>
-          <li>Remove Curse on self when cursed</li>
+          <li>Remove Curse on self and party members when cursed</li>
         </ul>
 
         <h3 class="spec-sub">Self-Buffs (Out of Combat)</h3>

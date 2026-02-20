@@ -225,7 +225,8 @@ local Assassination_Rupture = {
         if state.pooling then return false end
         local min_cp = context.settings.assassination_min_cp_finisher or 4
         if context.cp < min_cp then return false end
-        if state.rupture_active and state.rupture_duration >= 2 then return false end
+        local refresh = context.settings.assassination_rupture_refresh or 2
+        if state.rupture_active and state.rupture_duration >= refresh then return false end
         local min_ttd = context.settings.assassination_rupture_min_ttd or 12
         if context.ttd < min_ttd then return false end
         return true
@@ -241,7 +242,7 @@ local Assassination_Rupture = {
     end,
 }
 
--- [7] Envenom — at 4-5 CP when Deadly Poison stacks >= threshold
+-- [8] Envenom — at 4-5 CP when Deadly Poison stacks >= threshold
 local Assassination_Envenom = {
     requires_combat = true,
     requires_enemy = true,
@@ -267,7 +268,7 @@ local Assassination_Envenom = {
     end,
 }
 
--- [8] Eviscerate — at min_cp+ fallback CP dump
+-- [9] Eviscerate — at min_cp+ fallback CP dump
 local Assassination_Eviscerate = {
     requires_combat = true,
     requires_enemy = true,
@@ -288,7 +289,8 @@ local Assassination_Eviscerate = {
     end,
 }
 
--- [9] Shiv Refresh — Deadly Poison < 2s remaining on target
+-- [10] Shiv Refresh — Deadly Poison < 2s remaining on target
+-- Bypasses pooling gate: DP refresh is higher priority than pooling for the next finisher
 local Assassination_ShivRefresh = {
     requires_combat = true,
     requires_enemy = true,
@@ -296,7 +298,7 @@ local Assassination_ShivRefresh = {
     setting_key = "use_shiv",
 
     matches = function(context, state)
-        if state.pooling then return false end
+        -- Do NOT check state.pooling here — DP refresh must happen even while pooling
         if state.deadly_poison_duration <= 0 then return false end
         return state.deadly_poison_duration < Constants.ROGUE.DP_REFRESH_THRESHOLD
     end,
@@ -309,7 +311,7 @@ local Assassination_ShivRefresh = {
     end,
 }
 
--- [10] Mutilate — primary builder (requires behind target, daggers MH+OH)
+-- [11] Mutilate — primary builder (requires behind target, daggers MH+OH)
 local Assassination_Mutilate = {
     requires_combat = true,
     requires_enemy = true,

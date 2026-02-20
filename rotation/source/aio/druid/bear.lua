@@ -439,7 +439,7 @@ do
             return false
          end
          -- Check for existing AP reduction debuff (Demo Roar from any druid)
-         local demo_duration = Unit(TARGET_UNIT):HasDeBuffs("Demoralizing Roar") or 0
+         local demo_duration = Unit(TARGET_UNIT):HasDeBuffs(DEMO_ROAR_DEBUFF_IDS) or 0
          if demo_duration > Constants.BEAR.DEMO_ROAR_REFRESH then return false end
          -- Warrior's Demoralizing Shout also reduces AP (doesn't stack, stronger one wins)
          local shout_duration = Unit(TARGET_UNIT):HasDeBuffs("Demoralizing Shout") or 0

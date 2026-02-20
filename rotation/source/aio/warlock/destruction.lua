@@ -279,7 +279,8 @@ local Destro_LifeTap = {
     matches = function(context, state)
         local min_hp = context.settings.life_tap_min_hp or 40
         if context.hp < min_hp then return false end
-        return context.mana_pct < 90
+        local threshold = context.settings.life_tap_mana_pct or 30
+        return context.mana_pct < threshold
     end,
 
     execute = function(icon, context, state)

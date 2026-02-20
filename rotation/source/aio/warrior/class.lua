@@ -51,6 +51,7 @@ Action[A.PlayerClass] = {
     Whirlwind          = Create({ Type = "Spell", ID = 1680 }),
     VictoryRush        = Create({ Type = "Spell", ID = 34428 }),
     Taunt              = Create({ Type = "Spell", ID = 355 }),
+    MockingBlow        = Create({ Type = "Spell", ID = 694, useMaxRank = true }),
     ChallengingShout   = Create({ Type = "Spell", ID = 1161, Click = { unit = "player", type = "spell", spell = 1161 } }),
 
     -- Shouts
@@ -252,7 +253,7 @@ NS.validate_playstyle_spells = validate_playstyle_spells
 -- ============================================================================
 rotation_registry:register_class({
     name = "Warrior",
-    version = "v1.2.4",
+    version = "v1.3.0",
     playstyles = { "arms", "fury", "protection" },
     idle_playstyle_name = nil,
 

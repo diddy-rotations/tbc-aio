@@ -281,8 +281,10 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
--- REMOVE CURSE (Utility)
+-- REMOVE CURSE (Utility — scans self then party members)
 -- ============================================================================
+local _curse_target = PLAYER_UNIT  -- updated each frame by matches, read by execute
+
 rotation_registry:register_middleware({
     name = "Mage_RemoveCurse",
     priority = 200,
@@ -290,14 +292,26 @@ rotation_registry:register_middleware({
     matches = function(context)
         if not context.settings.auto_remove_curse then return false end
         if context.is_mounted then return false end
-        local hasCurse = A.AuraIsValid(PLAYER_UNIT, "UseDispel", "Curse")
-        if not hasCurse then return false end
-        return true
+        -- Check self first
+        if A.AuraIsValid(PLAYER_UNIT, "UseDispel", "Curse") then
+            _curse_target = PLAYER_UNIT
+            return true
+        end
+        -- Scan party members
+        local n = GetNumGroupMembers()
+        for i = 1, n do
+            local unit = "party" .. i
+            if A.AuraIsValid(unit, "UseDispel", "Curse") then
+                _curse_target = unit
+                return true
+            end
+        end
+        return false
     end,
 
     execute = function(icon, context)
-        if A.RemoveCurse:IsReady(PLAYER_UNIT) then
-            return A.RemoveCurse:Show(icon), "[MW] Remove Curse"
+        if A.RemoveCurse:IsReady(_curse_target) then
+            return A.RemoveCurse:Show(icon), format("[MW] Remove Curse -> %s", _curse_target)
         end
         return nil
     end,

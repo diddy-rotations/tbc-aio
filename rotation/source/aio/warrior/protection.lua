@@ -129,9 +129,9 @@ do
 local Prot_ShieldBlock = {
     requires_combat = true,
     is_gcd_gated = false,
+    setting_key = "prot_use_shield_block",
 
     matches = function(context, state)
-        if not context.settings.prot_use_shield_block then return false end
         if context.shield_block_active then return false end
         -- Shield Block requires Defensive Stance — IsReady handles check
         return A.ShieldBlock:IsReady(PLAYER_UNIT)
@@ -157,9 +157,9 @@ local Prot_ShieldSlam = {
 local Prot_Revenge = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "prot_use_revenge",
 
     matches = function(context, state)
-        if not context.settings.prot_use_revenge then return false end
         -- Revenge requires Defensive Stance + block/dodge/parry proc
         return state.revenge_available
     end,
@@ -173,9 +173,9 @@ local Prot_Revenge = {
 local Prot_Devastate = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "prot_use_devastate",
 
     matches = function(context, state)
-        if not context.settings.prot_use_devastate then return false end
         if not is_spell_available(A.Devastate) then return false end
         -- Devastate requires Defensive Stance
         return A.Devastate:IsReady(TARGET_UNIT)
@@ -214,9 +214,9 @@ local Prot_SunderArmor = {
 local Prot_ThunderClap = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "prot_use_thunder_clap",
 
     matches = function(context, state)
-        if not context.settings.prot_use_thunder_clap then return false end
         -- Only refresh when debuff is missing or about to expire
         if state.thunder_clap_debuff > Constants.TC_REFRESH_WINDOW then return false end
         -- Thunder Clap requires Battle Stance — only fires when warrior is in Battle
@@ -233,9 +233,9 @@ local Prot_ThunderClap = {
 local Prot_DemoShout = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "prot_use_demo_shout",
 
     matches = function(context, state)
-        if not context.settings.prot_use_demo_shout then return false end
         -- Only refresh when debuff is missing or about to expire
         if state.demo_shout_debuff > 3 then return false end
         return A.DemoralizingShout:IsReady(TARGET_UNIT)
@@ -308,7 +308,37 @@ local Prot_ChallengingShout = {
     end,
 }
 
--- [10] Heroic Strike / Cleave (off-GCD rage dump)
+-- [10] Mocking Blow (2-min CD taunt fallback — Battle Stance only)
+-- Fires when Taunt (10s CD, Defensive Stance) has been used and warrior happens to be in Battle Stance.
+-- Respects prot_no_taunt and the same classification filtering as Prot_Taunt.
+local Prot_MockingBlow = {
+    requires_combat = true,
+    requires_enemy = true,
+    is_gcd_gated = false,
+    spell = A.MockingBlow,
+    setting_key = "prot_use_taunt",  -- reuse the taunt toggle (Mocking Blow is also a taunt)
+
+    matches = function(context, state)
+        if context.settings.prot_no_taunt then return false end
+        if UnitIsPlayer(TARGET_UNIT) then return false end
+        if is_target_cc_locked(Constants.TAUNT.CC_THRESHOLD) then return false end
+        if has_target_aggro() then return false end
+        local classification = UnitClassification(TARGET_UNIT)
+        if classification ~= "elite" and classification ~= "worldboss" and classification ~= "rareelite" then return false end
+        local targeting_healer = is_targettarget_healer()
+        if not targeting_healer and context.ttd < Constants.TAUNT.MIN_TTD then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        local targeting_healer = is_targettarget_healer()
+        local reason = targeting_healer and "HEALER TARGETED" or "taunting"
+        return try_cast(A.MockingBlow, icon, TARGET_UNIT,
+            format("[PROT] Mocking Blow - Lost aggro - %s (2min CD fallback)", reason))
+    end,
+}
+
+-- [11] Heroic Strike / Cleave (off-GCD rage dump)
 local Prot_HeroicStrike = {
     requires_combat = true,
     requires_enemy = true,
@@ -349,6 +379,7 @@ rotation_registry:register("protection", {
     named("DemoShout",         Prot_DemoShout),
     named("Taunt",             Prot_Taunt),
     named("ChallengingShout",  Prot_ChallengingShout),
+    named("MockingBlow",       Prot_MockingBlow),
     named("HeroicStrike",      Prot_HeroicStrike),
 }, {
     context_builder = get_prot_state,

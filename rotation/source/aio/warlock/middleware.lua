@@ -238,8 +238,7 @@ rotation_registry:register_middleware({
         if context.is_mounted then return false end
         if not context.settings.use_fel_armor then return false end
         -- Check if any armor buff is active
-        local has_armor = (Unit(PLAYER_UNIT):HasBuffs(Constants.ARMOR_BUFF_IDS) or 0) > 0
-        if has_armor then return false end
+        if (Unit(PLAYER_UNIT):HasBuffs(Constants.ARMOR_BUFF_IDS) or 0) > 0 then return false end
         return true
     end,
 

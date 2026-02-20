@@ -38,7 +38,6 @@ local format = string.format
 --   "burn"    = spend mana freely, spam AB with all CDs
 --   "conserve" = AB x N → filler while stacks drop, repeat
 local arcane_phase = "burn"
-local arcane_casts_this_cycle = 0
 
 -- ============================================================================
 -- ARCANE STATE (context_builder)
@@ -47,7 +46,6 @@ local arcane_casts_this_cycle = 0
 local arcane_state = {
     is_burning = true,
     is_conserving = false,
-    casts_this_cycle = 0,
     ab_will_drop = false,
 }
 
@@ -62,30 +60,21 @@ local function get_arcane_state(context)
     -- Phase transitions
     if arcane_phase == "burn" and context.mana_pct <= start_conserve then
         arcane_phase = "conserve"
-        arcane_casts_this_cycle = 0
-    elseif arcane_phase == "conserve" and context.mana_pct >= stop_conserve and context.ab_stacks == 0 then
+    elseif arcane_phase == "conserve" and context.mana_pct >= stop_conserve and context.ab_stacks <= 1 then
         arcane_phase = "burn"
     end
 
     -- Reset on combat exit
     if not context.in_combat then
         arcane_phase = "burn"
-        arcane_casts_this_cycle = 0
     end
 
     arcane_state.is_burning = (arcane_phase == "burn")
     arcane_state.is_conserving = (arcane_phase == "conserve")
-    arcane_state.casts_this_cycle = arcane_casts_this_cycle
 
     -- Will AB stacks drop before we can recast?
     local ab_cast_time = A.ArcaneBlast:GetSpellCastTimeCache() or 2.5
     arcane_state.ab_will_drop = context.ab_duration > 0 and context.ab_duration < ab_cast_time
-
-    -- Reset cycle counter when stacks have dropped
-    if context.ab_stacks == 0 and arcane_casts_this_cycle > 0 then
-        arcane_casts_this_cycle = 0
-        arcane_state.casts_this_cycle = 0
-    end
 
     return arcane_state
 end
@@ -289,7 +278,7 @@ local Arcane_BurnAB = {
     end,
 }
 
--- [9] Conserve phase — N Arcane Blasts per cycle (use ab_stacks as cast counter)
+-- [10] Conserve phase — N Arcane Blasts per cycle (uses ab_stacks as cast counter)
 local Arcane_ConserveAB = {
     requires_combat = true,
     requires_enemy = true,
@@ -321,8 +310,8 @@ local Arcane_Filler = {
         if context.is_moving then return false end
         if not state.is_conserving then return false end
         local max_casts = context.settings.arcane_blasts_between_fillers or Constants.ARCANE.DEFAULT_BLASTS_BEFORE_FILLER
-        -- Cast filler when we've done enough ABs, or when stacks are about to drop
-        if state.casts_this_cycle < max_casts and not state.ab_will_drop then return false end
+        -- Cast filler when ab_stacks reached max (ConserveAB blocks), or when stacks are about to drop
+        if context.ab_stacks < max_casts and not state.ab_will_drop then return false end
         return true
     end,
 

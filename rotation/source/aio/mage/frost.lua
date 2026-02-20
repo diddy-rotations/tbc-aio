@@ -207,7 +207,7 @@ local Frost_MovementSpell = {
     end,
 }
 
--- [7] Frostbolt (primary filler — 90%+ of all casts)
+-- [8] Frostbolt (primary filler — 90%+ of all casts)
 local Frost_Frostbolt = {
     requires_combat = true,
     requires_enemy = true,

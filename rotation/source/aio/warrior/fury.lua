@@ -66,23 +66,18 @@ do
 -- Activate after melee crit, refresh when duration is low (stacks build naturally via refreshes)
 local Fury_Rampage = {
     requires_combat = true,
+    spell = A.Rampage,
+    spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
         if not is_spell_available(A.Rampage) then return false end
         -- Activate if buff not present
-        if not context.rampage_active then
-            return A.Rampage:IsReady(PLAYER_UNIT)
-        end
+        if not context.rampage_active then return true end
         -- Still building stacks — always use when available
-        if context.rampage_stacks < Constants.RAMPAGE_MAX_STACKS then
-            return A.Rampage:IsReady(PLAYER_UNIT)
-        end
+        if context.rampage_stacks < Constants.RAMPAGE_MAX_STACKS then return true end
         -- At max stacks, only refresh when duration running low
         local threshold = context.settings.fury_rampage_threshold or 5
-        if context.rampage_duration < threshold then
-            return A.Rampage:IsReady(PLAYER_UNIT)
-        end
-        return false
+        return context.rampage_duration < threshold
     end,
 
     execute = function(icon, context, state)
@@ -115,9 +110,9 @@ local Fury_Bloodthirst = {
 local Fury_Whirlwind = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "fury_use_whirlwind",
 
     matches = function(context, state)
-        if not context.settings.fury_use_whirlwind then return false end
         -- During execute phase, check setting
         if state.target_below_20 and context.settings.fury_execute_phase then
             if not context.settings.fury_ww_during_execute then return false end
@@ -155,9 +150,9 @@ local Fury_BloodthirstLow = {
 local Fury_Execute = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "fury_execute_phase",
 
     matches = function(context, state)
-        if not context.settings.fury_execute_phase then return false end
         if not state.target_below_20 then return false end
         return A.Execute:IsReady(TARGET_UNIT)
     end,
@@ -239,9 +234,9 @@ local Fury_DemoShout = {
 local Fury_Slam = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "fury_use_slam",
 
     matches = function(context, state)
-        if not context.settings.fury_use_slam then return false end
         if context.is_moving then return false end
         -- Don't Slam in execute phase
         if state.target_below_20 and context.settings.fury_execute_phase then return false end
@@ -253,13 +248,13 @@ local Fury_Slam = {
     end,
 }
 
--- [8] Overpower (Battle Stance only, dodge proc)
+-- [9] Overpower (Battle Stance only, dodge proc)
 local Fury_Overpower = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "fury_use_overpower",
 
     matches = function(context, state)
-        if not context.settings.fury_use_overpower then return false end
         local min_rage = context.settings.fury_overpower_rage or 25
         if context.rage < min_rage then return false end
         -- Overpower requires Battle Stance — IsReady handles check
@@ -272,13 +267,13 @@ local Fury_Overpower = {
     end,
 }
 
--- [9] Hamstring weave (for Sword Spec procs)
+-- [12] Hamstring weave (for Sword Spec procs)
 local Fury_Hamstring = {
     requires_combat = true,
     requires_enemy = true,
+    setting_key = "fury_use_hamstring",
 
     matches = function(context, state)
-        if not context.settings.fury_use_hamstring then return false end
         local min_rage = context.settings.fury_hamstring_rage or 50
         if context.rage < min_rage then return false end
         return A.Hamstring:IsReady(TARGET_UNIT)
@@ -290,14 +285,14 @@ local Fury_Hamstring = {
     end,
 }
 
--- [10] Heroic Strike / Cleave (off-GCD rage dump)
+-- [13] Heroic Strike / Cleave (off-GCD rage dump)
 local Fury_HeroicStrike = {
     requires_combat = true,
     requires_enemy = true,
     is_gcd_gated = false,
+    setting_key = "fury_use_heroic_strike",
 
     matches = function(context, state)
-        if not context.settings.fury_use_heroic_strike then return false end
         -- During execute phase, check setting
         if state.target_below_20 and context.settings.fury_execute_phase then
             if not context.settings.fury_hs_during_execute then return false end

@@ -288,16 +288,17 @@ local Aff_ShadowBolt = {
     end,
 }
 
--- [12] Life Tap — mana fallback (when OOM and middleware didn't fire)
+-- [12] Life Tap — mana fallback (backup if middleware didn't fire)
 local Aff_LifeTap = {
     requires_combat = true,
     spell = A.LifeTap,
 
     matches = function(context, state)
-        -- Always available as last resort; middleware handles proactive tapping
         local min_hp = context.settings.life_tap_min_hp or 40
         if context.hp < min_hp then return false end
-        return context.mana_pct < 90
+        -- Mirror the middleware threshold so this only fires when middleware would also fire
+        local threshold = context.settings.life_tap_mana_pct or 30
+        return context.mana_pct < threshold
     end,
 
     execute = function(icon, context, state)

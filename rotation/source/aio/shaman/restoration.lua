@@ -28,6 +28,7 @@ local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
 local resolve_totem_spell = NS.resolve_totem_spell
+local is_spell_available = NS.is_spell_available
 local totem_state = NS.totem_state
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
@@ -230,12 +231,13 @@ local Resto_NSHealingWave = {
     end,
 }
 
--- [2] Earth Shield Maintenance — keep on focus/tank
+-- [2] Earth Shield Maintenance — keep on focus/tank (41-pt Restoration talent)
 local Resto_EarthShieldMaintain = {
     spell = A.EarthShield,
     setting_key = "resto_maintain_earth_shield",
 
     matches = function(context, state)
+        if not is_spell_available(A.EarthShield) then return false end
         if not _G.UnitExists(FOCUS_UNIT) then return false end
         if _G.UnitIsDead(FOCUS_UNIT) then return false end
         local refresh_at = context.settings.resto_earth_shield_refresh or 2

@@ -199,7 +199,8 @@ rotation_registry:register_middleware({
         -- Don't waste Bloodrage if rage is already high
         if context.rage > 70 then return false end
         -- Bloodrage costs HP, don't use at low HP
-        if context.hp < 50 then return false end
+        local min_hp = context.settings.bloodrage_min_hp or 50
+        if context.hp < min_hp then return false end
         return true
     end,
 
@@ -221,6 +222,7 @@ rotation_registry:register_middleware({
 
     matches = function(context)
         if not context.in_combat then return false end
+        if not context.settings.use_berserker_rage then return false end
         -- Berserker Rage requires Berserker Stance
         if context.stance ~= Constants.STANCE.BERSERKER then return false end
         if context.berserker_rage_active then return false end

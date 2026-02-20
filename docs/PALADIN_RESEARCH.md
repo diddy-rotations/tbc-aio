@@ -862,6 +862,7 @@ Fillers [8-10] only fire when no twist is planned AND sufficient time before nex
 [8]  HolyShieldFallback     — if not prioritized earlier (lower slot)
 [9]  AvengingWrath          — optional threat burst (off-GCD)
 [10] Trinkets               — with threat needs (off-GCD)
+[11] Racial                 — off-GCD (Arcane Torrent / Stoneform)
 ```
 Note: Avenger's Shield is NOT in the wowsims sustained rotation — it's a pull-only ability.
 The sim tracks next CD via: Holy Shield, Judgement, Consecration readiness only.
@@ -869,15 +870,20 @@ OOM handling: pause 5 seconds before retrying rotation.
 
 ### Holy Playstyle Strategies (priority order)
 ```
-[1]  DivineFavor            — off-GCD, guaranteed crit next heal (2 min CD)
-[2]  DivineIllumination     — off-GCD, -50% mana cost 15s (3 min CD)
-[3]  HolyShockHeal          — instant emergency (15s CD, < HS HP% threshold)
-[4]  HolyLight              — target below HL HP% threshold (heavy damage)
-[5]  FlashOfLight           — target below FoL HP% threshold (moderate damage)
-[6]  JudgementMaintain      — maintain JoL/JoW on boss when safe
-[7]  SealMaintain           — keep Seal of Wisdom active
-[8]  Cleanse                — dispel debuffs on party
+[1]  DivineIllumination     — off-GCD, -50% mana cost 15s (when mana below threshold)
+[2]  DivineFavor            — off-GCD, guaranteed crit next heal (when emergency_count > 0)
+[3]  Racial                 — off-GCD (Arcane Torrent / Stoneform)
+[4]  HolyShockHeal          — instant emergency (15s CD, < HS HP% threshold)
+[5]  LayOnHands             — emergency full heal on target below 15% HP (check Forbearance!)
+[6]  HolyLight              — target below HL HP% threshold (heavy damage)
+[7]  FlashOfLight           — target below FoL HP% threshold (moderate damage)
+[8]  JudgementMaintain      — maintain JoL/JoW on boss when safe (off-GCD; blocks during emergencies)
+[9]  SealMaintain           — keep Seal of Wisdom active
+[10] Cleanse                — dispel debuffs on party
 ```
+Note: DivineFavor fires when emergency_count > 0 (someone below ~40% HP), not on a simple HP threshold.
+JudgementMaintain ensures the correct seal is active before judging (consumes the current seal).
+LayOnHands is in-strategy (not middleware) for Holy — Holy has direct heal access to the lowest target.
 
 ### Shared Middleware (all specs)
 ```

@@ -110,7 +110,8 @@ local Holy_DivineIllumination = {
 
     matches = function(context, state)
         -- Use when mana is getting low to save on HL spam
-        if context.mana_pct > 60 then return false end
+        local di_pct = context.settings.holy_divine_illumination_pct or 60
+        if context.mana_pct > di_pct then return false end
         return true
     end,
 
@@ -139,7 +140,30 @@ local Holy_DivineFavor = {
     end,
 }
 
--- [3] Holy Shock heal (instant, 15s CD)
+-- [3] Racial (off-GCD — Arcane Torrent restores mana, Stoneform defensive)
+local Holy_Racial = {
+    requires_combat = true,
+    is_gcd_gated = false,
+    setting_key = "use_racial",
+
+    matches = function(context, state)
+        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
+        if A.Stoneform:IsReady(PLAYER_UNIT) then return true end
+        return false
+    end,
+
+    execute = function(icon, context, state)
+        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then
+            return A.ArcaneTorrent:Show(icon), "[HOLY] Arcane Torrent"
+        end
+        if A.Stoneform:IsReady(PLAYER_UNIT) then
+            return A.Stoneform:Show(icon), "[HOLY] Stoneform"
+        end
+        return nil
+    end,
+}
+
+-- [4] Holy Shock heal (instant, 15s CD)
 local Holy_HolyShockHeal = {
     requires_combat = true,
     spell = A.HolyShock,
@@ -240,8 +264,8 @@ local Holy_JudgementMaintain = {
     matches = function(context, state)
         local judge_type = context.settings.holy_judge_debuff or "light"
         if judge_type == "none" then return false end
-        -- Don't judge if anyone needs healing urgently
-        if state.lowest and state.lowest.hp < 80 then return false end
+        -- Don't judge during emergencies (Judgement is off-GCD but still costs GCD equivalent)
+        if state.emergency_count > 0 then return false end
         -- Check if judgement debuff is already on target
         if judge_type == "light" then
             local has_jol = (Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.JUDGEMENT_LIGHT) or 0) > 0
@@ -317,6 +341,7 @@ local Holy_Cleanse = {
 rotation_registry:register("holy", {
     named("DivineIllumination",  Holy_DivineIllumination),
     named("DivineFavor",         Holy_DivineFavor),
+    named("Racial",              Holy_Racial),
     named("HolyShockHeal",       Holy_HolyShockHeal),
     named("LayOnHands",          Holy_LayOnHands),
     named("HolyLight",           Holy_HolyLight),

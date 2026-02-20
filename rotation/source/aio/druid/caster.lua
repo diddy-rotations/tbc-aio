@@ -35,12 +35,8 @@ local safe_ability_cast = NS.safe_ability_cast
 local safe_self_cast = NS.safe_self_cast
 local get_spell_mana_cost = NS.get_spell_mana_cost
 local get_form_cost = NS.get_form_cost
-local function has_any_rejuv(target)
-   return Unit(target):HasBuffs("Rejuvenation") > 0
-end
-local function has_any_regrowth(target)
-   return Unit(target):HasBuffs("Regrowth") > 0
-end
+local has_any_rejuv = NS.has_any_rejuv
+local has_any_regrowth = NS.has_any_regrowth
 local cast_best_heal_rank = NS.cast_best_heal_rank
 local proactive_heal_options = NS.proactive_heal_options
 local emergency_heal_options = NS.emergency_heal_options
@@ -206,7 +202,7 @@ do
          local settings = context.settings
          if not settings.use_innervate_self then return false end
          if _G.IsInRaid() or _G.GetNumGroupMembers() > 0 then return false end
-         if Unit(PLAYER_UNIT):HasBuffs(A.SelfInnervate.ID) > 0 then return false end
+         if (Unit(PLAYER_UNIT):HasBuffs(A.SelfInnervate.ID) or 0) > 0 then return false end
          return context.mana_pct <= settings.innervate_mana and A.SelfInnervate:IsReady(PLAYER_UNIT)
       end,
       should_suggest = function(context)
@@ -214,7 +210,7 @@ do
          if not settings.use_innervate_self then return false end
          if not A.SelfInnervate:IsReady(PLAYER_UNIT) then return false end
          if _G.IsInRaid() or _G.GetNumGroupMembers() > 0 then return false end
-         if Unit(PLAYER_UNIT):HasBuffs(A.SelfInnervate.ID) > 0 then return false end
+         if (Unit(PLAYER_UNIT):HasBuffs(A.SelfInnervate.ID) or 0) > 0 then return false end
          return context.mana_pct <= settings.innervate_mana
       end,
       execute = function(icon, context)

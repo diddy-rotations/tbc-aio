@@ -150,6 +150,8 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Divine Favor for guaranteed crit heal (2 min CD)." },
             { type = "checkbox", key = "holy_use_divine_illumination", default = true, label = "Divine Illumination",
               tooltip = "Use Divine Illumination for -50% mana cost (3 min CD, 41-pt Holy talent)." },
+            { type = "slider", key = "holy_divine_illumination_pct", default = 60, min = 30, max = 80, label = "DI Mana Threshold (%)",
+              tooltip = "Use Divine Illumination when mana drops below this percent.", format = "%d%%" },
         }},
         { header = "Utility", settings = {
             { type = "dropdown", key = "holy_judge_debuff", default = "light", label = "Judge Debuff",

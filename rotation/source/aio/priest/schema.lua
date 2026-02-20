@@ -185,6 +185,10 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "disc_renew_hp", default = 85, min = 50, max = 100, label = "Renew HP%",
               tooltip = "Apply Renew below this%.", format = "%d%%" },
         }},
+        { header = "AoE Healing", settings = {
+            { type = "slider", key = "disc_aoe_count", default = 3, min = 2, max = 5, label = "PoH Min Count",
+              tooltip = "Minimum injured group members to use Prayer of Healing.", format = "%d" },
+        }},
     }},
 
     -- Tab 6: Cooldowns & Mana

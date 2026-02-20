@@ -63,6 +63,10 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
               tooltip = "Interrupt enemy casts (Pummel in Berserker, Shield Bash in Defensive)." },
             { type = "checkbox", key = "use_bloodrage", default = true, label = "Auto Bloodrage",
               tooltip = "Use Bloodrage on cooldown for rage generation." },
+            { type = "slider", key = "bloodrage_min_hp", default = 50, min = 20, max = 80, label = "Bloodrage Min HP (%)",
+              tooltip = "Don't use Bloodrage when HP is below this (it costs HP).", format = "%d%%" },
+            { type = "checkbox", key = "use_berserker_rage", default = true, label = "Auto Berserker Rage",
+              tooltip = "Use Berserker Rage on cooldown when in Berserker Stance (rage gen + fear immunity)." },
         }},
         { header = "AoE", settings = {
             { type = "slider", key = "aoe_threshold", default = 0, min = 0, max = 8, label = "AoE Threshold",

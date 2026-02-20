@@ -277,6 +277,7 @@ local Combat_Eviscerate = {
 }
 
 -- [10] Shiv Refresh — Deadly Poison < 2s remaining on target
+-- Bypasses pooling gate: DP refresh is higher priority than pooling for the next finisher
 local Combat_ShivRefresh = {
     requires_combat = true,
     requires_enemy = true,
@@ -284,7 +285,7 @@ local Combat_ShivRefresh = {
     setting_key = "use_shiv",
 
     matches = function(context, state)
-        if state.pooling then return false end
+        -- Do NOT check state.pooling here — DP refresh must happen even while pooling
         local dp_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.DEADLY_POISON) or 0
         if dp_duration <= 0 then return false end
         return dp_duration < Constants.ROGUE.DP_REFRESH_THRESHOLD

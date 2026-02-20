@@ -239,8 +239,7 @@ rotation_registry:register_middleware({
         if context.in_combat then return false end
         if context.is_mounted then return false end
         -- Check if any aura is active
-        local has_aura = (Unit(PLAYER_UNIT):HasBuffs(Constants.AURA_BUFF_IDS) or 0) > 0
-        if has_aura then return false end
+        if (Unit(PLAYER_UNIT):HasBuffs(Constants.AURA_BUFF_IDS) or 0) > 0 then return false end
         return true
     end,
 
@@ -292,8 +291,7 @@ rotation_registry:register_middleware({
         if context.in_combat then return false end
         if context.is_mounted then return false end
         -- Check if any blessing is active
-        local has_blessing = (Unit(PLAYER_UNIT):HasBuffs(Constants.BLESSING_BUFF_IDS) or 0) > 0
-        if has_blessing then return false end
+        if (Unit(PLAYER_UNIT):HasBuffs(Constants.BLESSING_BUFF_IDS) or 0) > 0 then return false end
         return true
     end,
 

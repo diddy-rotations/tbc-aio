@@ -643,8 +643,19 @@ From wowsims normalRotation() with MS as primary:
 [5]  SunderArmor           — if Devastate not talented, build/maintain 5 stacks
 [6]  ThunderClapMaintain   — debuff maintenance, requires Battle Stance swap
 [7]  DemoShoutMaintain     — AP debuff maintenance
-[8]  HeroicStrikeQueue     — off-GCD, rage dump when rage > threshold
+[8]  Taunt                 — smart single-target taunt (elite/boss only, lost aggro)
+[9]  MockingBlow           — 2-min CD taunt fallback from Battle Stance (when Taunt on CD)
+[10] HeroicStrikeQueue     — off-GCD, rage dump when rage > threshold
 ```
+
+**Mocking Blow notes:**
+- ID 25266, 2 min CD, Battle Stance only
+- Used as a taunt fallback when the main Taunt (10s CD, Defensive Stance) is on cooldown
+- Respects `prot_no_taunt` setting — disabled when taunt is globally disabled
+- Same classification filtering as Taunt (elite/boss only, not CC'd targets)
+- Since the addon does NOT auto-swap stances, this fires naturally when the Warrior
+  happens to be in Battle Stance (e.g., during/after Thunder Clap stance swap window)
+- IsReady() handles the Battle Stance requirement check internally
 
 ### Shared Middleware (all specs)
 ```
