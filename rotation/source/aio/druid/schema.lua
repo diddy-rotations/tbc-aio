@@ -123,6 +123,9 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "croar_min_bosses", default = 1, min = 1, max = 3, label = "C.Roar Min Bosses", tooltip = "Min loose bosses in range to use Challenging Roar. Default 1 = any loose boss.", format = "%d" },
             { type = "slider", key = "croar_min_elites", default = 5, min = 1, max = 6, label = "C.Roar Min Elites", tooltip = "Min loose elites within range to use Challenging Roar. Default 5.", format = "%d" },
         }},
+        { header = "Threat Management", settings = {
+            { type = "checkbox", key = "enable_tab_targeting", default = true, label = "Enable Tab Targeting", tooltip = "Automatically switch targets to spread threat across multiple mobs. Picks up loose mobs, switches off CC'd targets, and spreads Lacerate for DPS optimization." },
+        }},
         { header = "Rage Management", settings = {
             { type = "slider", key = "maul_rage_threshold", default = 40, min = 15, max = 80, label = "Maul Rage Threshold", tooltip = "Queue Maul above this rage. Lower = more DPS but drains rage faster. 40 recommended.", format = "%d" },
             { type = "slider", key = "mangle_rage_threshold", default = 15, min = 15, max = 80, label = "Mangle Rage Threshold", tooltip = "Mangle is your highest-damage ability. 15 = on cooldown (recommended). Raise only if rage-starved.", format = "%d" },
