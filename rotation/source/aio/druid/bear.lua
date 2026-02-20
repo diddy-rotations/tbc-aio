@@ -33,6 +33,7 @@ local get_debuff_state = NS.get_debuff_state
 local get_time_until_swing = NS.get_time_until_swing
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
+local CONST = A.Const
 
 -- Lua optimizations
 local format = string.format
@@ -139,6 +140,115 @@ do
             end
          end
       end
+      return false
+   end
+
+   -- =========================================================================
+   -- TAB TARGETING (multi-mob threat management)
+   -- =========================================================================
+   -- Determines when to switch targets to spread threat across multiple mobs.
+   -- Priority:
+   --   1. Switch OFF CC'd targets to valid ones
+   --   2. Pick up loose mobs (not targeting us) when we're not managing too many
+   --   3. Spread Lacerate stacks for DPS when below Swipe threshold
+   local function is_target_breakable_cc()
+      for i = 1, NUM_BREAKABLE_CC do
+         if (Unit(TARGET_UNIT):HasDeBuffs(BREAKABLE_CC_NAMES[i]) or 0) > 0 then
+            return true
+         end
+      end
+      return false
+   end
+
+   local function should_tab_target(ctx, state)
+      if not ctx.settings.enable_tab_targeting then return false end
+      if ctx.enemy_count < 2 then return false end
+      if _G.UnitIsPlayer(TARGET_UNIT) then return false end
+      if Unit(TARGET_UNIT):CombatTime() == 0 then return false end
+
+      -- Switch away from CC'd target to find a valid one
+      if is_target_breakable_cc() then return true end
+
+      -- Only switch if current target is valid and in melee range
+      if _G.UnitExists(TARGET_UNIT) and not _G.UnitIsDead(TARGET_UNIT) and _G.UnitIsVisible(TARGET_UNIT) and ctx.in_melee_range then
+         -- Only switch if we have solid aggro (threat >= 2) on current target
+         local threat = Unit(TARGET_UNIT):ThreatSituation() or 0
+         local hasAggro = threat >= 2 or (_G.UnitExists("targettarget") and _G.UnitIsUnit("targettarget", PLAYER_UNIT))
+
+         if not hasAggro then
+            -- Don't have aggro yet, stay on this target
+            return false
+         end
+
+         -- Count mobs by aggro status, and find if there's a healthy target to switch to
+         local mobsWithAggro = 0
+         local mobsWithoutAggro = 0
+         local maxMobsToManage = 4
+         local mobsWithLowLacerate = 0
+
+         local plates = A.MultiUnits:GetActiveUnitPlates()
+         for unitID in pairs(plates) do
+            if unitID
+               and _G.UnitExists(unitID)
+               and not _G.UnitIsDead(unitID)
+               and not _G.UnitIsPlayer(unitID)
+               and not _G.UnitIsUnit(unitID, TARGET_UNIT) -- Don't count current target
+               and Unit(unitID):CombatTime() > 0
+               and A.MangleBear:IsInRange(unitID) == true -- Only consider targets in melee range
+               and (Unit(unitID):InCC() or 0) == 0 -- Don't count CC'd targets
+            then
+               local unitTTD = Unit(unitID):TimeToDie()
+               local unitIsDying = unitTTD > 0 and unitTTD < 5
+
+               -- Don't count dying mobs as needing pickup
+               if not unitIsDying then
+                  local unitThreat = _G.UnitThreatSituation(PLAYER_UNIT, unitID) or 0
+                  local unitTargetingPlayer = _G.UnitExists(unitID .. "target") and _G.UnitIsUnit(unitID .. "target", PLAYER_UNIT)
+                  local unitHasAggro = unitThreat >= 2 or unitTargetingPlayer
+
+                  if unitHasAggro then
+                     mobsWithAggro = mobsWithAggro + 1
+                  else
+                     mobsWithoutAggro = mobsWithoutAggro + 1
+                  end
+
+                  -- Count mobs with low lacerate stacks for DPS optimization
+                  if is_spell_available(A.Lacerate) then
+                     local unitLacerateStacks = Unit(unitID):HasDeBuffsStacks(A.Lacerate.ID, true)
+                     if unitLacerateStacks < 3 then
+                        mobsWithLowLacerate = mobsWithLowLacerate + 1
+                     end
+                  end
+               end
+            end
+         end
+
+         -- Switch if there are uncontrolled mobs and we're not already managing too many
+         if mobsWithoutAggro > 0 and mobsWithAggro < maxMobsToManage then
+            return true
+         end
+
+         -- DPS optimization: Spread lacerate on multi-target (but below swipe threshold)
+         -- Only do this on non-boss fights to maximize DPS
+         if not ctx.is_boss_fight and ctx.enemy_count >= 2 and ctx.enemy_count < 3 then
+            local currentLacerateStacks = state.lacerate_stacks
+            -- If current target has 3+ stacks and there are mobs with < 3 stacks, switch
+            if currentLacerateStacks >= 3 and mobsWithLowLacerate > 0 then
+               return true
+            end
+         end
+
+         -- Stay on current target if we have aggro and it's in range
+         return false
+      end
+
+      -- Target is invalid (doesn't exist, is dead, or out of range)
+      -- Switch to find a valid in-range target
+      if not _G.UnitExists(TARGET_UNIT) or _G.UnitIsDead(TARGET_UNIT) or not ctx.in_melee_range then
+         return true
+      end
+
+      -- Should not reach here, but default to not switching
       return false
    end
 
@@ -414,6 +524,23 @@ do
       end,
    }
 
+   -- [5] Tab Target (multi-mob threat management)
+   -- Switches targets to spread threat across multiple mobs
+   -- Priority: CC'd targets -> loose mobs -> Lacerate spread
+   local Bear_TabTarget = {
+      is_gcd_gated = false,
+      requires_combat = true,
+      requires_enemy = true,
+      setting_key = "enable_tab_targeting",
+      matches = function(context, state)
+         return should_tab_target(context, state)
+      end,
+      execute = function(icon, context)
+         AddDebugLogLine(format("[%.3fs] [TAB TARGET] Switching to next target for threat management", GetTime()))
+         return A:Show(icon, CONST.AUTOTARGET)
+      end,
+   }
+
    -- [9] Demoralizing Roar (attack power reduction)
    -- Configurable thresholds: min bosses/elites/trash within 10yd (defaults: 1/1/3)
    -- Smart: skips immune, dying (single target), warrior-shout-covered
@@ -626,17 +753,18 @@ do
       named("Growl",            Bear_Growl),             -- [3]  off-GCD taunt
       named("ChallengingRoar",  Bear_ChallengingRoar),   -- [4]  off-GCD AoE taunt
       named("LacerateUrgent",   Bear_LacerateUrgent),    -- [5]  GCD — urgent refresh
-      named("FaerieFire",       Bear_FaerieFire),        -- [6]  GCD — debuff maintenance
-      named("DemoRoar",         Bear_DemoRoar),          -- [7]  GCD — AP reduction
-      named("SwipeAoE",         Bear_SwipeAoE),          -- [8]  GCD — AoE priority (above Mangle)
-      named("Mangle",           Bear_Mangle),            -- [9]  GCD — main ST damage/threat
-      named("Swipe",            Bear_Swipe),             -- [10] GCD — ST filler (Lac maintained)
-      named("LacerateBuild",    Bear_LacerateBuild),     -- [11] GCD — stack builder
-      named("Maul",             Bear_Maul),              -- [12] off-GCD swing queue (fires during GCD)
+      named("TabTarget",        Bear_TabTarget),         -- [6]  off-GCD tab targeting
+      named("FaerieFire",       Bear_FaerieFire),        -- [7]  GCD — debuff maintenance
+      named("DemoRoar",         Bear_DemoRoar),          -- [8]  GCD — AP reduction
+      named("SwipeAoE",         Bear_SwipeAoE),          -- [9]  GCD — AoE priority (above Mangle)
+      named("Mangle",           Bear_Mangle),            -- [10] GCD — main ST damage/threat
+      named("Swipe",            Bear_Swipe),             -- [11] GCD — ST filler (Lac maintained)
+      named("LacerateBuild",    Bear_LacerateBuild),     -- [12] GCD — stack builder
+      named("Maul",             Bear_Maul),              -- [13] off-GCD swing queue (fires during GCD)
    }, {
       context_builder = get_bear_state,
    })
 
 end  -- End Bear strategies do...end block
 
-print("|cFF00FF00[Diddy AIO Bear]|r 12 Bear strategies registered.")
+print("|cFF00FF00[Diddy AIO Bear]|r 13 Bear strategies registered.")
