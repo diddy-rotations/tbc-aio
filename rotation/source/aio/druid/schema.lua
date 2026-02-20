@@ -125,7 +125,7 @@ _G.DiddyAIO_SETTINGS_SCHEMA = {
         }},
         { header = "Rage Management", settings = {
             { type = "slider", key = "maul_rage_threshold", default = 40, min = 15, max = 80, label = "Maul Rage Threshold", tooltip = "Queue Maul above this rage. Lower = more DPS but drains rage faster. 40 recommended.", format = "%d" },
-            { type = "slider", key = "mangle_rage_threshold", default = 20, min = 15, max = 80, label = "Mangle Rage Threshold", tooltip = "Mangle is your highest-damage ability. 20 = on cooldown (recommended). Raise only if rage-starved.", format = "%d" },
+            { type = "slider", key = "mangle_rage_threshold", default = 15, min = 15, max = 80, label = "Mangle Rage Threshold", tooltip = "Mangle is your highest-damage ability. 15 = on cooldown (recommended). Raise only if rage-starved.", format = "%d" },
             { type = "slider", key = "swipe_rage_threshold", default = 15, min = 15, max = 80, label = "Swipe Rage Threshold", tooltip = "Only Swipe above this rage. 15 = on cooldown (minimum cost). Raise to preserve rage for higher-priority abilities.", format = "%d" },
             { type = "slider", key = "swipe_min_targets", default = 2, min = 1, max = 4, label = "Swipe AoE Threshold", tooltip = "At this many enemies, Swipe takes priority over Mangle (AoE mode). Below this, Swipe is only used as filler when Lacerate is maintained.", format = "%d" },
             { type = "checkbox", key = "swipe_cc_check", default = true, label = "Swipe CC Safety", tooltip = "Skip Swipe when a nearby mob has breakable CC (Polymorph, Trap, Sap, etc). Prevents breaking crowd control." },
