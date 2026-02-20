@@ -1,5 +1,5 @@
 /** GitHub owner/repo — update this when the repo is created */
-const GITHUB_REPO = 'flux-aio/tbc-aio';
+const GITHUB_REPO = 'flux-aio/tbc';
 
 export const config = {
   /** Base GitHub repo URL */
