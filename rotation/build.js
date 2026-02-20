@@ -502,6 +502,29 @@ function purgeStaleProfiles(lines, validNames, config) {
 }
 
 // ---------------------------------------------------------------------------
+// Account / SavedVariables Path Resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve all SavedVariables paths from config.
+ * Prefers [accounts] section (name = path). Falls back to [paths] savedvariables.
+ * Returns array of { name, svPath }.
+ */
+function getSavedVariablesPaths(config) {
+    if (config && config.accounts) {
+        const entries = Object.entries(config.accounts);
+        if (entries.length > 0) {
+            return entries.map(([name, svPath]) => ({ name, svPath }));
+        }
+    }
+    // Backward compat: single path from [paths]
+    if (config && config.paths && config.paths.savedvariables) {
+        return [{ name: 'default', svPath: config.paths.savedvariables }];
+    }
+    return [];
+}
+
+// ---------------------------------------------------------------------------
 // Write Helpers
 // ---------------------------------------------------------------------------
 
@@ -574,9 +597,12 @@ function buildOutput(classes, config) {
 /**
  * Sync CodeSnippets to the game's TellMeWhen.lua SavedVariables.
  * Creates profiles for discovered classes, purges stale ones.
+ * @param {object} config - Parsed INI config
+ * @param {string[]} classNames - Classes to sync
+ * @param {string} [svPathOverride] - Explicit SV path (overrides config)
  */
-function syncToSavedVariables(config, classNames) {
-    const svPath = config.paths.savedvariables;
+function syncToSavedVariables(config, classNames, svPathOverride) {
+    const svPath = svPathOverride || config.paths.savedvariables;
 
     const aioDir = getAIODir(config);
     const templatePath = config.paths.template
@@ -645,6 +671,7 @@ module.exports = {
     discoverModules,
     getProfileName,
     getAIODir,
+    getSavedVariablesPaths,
     syncToSavedVariables,
     buildOutput,
     parseINI,
@@ -713,13 +740,17 @@ if (require.main === module) {
     }
 
     if (doSync) {
-        if (!config || !config.paths || !config.paths.savedvariables) {
-            console.error('Error: --sync requires dev.ini with [paths] savedvariables');
+        const svPaths = getSavedVariablesPaths(config);
+        if (svPaths.length === 0) {
+            console.error('Error: --sync requires dev.ini with [accounts] or [paths] savedvariables');
             console.error('Create dev.ini from dev.ini.example');
             process.exit(1);
         }
         console.log('\n--- Syncing to SavedVariables ---');
-        syncToSavedVariables(config, classes);
+        for (const { name, svPath } of svPaths) {
+            if (svPaths.length > 1) console.log(`\n  Account: ${name}`);
+            syncToSavedVariables(config, classes, svPath);
+        }
     }
 
     console.log('\nDone!');

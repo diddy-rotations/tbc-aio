@@ -5,8 +5,11 @@
  * Detects .lua file changes, determines affected classes, and triggers
  * a sync to TellMeWhen SavedVariables.
  *
- * Also watches the SavedVariables file itself. When the game overwrites
- * it (e.g. on /reload), re-syncs our code into it immediately.
+ * Supports multiple WoW accounts via [accounts] section in dev.ini.
+ * Falls back to single [paths] savedvariables for backward compat.
+ *
+ * Also watches the SavedVariables file(s). When the game overwrites
+ * them (e.g. on /reload), re-syncs our code immediately.
  *
  * Usage: node dev-watch.js
  *
@@ -29,31 +32,37 @@ if (!fs.existsSync(INI_PATH)) {
     console.error('Create dev.ini from the example:');
     console.error('  cp dev.ini.example dev.ini');
     console.error('');
-    console.error('Then edit it with your SavedVariables path.');
+    console.error('Then edit it with your SavedVariables path(s).');
     process.exit(1);
 }
 
 const config = build.parseINI(fs.readFileSync(INI_PATH, 'utf8'));
 
-if (!config.paths || !config.paths.savedvariables) {
-    console.error('Error: dev.ini missing [paths] savedvariables');
+const svAccounts = build.getSavedVariablesPaths(config);
+if (svAccounts.length === 0) {
+    console.error('Error: dev.ini has no SavedVariables paths.');
+    console.error('Add an [accounts] section or set [paths] savedvariables.');
     process.exit(1);
 }
 
 const aioDir = build.getAIODir(config);
-const svPath = config.paths.savedvariables;
 
 // ---------------------------------------------------------------------------
-// Write Tracking — distinguish our writes from game writes
+// Write Tracking — distinguish our writes from game writes (per SV path)
 // ---------------------------------------------------------------------------
 
-let lastOurWriteTime = 0;
+const lastOurWriteTime = {};  // svPath → timestamp
 const OUR_WRITE_COOLDOWN_MS = 2000;
 
-/** Wrapper that marks a sync as "ours" so the SV watcher ignores it. */
+/** Wrapper that syncs all accounts and marks writes as "ours". */
 function syncAndMark(classNames) {
-    build.syncToSavedVariables(config, classNames);
-    lastOurWriteTime = Date.now();
+    for (const { name, svPath } of svAccounts) {
+        if (svAccounts.length > 1) {
+            console.log(`[${build.timestamp()}] Syncing account: ${name}`);
+        }
+        build.syncToSavedVariables(config, classNames, svPath);
+        lastOurWriteTime[svPath] = Date.now();
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -71,7 +80,9 @@ const classSummary = classes.map(c => {
     return `${c}: ${mods.length} modules`;
 }).join(', ');
 
+const accountSummary = svAccounts.map(a => a.name).join(', ');
 console.log(`[${build.timestamp()}] Watching ${aioDir} — ${classes.length} class(es) (${classSummary})`);
+console.log(`[${build.timestamp()}] Syncing to ${svAccounts.length} account(s): ${accountSummary}`);
 
 // Initial full sync
 syncAndMark(classes);
@@ -135,33 +146,40 @@ fs.watch(aioDir, { recursive: true }, handleChange);
 // SavedVariables Watcher — re-sync after game overwrites (e.g. /reload)
 // ---------------------------------------------------------------------------
 
-let svDebounceTimer = null;
+for (const { name, svPath } of svAccounts) {
+    let svDebounceTimer = null;
 
-function handleSVChange() {
-    // Ignore changes we just caused
-    if (Date.now() - lastOurWriteTime < OUR_WRITE_COOLDOWN_MS) return;
+    function handleSVChange() {
+        // Ignore changes we just caused
+        if (Date.now() - (lastOurWriteTime[svPath] || 0) < OUR_WRITE_COOLDOWN_MS) return;
 
-    if (svDebounceTimer) clearTimeout(svDebounceTimer);
-    svDebounceTimer = setTimeout(() => {
-        svDebounceTimer = null;
+        if (svDebounceTimer) clearTimeout(svDebounceTimer);
+        svDebounceTimer = setTimeout(() => {
+            svDebounceTimer = null;
 
-        // Double-check the cooldown (might have been set during debounce wait)
-        if (Date.now() - lastOurWriteTime < OUR_WRITE_COOLDOWN_MS) return;
+            // Double-check the cooldown (might have been set during debounce wait)
+            if (Date.now() - (lastOurWriteTime[svPath] || 0) < OUR_WRITE_COOLDOWN_MS) return;
 
-        if (!fs.existsSync(svPath)) return;
+            if (!fs.existsSync(svPath)) return;
 
-        console.log(`[${build.timestamp()}] [RELOAD] SavedVariables overwritten externally — re-syncing all classes`);
-        syncAndMark(classes);
-    }, 500);
+            const label = svAccounts.length > 1 ? ` (${name})` : '';
+            console.log(`[${build.timestamp()}] [RELOAD] SavedVariables overwritten externally${label} — re-syncing all classes`);
+            build.syncToSavedVariables(config, classes, svPath);
+            lastOurWriteTime[svPath] = Date.now();
+        }, 500);
+    }
+
+    // fs.watchFile uses polling — more reliable than fs.watch for files modified
+    // by external programs (especially games that do atomic write-replace).
+    fs.watchFile(svPath, { interval: 1000 }, (curr, prev) => {
+        if (curr.mtimeMs !== prev.mtimeMs) {
+            handleSVChange();
+        }
+    });
 }
 
-// fs.watchFile uses polling — more reliable than fs.watch for files modified
-// by external programs (especially games that do atomic write-replace).
-fs.watchFile(svPath, { interval: 1000 }, (curr, prev) => {
-    if (curr.mtimeMs !== prev.mtimeMs) {
-        handleSVChange();
-    }
-});
-
 console.log(`[${build.timestamp()}] Watching for changes... (Ctrl+C to stop)`);
-console.log(`[${build.timestamp()}] Watching SavedVariables for external changes (e.g. /reload)`);
+for (const { name } of svAccounts) {
+    const label = svAccounts.length > 1 ? ` [${name}]` : '';
+    console.log(`[${build.timestamp()}] Watching SavedVariables${label} for external changes (e.g. /reload)`);
+}
