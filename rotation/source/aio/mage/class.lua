@@ -163,7 +163,7 @@ NS.Constants = Constants
 -- ============================================================================
 rotation_registry:register_class({
     name = "Mage",
-    version = "v1.6.0",
+    version = "v1.6.1",
     playstyles = { "fire", "frost", "arcane" },
     idle_playstyle_name = nil,
 

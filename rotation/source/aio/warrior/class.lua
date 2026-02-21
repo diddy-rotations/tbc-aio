@@ -176,7 +176,7 @@ local STANCE_NAMES = { "Battle", "Defensive", "Berserker" }
 
 rotation_registry:register_class({
     name = "Warrior",
-    version = "v1.6.0",
+    version = "v1.6.1",
     playstyles = { "arms", "fury", "protection" },
     idle_playstyle_name = nil,
 

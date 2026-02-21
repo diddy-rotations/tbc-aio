@@ -161,7 +161,7 @@ NS.Constants = Constants
 -- ============================================================================
 rotation_registry:register_class({
     name = "Priest",
-    version = "v1.6.0",
+    version = "v1.6.1",
     playstyles = { "shadow", "smite", "holy", "discipline" },
     idle_playstyle_name = nil,
 
