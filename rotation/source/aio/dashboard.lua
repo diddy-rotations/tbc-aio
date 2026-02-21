@@ -117,18 +117,36 @@ local ICON_X = 10             -- left padding for icon grid
 local MAX_TIMER_BARS = 3
 local TIMER_BAR_HEIGHT = 8
 
+local READY_BORDER  = { 0.30, 0.65, 0.30, 1 }
+local DARK_BORDER   = { 0.15, 0.15, 0.15, 1 }
+local ACTIVE_BORDER = { 0.70, 0.45, 0.15, 1 }   -- warm orange: debuff active
+local EXPIRY_BORDER = { 0.85, 0.15, 0.15, 1 }   -- red: debuff about to expire
+local EXPIRY_THRESHOLD = 3                         -- seconds before expiry flash
+
 local ICON_FALLBACK = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 local RESOURCE_COLORS = {
-    rage   = { 0.78, 0.25, 0.25 },
-    energy = { 1.0, 1.0, 0.0 },
-    mana   = { 0.24, 0.51, 0.90 },
+    rage   = { 0.90, 0.15, 0.15 },
+    energy = { 1.00, 0.86, 0.00 },
+    mana   = { 0.15, 0.35, 0.90 },
 }
 
 local CLASS_HEX = {
     Druid = "ff7d0a", Hunter = "abd473", Mage = "69ccf0", Paladin = "f58cba",
     Priest = "ffffff", Rogue = "fff569", Shaman = "0070dd", Warlock = "9482c9",
     Warrior = "c79c6e",
+}
+
+local CLASS_RGB = {
+    Druid   = { 1.00, 0.49, 0.04 },
+    Hunter  = { 0.67, 0.83, 0.45 },
+    Mage    = { 0.41, 0.80, 0.94 },
+    Paladin = { 0.96, 0.55, 0.73 },
+    Priest  = { 1.00, 1.00, 1.00 },
+    Rogue   = { 1.00, 0.96, 0.41 },
+    Shaman  = { 0.00, 0.44, 0.87 },
+    Warlock = { 0.58, 0.51, 0.79 },
+    Warrior = { 0.78, 0.61, 0.43 },
 }
 
 -- ============================================================================
@@ -154,6 +172,7 @@ local function get_buff_icon(id)
 end
 
 local function format_timer(seconds)
+    if seconds >= 1e9 then return "" end  -- inf / permanent buff guard
     if seconds > 60 then
         return format("%dm", floor(seconds / 60))
     end
@@ -230,6 +249,7 @@ end
 -- ============================================================================
 local dashboard_frame = nil
 local last_class_name = nil
+local last_valid_ps = nil
 local ui = {
     cd_slots = {},
     buff_slots = {},
@@ -250,6 +270,9 @@ local ui = {
     debuff_label_fs = nil,
     recent_label_fs = nil,
     target_info_fs = nil,
+    tick_marker = nil,
+    tick_marker2 = nil,
+    accent_stripe = nil,
 }
 
 local dash_context = { settings = nil }
@@ -325,6 +348,13 @@ local function create_dashboard()
         end
     end)
 
+    -- Class-color accent stripe (left edge)
+    ui.accent_stripe = f:CreateTexture(nil, "OVERLAY")
+    ui.accent_stripe:SetWidth(2)
+    ui.accent_stripe:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+    ui.accent_stripe:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
+    ui.accent_stripe:SetColorTexture(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.8)
+
     local y = -6
 
     -- Header (class name + playstyle, compact)
@@ -371,6 +401,13 @@ local function create_dashboard()
     ui.resource_text:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
     ui.resource_text:SetPoint("CENTER", bar_bg)
     ui.resource_text:SetTextColor(1, 1, 1)
+
+    -- Energy tick marker (thin vertical line on bar)
+    ui.tick_marker = bar_bg:CreateTexture(nil, "OVERLAY")
+    ui.tick_marker:SetSize(1, RES_BAR_H - 2)
+    ui.tick_marker:SetColorTexture(1, 1, 1, 0.6)
+    ui.tick_marker:Hide()
+
     y = y - (RES_BAR_H + 3)
 
     -- Secondary resource bar (positioned dynamically in update)
@@ -390,6 +427,13 @@ local function create_dashboard()
     ui.resource_text2:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
     ui.resource_text2:SetPoint("CENTER", ui.resource_bg2)
     ui.resource_text2:SetTextColor(1, 1, 1)
+
+    -- Energy tick marker for secondary bar
+    ui.tick_marker2 = ui.resource_bg2:CreateTexture(nil, "OVERLAY")
+    ui.tick_marker2:SetSize(1, RES_BAR_H - 2)
+    ui.tick_marker2:SetColorTexture(1, 1, 1, 0.6)
+    ui.tick_marker2:Hide()
+
     -- Don't advance y — positioned dynamically in update
 
     -- Timer bars (GCD + class timers, thin progress bars)
@@ -451,7 +495,7 @@ local function create_dashboard()
     ui.sep2_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 1, y)
     ui.sep2_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, y)
     ui.sep2_tex:SetHeight(1)
-    ui.sep2_tex:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 0.5)
+    ui.sep2_tex:SetColorTexture(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3], 0.35)
     y = y - 4
 
     -- Section labels (small, dim — unobtrusive category headers)
@@ -535,12 +579,24 @@ local function update_dashboard()
     end
 
     -- Header: class name + playstyle in one line
+    -- Fall back to last valid playstyle when current returns nil (e.g. Druid flight form)
     local class_hex = CLASS_HEX[cc.name] or "6c63ff"
-    local active_ps = cc.get_active_playstyle and cc.get_active_playstyle(dash_context) or "?"
+    local active_ps = cc.get_active_playstyle and cc.get_active_playstyle(dash_context)
+    if active_ps then
+        last_valid_ps = active_ps
+    else
+        active_ps = last_valid_ps or cc.idle_playstyle_name or "?"
+    end
     local ps_display = active_ps:sub(1, 1):upper() .. active_ps:sub(2)
     ui.header_text:SetText(format("|cff%s%s|r |cff9494a8\194\183|r |cff6c63ff%s|r", class_hex, cc.name or "Unknown", ps_display))
 
     last_class_name = cc.name
+
+    -- Update accent stripe to class color
+    local crgb = CLASS_RGB[cc.name]
+    if crgb and ui.accent_stripe then
+        ui.accent_stripe:SetColorTexture(crgb[1], crgb[2], crgb[3], 0.8)
+    end
 
     local f = dashboard_frame
     local bar_max = FRAME_WIDTH - 18
@@ -570,6 +626,20 @@ local function update_dashboard()
         local color = res.color or RESOURCE_COLORS[res.type] or { 1, 1, 1 }
         ui.resource_bar:SetVertexColor(color[1], color[2], color[3])
         ui.resource_text:SetText(res.type == "mana" and label or format("%s: %d", res.label or res.type, value))
+
+        -- Energy tick marker: show where next +20 tick lands
+        if res.type == "energy" and value < max_value then
+            local next_tick = value + 20
+            if next_tick > max_value then next_tick = max_value end
+            local tick_x = bar_max * (next_tick / max_value)
+            ui.tick_marker:ClearAllPoints()
+            ui.tick_marker:SetPoint("TOPLEFT", ui.resource_bar:GetParent(), "TOPLEFT", tick_x, -1)
+            ui.tick_marker:Show()
+        else
+            ui.tick_marker:Hide()
+        end
+    else
+        ui.tick_marker:Hide()
     end
 
     -- Secondary resource bar (e.g., energy/rage when primary is mana)
@@ -600,10 +670,23 @@ local function update_dashboard()
         ui.resource_text2:SetText(res2.type == "mana"
             and format("%s (%.0f%%)", res2.label or "Mana", value)
             or format("%s: %d", res2.label or res2.type, value))
+        -- Energy tick marker on secondary bar
+        if res2.type == "energy" and value < max_value then
+            local next_tick = value + 20
+            if next_tick > max_value then next_tick = max_value end
+            local tick_x = bar_max * (next_tick / max_value)
+            ui.tick_marker2:ClearAllPoints()
+            ui.tick_marker2:SetPoint("TOPLEFT", ui.resource_bg2, "TOPLEFT", tick_x, -1)
+            ui.tick_marker2:Show()
+        else
+            ui.tick_marker2:Hide()
+        end
+
         ui.resource_bg2:Show()
         content_y = content_y - 15
     else
         ui.resource_bg2:Hide()
+        ui.tick_marker2:Hide()
     end
 
     -- Timer bars (GCD built-in + class timers)
@@ -629,10 +712,12 @@ local function update_dashboard()
             tb.bar:Show()
             tb.value:SetText(format("%.1f", gcd_remaining))
             tb.value:Show()
+            tb.label:SetTextColor(1, 1, 1, 0.9)
         else
             tb.bar:Hide()
             tb.value:SetText("")
             tb.value:Hide()
+            tb.label:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3], 0.4)
         end
         tb.bg:Show()
         timer_idx = 2
@@ -675,10 +760,12 @@ local function update_dashboard()
             ctb.bar:Show()
             ctb.value:SetText(format("%.1f", remaining))
             ctb.value:Show()
+            ctb.label:SetTextColor(1, 1, 1, 0.9)
         else
             ctb.bar:Hide()
             ctb.value:SetText("")
             ctb.value:Hide()
+            ctb.label:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3], 0.4)
         end
         ctb.bg:Show()
         content_y = content_y - (TIMER_BAR_HEIGHT + 2)
@@ -705,31 +792,38 @@ local function update_dashboard()
     ui.priority_text:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, content_y)
     content_y = content_y - 11
 
-    -- Recent cast icons (CLEU-confirmed) — always reserves 1 row of space
-    ui.recent_label_fs:ClearAllPoints()
-    ui.recent_label_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
-    ui.recent_label_fs:Show()
-    content_y = content_y - 12
+    -- Recent cast icons (CLEU-confirmed) — collapses when no history
+    if history_count > 0 then
+        ui.recent_label_fs:ClearAllPoints()
+        ui.recent_label_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
+        ui.recent_label_fs:Show()
+        content_y = content_y - 12
 
-    for i = 1, MAX_HISTORY do
-        local hs = ui.history_icon_slots[i]
-        if i <= history_count and action_history[i].texture then
-            local entry = action_history[i]
-            local alpha = i == 1 and 1.0 or (0.8 - (i - 2) * 0.12)
-            if alpha < 0.3 then alpha = 0.3 end
-            hs.icon:SetTexture(entry.texture)
-            hs.frame.spell_id = entry.spell_id
-            hs.frame.slot_id = nil
-            hs.frame:SetAlpha(alpha)
-            hs.tint:Hide()
-            hs.text:Hide()
-            position_icon(hs, f, ICON_X, content_y, i)
-            hs.frame:Show()
-        else
-            hs.frame:Hide()
+        for i = 1, MAX_HISTORY do
+            local hs = ui.history_icon_slots[i]
+            if i <= history_count and action_history[i].texture then
+                local entry = action_history[i]
+                local alpha = i == 1 and 1.0 or (0.8 - (i - 2) * 0.12)
+                if alpha < 0.3 then alpha = 0.3 end
+                hs.icon:SetTexture(entry.texture)
+                hs.frame.spell_id = entry.spell_id
+                hs.frame.slot_id = nil
+                hs.frame:SetAlpha(alpha)
+                hs.tint:Hide()
+                hs.text:Hide()
+                position_icon(hs, f, ICON_X, content_y, i)
+                hs.frame:Show()
+            else
+                hs.frame:Hide()
+            end
+        end
+        content_y = content_y - ICON_STEP - 2
+    else
+        ui.recent_label_fs:Hide()
+        for i = 1, MAX_HISTORY do
+            ui.history_icon_slots[i].frame:Hide()
         end
     end
-    content_y = content_y - ICON_STEP - 2
 
     -- Target info — always reserves fixed 2-line height
     local tname = UnitName("target")
@@ -743,16 +837,16 @@ local function update_dashboard()
         if max_range then
             if stats ~= "" then stats = stats .. "  " end
             if min_range and min_range > 0 then
-                stats = stats .. format("%d-%dyd", min_range, max_range)
+                stats = stats .. format("Dist: %d-%dyd", min_range, max_range)
             else
-                stats = stats .. format("%dyd", max_range)
+                stats = stats .. format("Dist: %dyd", max_range)
             end
         end
         local _, _, threat_pct = UnitDetailedThreatSituation("player", "target")
         if threat_pct and threat_pct > 0 then
             local threat_color = threat_pct >= 100 and "ff3333" or (threat_pct >= 80 and "ffaa33" or "33ff33")
             if stats ~= "" then stats = stats .. "  " end
-            stats = stats .. format("|cff%s%d%%|r", threat_color, threat_pct)
+            stats = stats .. format("Thr: |cff%s%d%%|r", threat_color, threat_pct)
         end
         local text = format("|cff%sTarget|r  |cffcccccc%s|r", accent_hex, tname)
         text = text .. "\n|cff9494a8" .. (stats ~= "" and stats or " ") .. "|r"
@@ -807,18 +901,21 @@ local function update_dashboard()
                 position_icon(slot, f, ICON_X, icons_y, i)
 
                 if cd_remain > 600 then
+                    slot.border:SetColorTexture(DARK_BORDER[1], DARK_BORDER[2], DARK_BORDER[3], DARK_BORDER[4])
                     slot.tint:SetAlpha(0.7)
                     slot.tint:Show()
                     slot.text:SetText("N/A")
                     slot.text:SetTextColor(0.5, 0.5, 0.5)
                     slot.text:Show()
                 elseif cd_remain > 0 then
+                    slot.border:SetColorTexture(DARK_BORDER[1], DARK_BORDER[2], DARK_BORDER[3], DARK_BORDER[4])
                     slot.tint:SetAlpha(0.6)
                     slot.tint:Show()
                     slot.text:SetText(format_timer(cd_remain))
                     slot.text:SetTextColor(1, 1, 1)
                     slot.text:Show()
                 else
+                    slot.border:SetColorTexture(READY_BORDER[1], READY_BORDER[2], READY_BORDER[3], READY_BORDER[4])
                     slot.tint:Hide()
                     slot.text:Hide()
                 end
@@ -857,7 +954,14 @@ local function update_dashboard()
                 if dur > 0 then
                     slot.tint:Hide()
                     slot.text:SetText(format_timer(dur))
-                    slot.text:SetTextColor(1, 1, 1)
+                    -- Urgency color: white >60s, yellow 30-60s, red <30s
+                    if dur < 1e9 and dur <= 30 then
+                        slot.text:SetTextColor(1, 0.3, 0.3)
+                    elseif dur < 1e9 and dur <= 60 then
+                        slot.text:SetTextColor(1, 0.85, 0.3)
+                    else
+                        slot.text:SetTextColor(1, 1, 1)
+                    end
                     slot.text:Show()
                 else
                     slot.tint:SetAlpha(0.6)
@@ -903,6 +1007,12 @@ local function update_dashboard()
                 position_icon(slot, f, ICON_X, icons_y, i)
 
                 if dur > 0 then
+                    -- Border: red if expiring, orange if active
+                    if dur < 1e9 and dur <= EXPIRY_THRESHOLD then
+                        slot.border:SetColorTexture(EXPIRY_BORDER[1], EXPIRY_BORDER[2], EXPIRY_BORDER[3], EXPIRY_BORDER[4])
+                    else
+                        slot.border:SetColorTexture(ACTIVE_BORDER[1], ACTIVE_BORDER[2], ACTIVE_BORDER[3], ACTIVE_BORDER[4])
+                    end
                     slot.tint:Hide()
                     if d.show_stacks then
                         local stacks
@@ -913,12 +1023,21 @@ local function update_dashboard()
                             stacks = Unit("player"):HasDeBuffsStacks(d.id) or 0
                         end
                         slot.text:SetText(format("%d", stacks))
+                        slot.text:SetTextColor(1, 0.8, 0.3)
                     else
                         slot.text:SetText(format_timer(dur))
+                        -- Urgency color: white >10s, yellow 5-10s, red <5s
+                        if dur < 1e9 and dur <= 5 then
+                            slot.text:SetTextColor(1, 0.3, 0.3)
+                        elseif dur < 1e9 and dur <= 10 then
+                            slot.text:SetTextColor(1, 0.85, 0.3)
+                        else
+                            slot.text:SetTextColor(1, 1, 1)
+                        end
                     end
-                    slot.text:SetTextColor(1, 0.8, 0.3)
                     slot.text:Show()
                 else
+                    slot.border:SetColorTexture(DARK_BORDER[1], DARK_BORDER[2], DARK_BORDER[3], DARK_BORDER[4])
                     slot.tint:SetAlpha(0.6)
                     slot.tint:Show()
                     slot.text:Hide()
