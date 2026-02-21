@@ -207,29 +207,7 @@ local Destro_AoE = {
     end,
 }
 
--- [8] Trinkets (off-GCD)
-local Destro_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-
-    matches = function(context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-        return false
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[DESTRO] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[DESTRO] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [9] Racial (off-GCD)
+-- [8] Racial (off-GCD)
 local Destro_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -300,7 +278,6 @@ rotation_registry:register("destruction", {
     named("Shadowfury",         Destro_Shadowfury),
     named("Shadowburn",         Destro_Shadowburn),
     named("AoE",                Destro_AoE),
-    named("Trinkets",           Destro_Trinkets),
     named("Racial",             Destro_Racial),
     named("PrimarySpell",       Destro_PrimarySpell),
     named("LifeTap",            Destro_LifeTap),

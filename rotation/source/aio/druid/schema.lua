@@ -30,8 +30,20 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Keep Faerie Fire debuff active (armor reduction + 3% hit)." },
         }},
         { header = "Cooldowns", settings = {
-            { type = "checkbox", key = "use_trinket1", default = true, label = "Use Trinket 1", tooltip = "Use first trinket on cooldown in combat." },
-            { type = "checkbox", key = "use_trinket2", default = true, label = "Use Trinket 2", tooltip = "Use second trinket on cooldown in combat." },
+            { type = "dropdown", key = "trinket1_mode", default = "off", label = "Trinket 1",
+              tooltip = "Off = never use. Offensive = fires during burst. Defensive = fires during def.",
+              options = {
+                  { value = "off", text = "Off" },
+                  { value = "offensive", text = "Offensive (Burst)" },
+                  { value = "defensive", text = "Defensive" },
+              }},
+            { type = "dropdown", key = "trinket2_mode", default = "off", label = "Trinket 2",
+              tooltip = "Off = never use. Offensive = fires during burst. Defensive = fires during def.",
+              options = {
+                  { value = "off", text = "Off" },
+                  { value = "offensive", text = "Offensive (Burst)" },
+                  { value = "defensive", text = "Defensive" },
+              }},
             { type = "checkbox", key = "use_racial", default = true, label = "Use Racial Ability", tooltip = "Use racial DPS cooldown (Berserking / Blood Fury)." },
         }},
         { header = "Recovery Items", settings = {

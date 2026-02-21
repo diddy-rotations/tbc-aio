@@ -188,27 +188,7 @@ rotation_registry:register("discipline", {
         end,
     }),
 
-    -- [7] Trinkets (off-GCD)
-    named("Trinkets", {
-        is_gcd_gated = false,
-        matches = function(context, state)
-            if not context.in_combat then return false end
-            if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-            if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-            return false
-        end,
-        execute = function(icon, context, state)
-            if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-                return A.Trinket1:Show(icon), "[DISC] Trinket 1"
-            end
-            if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-                return A.Trinket2:Show(icon), "[DISC] Trinket 2"
-            end
-            return nil
-        end,
-    }),
-
-    -- [8] Racial (off-GCD)
+    -- [7] Racial (off-GCD)
     named("Racial", {
         is_gcd_gated = false,
         setting_key = "use_racial",

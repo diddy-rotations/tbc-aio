@@ -82,6 +82,52 @@ NS.is_force_active = is_force_active
 NS.clear_force_flag = clear_force_flag
 
 -- ============================================================================
+-- CENTER-SCREEN NOTIFICATION
+-- ============================================================================
+-- Pre-allocated frame for brief center-screen text notifications.
+-- Usage: NS.show_notification("text", duration_seconds, {r, g, b})
+local CreateFrame = _G.CreateFrame
+local UIParent = _G.UIParent
+
+local notif_frame = CreateFrame("Frame", "FluxAIONotification", UIParent)
+notif_frame:SetSize(300, 40)
+notif_frame:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
+notif_frame:SetFrameStrata("HIGH")
+
+local notif_text = notif_frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+notif_text:SetPoint("CENTER")
+notif_text:SetFont(notif_text:GetFont() or "Fonts\\FRIZQT__.TTF", 22, "OUTLINE")
+
+local notif_fade_start = 0
+local notif_fade_duration = 0.4
+local notif_visible_until = 0
+
+notif_frame:SetScript("OnUpdate", function(self, elapsed)
+   local now = GetTime()
+   if now < notif_visible_until then
+      notif_text:SetAlpha(1)
+   elseif now < notif_visible_until + notif_fade_duration then
+      local progress = (now - notif_visible_until) / notif_fade_duration
+      notif_text:SetAlpha(1 - progress)
+   else
+      notif_text:SetAlpha(0)
+      self:Hide()
+   end
+end)
+notif_frame:Hide()
+
+local function show_notification(text, duration, color)
+   duration = duration or 1.5
+   color = color or { 1, 1, 1 }
+   notif_text:SetText(text)
+   notif_text:SetTextColor(color[1], color[2], color[3], 1)
+   notif_visible_until = GetTime() + duration
+   notif_frame:Show()
+end
+
+NS.show_notification = show_notification
+
+-- ============================================================================
 -- PRIORITY REGISTRY (Middleware Only)
 -- Higher number = runs FIRST (descending order)
 -- ============================================================================
@@ -874,6 +920,96 @@ local function named(n, s) s.name = n; return s end
 
 NS.create_combat_strategy = create_combat_strategy
 NS.named = named
+
+-- ============================================================================
+-- TRINKET MIDDLEWARE FACTORY
+-- ============================================================================
+-- Called from each class's middleware.lua after NS.A is available.
+-- Uses the framework's auto-created A.Trinket1/A.Trinket2 (TrinketBySlot)
+-- directly — same pattern as Triptastic's working implementation.
+-- IMPORTANT: class.lua must NOT Create({ Type = "Trinket" }) as that
+-- overwrites the framework's proper TrinketBySlot versions.
+
+local DEFENSIVE_TRINKET_HP = 35
+local PLAYER_UNIT = "player"
+local GetInventoryItemTexture = _G.GetInventoryItemTexture
+
+local function register_trinket_middleware()
+   local A_class = NS.A
+   if not A_class then
+      print("|cFFFF6600[Flux Trinket]|r Factory skipped: NS.A not available")
+      return
+   end
+
+   local Trinket1 = A_class.Trinket1
+   local Trinket2 = A_class.Trinket2
+
+   if not Trinket1 and not Trinket2 then
+      print("|cFFFF6600[Flux Trinket]|r No framework trinkets found (A.Trinket1/A.Trinket2)")
+      return
+   end
+
+   -- Offensive trinkets: fire during burst windows or /flux burst
+   rotation_registry:register_middleware({
+      name = "Trinkets_Burst",
+      priority = 80,
+      is_burst = true,
+      is_gcd_gated = false,
+
+      matches = function(context)
+         if not context.in_combat then return false end
+         if not context.has_valid_enemy_target then return false end
+         if not should_auto_burst(context) then return false end
+         local s = context.settings
+         if s.trinket1_mode == "offensive" and Trinket1 and Trinket1:IsReady(PLAYER_UNIT) then return true end
+         if s.trinket2_mode == "offensive" and Trinket2 and Trinket2:IsReady(PLAYER_UNIT) then return true end
+         return false
+      end,
+
+      execute = function(icon, context)
+         local s = context.settings
+         if s.trinket1_mode == "offensive" and Trinket1 and Trinket1:IsReady(PLAYER_UNIT) then
+            return Trinket1:Show(icon, GetInventoryItemTexture(PLAYER_UNIT, Trinket1.SlotID)), "[MW] Trinket 1 (Burst)"
+         end
+         if s.trinket2_mode == "offensive" and Trinket2 and Trinket2:IsReady(PLAYER_UNIT) then
+            return Trinket2:Show(icon, GetInventoryItemTexture(PLAYER_UNIT, Trinket2.SlotID)), "[MW] Trinket 2 (Burst)"
+         end
+         return nil
+      end,
+   })
+
+   -- Defensive trinkets: fire at low HP or /flux def
+   rotation_registry:register_middleware({
+      name = "Trinkets_Defensive",
+      priority = 290,
+      is_defensive = true,
+      is_gcd_gated = false,
+
+      matches = function(context)
+         if not context.in_combat then return false end
+         if context.hp > DEFENSIVE_TRINKET_HP then return false end
+         local s = context.settings
+         if s.trinket1_mode == "defensive" and Trinket1 and Trinket1:IsReady(PLAYER_UNIT) then return true end
+         if s.trinket2_mode == "defensive" and Trinket2 and Trinket2:IsReady(PLAYER_UNIT) then return true end
+         return false
+      end,
+
+      execute = function(icon, context)
+         local s = context.settings
+         if s.trinket1_mode == "defensive" and Trinket1 and Trinket1:IsReady(PLAYER_UNIT) then
+            return Trinket1:Show(icon, GetInventoryItemTexture(PLAYER_UNIT, Trinket1.SlotID)), "[MW] Trinket 1 (Defensive)"
+         end
+         if s.trinket2_mode == "defensive" and Trinket2 and Trinket2:IsReady(PLAYER_UNIT) then
+            return Trinket2:Show(icon, GetInventoryItemTexture(PLAYER_UNIT, Trinket2.SlotID)), "[MW] Trinket 2 (Defensive)"
+         end
+         return nil
+      end,
+   })
+
+   print("|cFF00FF00[Flux Trinket]|r Middleware registered")
+end
+
+NS.register_trinket_middleware = register_trinket_middleware
 
 -- ============================================================================
 -- MODULE LOADED

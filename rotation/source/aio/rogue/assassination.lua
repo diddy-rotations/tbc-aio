@@ -146,28 +146,7 @@ local Assassination_ColdBlood = {
     end,
 }
 
--- [4] Trinkets — off-GCD
-local Assassination_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-    is_burst = true,
-
-    matches = function(context, state)
-        return context.settings.use_trinket1 or context.settings.use_trinket2
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[ASSASSINATION] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[ASSASSINATION] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [5] Racial — off-GCD (Blood Fury, Berserking, Arcane Torrent)
+-- [4] Racial — off-GCD (Blood Fury, Berserking, Arcane Torrent)
 local Assassination_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -341,7 +320,6 @@ rotation_registry:register("assassination", {
     named("StealthOpener",  Assassination_StealthOpener),
     named("MaintainSnD",    Assassination_MaintainSnD),
     named("ColdBlood",      Assassination_ColdBlood),
-    named("Trinkets",       Assassination_Trinkets),
     named("Racial",         Assassination_Racial),
     named("ExposeArmor",    Assassination_ExposeArmor),
     named("Rupture",        Assassination_Rupture),
@@ -364,4 +342,4 @@ end -- scope block
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Flux AIO Rogue]|r Assassination strategies registered (11 strategies)")
+print("|cFF00FF00[Flux AIO Rogue]|r Assassination strategies registered (10 strategies)")

@@ -152,47 +152,7 @@ local Prot_AvengingWrath = {
     end,
 }
 
--- [3] Trinket 1 (off-GCD)
-local Prot_Trinket1 = {
-    requires_combat = true,
-    is_gcd_gated = false,
-    is_burst = true,
-    spell = A.Trinket1,
-
-    matches = function(context, state)
-        if not context.settings.use_trinket1 then return false end
-        return true
-    end,
-
-    execute = function(icon, context, state)
-        if A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[PROT] Trinket 1"
-        end
-        return nil
-    end,
-}
-
--- [4] Trinket 2 (off-GCD)
-local Prot_Trinket2 = {
-    requires_combat = true,
-    is_gcd_gated = false,
-    is_burst = true,
-    spell = A.Trinket2,
-
-    matches = function(context, state)
-        if not context.settings.use_trinket2 then return false end
-        return true
-    end,
-
-    execute = function(icon, context, state)
-        if A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[PROT] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [5] Racial (off-GCD — Arcane Torrent restores mana, Stoneform defensive)
+-- [3] Racial (off-GCD — Arcane Torrent restores mana, Stoneform defensive)
 local Prot_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -410,8 +370,6 @@ rotation_registry:register("protection", {
     named("RighteousFuryCheck",  Prot_RighteousFuryCheck),
     named("AvengersShield",      Prot_AvengersShield),       -- pull window (3s) — must fire early
     named("AvengingWrath",       Prot_AvengingWrath),        -- off-GCD
-    named("Trinket1",            Prot_Trinket1),             -- off-GCD
-    named("Trinket2",            Prot_Trinket2),             -- off-GCD
     named("Racial",              Prot_Racial),               -- off-GCD
     named("EstablishSeal",       Prot_EstablishSeal),
     named("HolyShield",          Prot_HolyShield),

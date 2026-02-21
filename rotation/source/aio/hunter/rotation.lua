@@ -338,14 +338,6 @@ strategies[#strategies + 1] = named("CombatRotation", {
                         if s.use_haste_potion and A.HastePotion:IsReady(PLAYER_UNIT) then
                             return A:Show(icon, CONST.POTION), "[BURST] Haste Potion"
                         end
-
-                        if A.Trinket1:IsReady(PLAYER_UNIT) then
-                            return A.Trinket1:Show(icon), "[BURST] Trinket 1"
-                        end
-
-                        if A.Trinket2:IsReady(PLAYER_UNIT) then
-                            return A.Trinket2:Show(icon), "[BURST] Trinket 2"
-                        end
                     end
                 end
 

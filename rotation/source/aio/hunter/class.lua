@@ -125,9 +125,9 @@ Action[A.PlayerClass] = {
     -- Pet Attack
     PetAttack = Create({ Type = "Spell", ID = 1, FixedTexture = 134296, Desc = "Pet Attack", Macro = "/petattack" }),
 
-    -- Trinkets
-    Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    Trinket2 = Create({ Type = "Trinket", ID = 14 }),
+    -- Trinkets (framework auto-creates; explicit Create breaks them)
+    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
+    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -462,7 +462,7 @@ rotation_registry:register_class({
     end,
 
     dashboard = {
-        resource = { type = "mana", label = "Mana", color = {0.67, 0.83, 0.45} },
+        resource = { type = "mana", label = "Mana" },
         cooldowns = { A.RapidFire, A.BestialWrath, A.KillCommand, A.Trinket1, A.Trinket2 },
         buffs = {
             { id = 3045, label = "RF" },       -- Rapid Fire
@@ -471,9 +471,7 @@ rotation_registry:register_class({
         debuffs = {
             { id = A.SerpentSting.ID, label = "Serp", target = true },
         },
-        timers = {
-            { label = "Auto Shot", color = {0.67, 0.83, 0.45}, remaining = function(ctx) return ctx.shoot_timer or 0 end, duration = function(ctx) return ctx.weapon_speed or 3.0 end },
-        },
+        swing_label = "Auto Shot",
         custom_lines = {
             function(context)
                 if context.pet_active then return "Pet HP", format("%.0f%%", context.pet_hp or 0) end

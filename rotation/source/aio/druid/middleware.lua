@@ -348,4 +348,7 @@ do
    })
 end
 
+-- Shared trinket middleware (burst + defensive, schema-driven)
+NS.register_trinket_middleware()
+
 print("|cFF00FF00[Flux AIO Middleware]|r " .. #rotation_registry.middleware .. " middleware handlers registered.")

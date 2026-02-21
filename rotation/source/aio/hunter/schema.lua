@@ -103,6 +103,22 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "use_racial", default = true, label = "Racial (Berserking/Blood Fury)",
               tooltip = "Use racial DPS cooldown during burst." },
         }},
+        { header = "Trinkets", settings = {
+            { type = "dropdown", key = "trinket1_mode", default = "off", label = "Trinket 1",
+              tooltip = "Off = never use. Offensive = fires during burst. Defensive = fires during def.",
+              options = {
+                  { value = "off", text = "Off" },
+                  { value = "offensive", text = "Offensive (Burst)" },
+                  { value = "defensive", text = "Defensive" },
+              }},
+            { type = "dropdown", key = "trinket2_mode", default = "off", label = "Trinket 2",
+              tooltip = "Off = never use. Offensive = fires during burst. Defensive = fires during def.",
+              options = {
+                  { value = "off", text = "Off" },
+                  { value = "offensive", text = "Offensive (Burst)" },
+                  { value = "defensive", text = "Defensive" },
+              }},
+        }},
         { header = "Burst Sync", settings = {
             { type = "checkbox", key = "auto_sync_cds", default = false, label = "Sync CDs with Bloodlust/Drums",
               tooltip = "Only pop burst CDs during Bloodlust, Heroism, or Drums." },

@@ -251,10 +251,20 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
     -- Tab 5: Cooldowns & Mana
     [5] = { name = "CDs & Mana", sections = {
         { header = "Trinkets & Racial", settings = {
-            { type = "checkbox", key = "use_trinket1", default = true, label = "Use Trinket 1",
-              tooltip = "Auto-use top trinket slot on cooldown." },
-            { type = "checkbox", key = "use_trinket2", default = true, label = "Use Trinket 2",
-              tooltip = "Auto-use bottom trinket slot on cooldown." },
+            { type = "dropdown", key = "trinket1_mode", default = "off", label = "Trinket 1",
+              tooltip = "Off = never use. Offensive = fires during burst. Defensive = fires during def.",
+              options = {
+                  { value = "off", text = "Off" },
+                  { value = "offensive", text = "Offensive (Burst)" },
+                  { value = "defensive", text = "Defensive" },
+              }},
+            { type = "dropdown", key = "trinket2_mode", default = "off", label = "Trinket 2",
+              tooltip = "Off = never use. Offensive = fires during burst. Defensive = fires during def.",
+              options = {
+                  { value = "off", text = "Off" },
+                  { value = "offensive", text = "Offensive (Burst)" },
+                  { value = "defensive", text = "Defensive" },
+              }},
             { type = "checkbox", key = "use_racial", default = true, label = "Use Racial",
               tooltip = "Use racial ability (Blood Fury, Berserking, etc.) during burst." },
         }},

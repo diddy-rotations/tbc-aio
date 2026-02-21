@@ -93,9 +93,9 @@ Action[A.PlayerClass] = {
     Heroism   = Create({ Type = "Spell", ID = 32182 }),
     Bloodlust = Create({ Type = "Spell", ID = 2825 }),
 
-    -- Trinkets
-    Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    Trinket2 = Create({ Type = "Trinket", ID = 14 }),
+    -- Trinkets (framework auto-creates; explicit Create breaks them)
+    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
+    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -283,7 +283,7 @@ rotation_registry:register_class({
     end,
 
     dashboard = {
-        resource = { type = "mana", label = "Mana", color = {0.41, 0.80, 0.94} },
+        resource = { type = "mana", label = "Mana" },
         cooldowns = {
             fire   = { A.Combustion },
             frost  = { A.IcyVeins, A.ColdSnap, A.SummonWaterElemental },
@@ -310,23 +310,7 @@ rotation_registry:register_class({
                 { id = Constants.INTELLECT_BUFF_IDS, label = "Int" },
             },
         },
-        timers = {
-            {
-                label = function() return (Player:GetSwingShoot() or 0) > 0 and "Wand" or "Swing" end,
-                color = {0.41, 0.80, 0.94},
-                remaining = function()
-                    local shoot = Player:GetSwingShoot() or 0
-                    if shoot > 0 then return shoot end
-                    local s = Player:GetSwingStart(1) or 0; local d = Player:GetSwing(1) or 0
-                    if s > 0 and d > 0 then local r = (s + d) - GetTime(); return r > 0 and r or 0 end
-                    return 0
-                end,
-                duration = function()
-                    if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
-                    return Player:GetSwing(1) or 2.0
-                end,
-            },
-        },
+        swing_label = "Wand",
         debuffs = {
             fire = {
                 { id = Constants.DEBUFF_ID.IMPROVED_SCORCH, label = "Scorch", target = true, show_stacks = true, owned = false },
