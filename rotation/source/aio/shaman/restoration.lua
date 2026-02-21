@@ -328,29 +328,7 @@ local Resto_TotemManagement = {
     end,
 }
 
--- [5] Trinkets (off-GCD)
-local Resto_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-
-    matches = function(context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-        return false
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[RESTO] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[RESTO] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [5b] Racial (off-GCD)
+-- [5] Racial (off-GCD)
 local Resto_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -469,7 +447,6 @@ rotation_registry:register("restoration", {
     named("EarthShieldMaint",  Resto_EarthShieldMaintain),
     named("ManaTide",          Resto_ManaTide),
     named("TotemManagement",   Resto_TotemManagement),
-    named("Trinkets",          Resto_Trinkets),
     named("Racial",            Resto_Racial),
     named("ChainHeal",         Resto_ChainHeal),
     named("LesserHealingWave", Resto_LesserHealingWave),

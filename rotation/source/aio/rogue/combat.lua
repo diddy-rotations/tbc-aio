@@ -158,28 +158,7 @@ local Combat_AdrenalineRush = {
     end,
 }
 
--- [5] Trinkets — off-GCD
-local Combat_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-    is_burst = true,
-
-    matches = function(context, state)
-        return context.settings.use_trinket1 or context.settings.use_trinket2
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[COMBAT] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[COMBAT] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [6] Racial — off-GCD (Blood Fury, Berserking, Arcane Torrent)
+-- [5] Racial — off-GCD (Blood Fury, Berserking, Arcane Torrent)
 local Combat_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -330,7 +309,6 @@ rotation_registry:register("combat", {
     named("MaintainSnD",    Combat_MaintainSnD),
     named("BladeFlurry",    Combat_BladeFlurry),
     named("AdrenalineRush", Combat_AdrenalineRush),
-    named("Trinkets",       Combat_Trinkets),
     named("Racial",         Combat_Racial),
     named("ExposeArmor",    Combat_ExposeArmor),
     named("Rupture",        Combat_Rupture),
@@ -352,4 +330,4 @@ end -- scope block
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================
-print("|cFF00FF00[Flux AIO Rogue]|r Combat strategies registered (11 strategies)")
+print("|cFF00FF00[Flux AIO Rogue]|r Combat strategies registered (10 strategies)")

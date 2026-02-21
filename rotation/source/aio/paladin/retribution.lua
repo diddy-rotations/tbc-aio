@@ -106,47 +106,7 @@ local Ret_AvengingWrath = {
     end,
 }
 
--- [2] Trinket 1 (off-GCD)
-local Ret_Trinket1 = {
-    requires_combat = true,
-    is_gcd_gated = false,
-    is_burst = true,
-    spell = A.Trinket1,
-
-    matches = function(context, state)
-        if not context.settings.use_trinket1 then return false end
-        return true
-    end,
-
-    execute = function(icon, context, state)
-        if A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[RET] Trinket 1"
-        end
-        return nil
-    end,
-}
-
--- [3] Trinket 2 (off-GCD)
-local Ret_Trinket2 = {
-    requires_combat = true,
-    is_gcd_gated = false,
-    is_burst = true,
-    spell = A.Trinket2,
-
-    matches = function(context, state)
-        if not context.settings.use_trinket2 then return false end
-        return true
-    end,
-
-    execute = function(icon, context, state)
-        if A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[RET] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [4] Racial (off-GCD)
+-- [2] Racial (off-GCD)
 local Ret_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -353,8 +313,6 @@ local Ret_MaintainSealFallback = {
 -- ============================================================================
 rotation_registry:register("retribution", {
     named("AvengingWrath",       Ret_AvengingWrath),
-    named("Trinket1",            Ret_Trinket1),
-    named("Trinket2",            Ret_Trinket2),
     named("Racial",              Ret_Racial),
     named("CompleteSealTwist",   Ret_CompleteSealTwist),
     named("JudgeSeal",           Ret_JudgeSeal),

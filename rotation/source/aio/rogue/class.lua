@@ -75,9 +75,9 @@ Action[A.PlayerClass] = {
     HealthstoneMaster  = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
     HealthstoneMajor   = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
 
-    -- Trinkets
-    Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    Trinket2 = Create({ Type = "Trinket", ID = 14 }),
+    -- Trinkets (framework auto-creates; explicit Create breaks them)
+    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
+    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -277,7 +277,7 @@ rotation_registry:register_class({
     end,
 
     dashboard = {
-        resource = { type = "energy", label = "Energy", color = {1.00, 0.96, 0.41} },
+        resource = { type = "energy", label = "Energy" },
         cooldowns = {
             combat = { A.BladeFlurry, A.AdrenalineRush, A.Sprint, A.Trinket1, A.Trinket2 },
             assassination = { A.ColdBlood, A.Sprint, A.Trinket1, A.Trinket2 },
@@ -312,23 +312,7 @@ rotation_registry:register_class({
                 { id = Constants.DEBUFF_ID.HEMORRHAGE, label = "Hemo", target = true },
             },
         },
-        timers = {
-            {
-                label = function() return (Player:GetSwingShoot() or 0) > 0 and "Shoot" or "Swing" end,
-                color = {1.00, 0.96, 0.41},
-                remaining = function()
-                    local shoot = Player:GetSwingShoot() or 0
-                    if shoot > 0 then return shoot end
-                    local s = Player:GetSwingStart(1) or 0; local d = Player:GetSwing(1) or 0
-                    if s > 0 and d > 0 then local r = (s + d) - _G.GetTime(); return r > 0 and r or 0 end
-                    return 0
-                end,
-                duration = function()
-                    if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
-                    return Player:GetSwing(1) or 2.0
-                end,
-            },
-        },
+        swing_label = "Shoot",
         custom_lines = {
             function(context) return "CP", tostring(context.cp or 0) end,
         },

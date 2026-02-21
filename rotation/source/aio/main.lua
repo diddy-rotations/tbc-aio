@@ -37,6 +37,7 @@ local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local is_force_active = NS.is_force_active
 local clear_force_flag = NS.clear_force_flag
 local should_auto_burst = NS.should_auto_burst
+local show_notification = NS.show_notification
 
 -- Lua optimizations
 local format = string.format
@@ -216,16 +217,19 @@ A[3] = function(icon)
    last_action.name = nil
    last_action.source = nil
 
-   -- Gap closer: class-specific, runs before middleware
+   -- Gap closer: keeps showing gap spell on icon for 3s window.
+   -- Once spell fires (goes on CD), handler returns nil → normal rotation resumes.
    if is_force_active("force_gap") then
       if cc.gap_handler then
          local result = cc.gap_handler(icon, context)
          if result then
-            clear_force_flag("force_gap")
             last_action.name = "Gap Closer"
             last_action.source = "CMD"
             return result
          end
+      else
+         clear_force_flag("force_gap")
+         show_notification("No gap closer available", 1.5, { 1.0, 0.4, 0.4 })
       end
    end
 

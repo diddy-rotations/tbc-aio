@@ -341,34 +341,6 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
--- TRINKETS (off-GCD)
--- ============================================================================
-rotation_registry:register_middleware({
-    name = "Warrior_Trinkets",
-    priority = 80,
-    is_burst = true,
-    is_gcd_gated = false,
-
-    matches = function(context)
-        if not context.in_combat then return false end
-        if not context.has_valid_enemy_target then return false end
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-        return false
-    end,
-
-    execute = function(icon, context)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[MW] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[MW] Trinket 2"
-        end
-        return nil
-    end,
-})
-
--- ============================================================================
 -- RACIAL (Blood Fury / Berserking / etc.)
 -- ============================================================================
 rotation_registry:register_middleware({
@@ -394,6 +366,9 @@ rotation_registry:register_middleware({
         return nil
     end,
 })
+
+-- Shared trinket middleware (burst + defensive, schema-driven)
+NS.register_trinket_middleware()
 
 -- ============================================================================
 -- MODULE LOADED

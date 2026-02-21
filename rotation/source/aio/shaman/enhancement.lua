@@ -122,29 +122,7 @@ local Enh_ShamanisticRage = {
     end,
 }
 
--- [2] Trinkets (off-GCD)
-local Enh_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-
-    matches = function(context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-        return false
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[ENH] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[ENH] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [3] Racial (off-GCD)
+-- [2] Racial (off-GCD)
 local Enh_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -492,7 +470,6 @@ local Enh_AoE = {
 -- ============================================================================
 rotation_registry:register("enhancement", {
     named("ShamanisticRage",     Enh_ShamanisticRage),
-    named("Trinkets",            Enh_Trinkets),
     named("Racial",              Enh_Racial),
     named("TotemManagement",     Enh_TotemManagement),
     named("WindfuryTwist",       Enh_WindfuryTwist),       -- time-sensitive: must precede damage spells

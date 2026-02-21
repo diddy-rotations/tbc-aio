@@ -104,9 +104,9 @@ Action[A.PlayerClass] = {
     Heroism   = Create({ Type = "Spell", ID = 32182 }),
     Bloodlust = Create({ Type = "Spell", ID = 2825 }),
 
-    -- Trinkets
-    Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    Trinket2 = Create({ Type = "Trinket", ID = 14 }),
+    -- Trinkets (framework auto-creates; explicit Create breaks them)
+    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
+    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -346,7 +346,7 @@ rotation_registry:register_class({
     end,
 
     dashboard = {
-        resource = { type = "mana", label = "Mana", color = {0.96, 0.55, 0.73} },
+        resource = { type = "mana", label = "Mana" },
         cooldowns = {
             retribution = { A.AvengingWrath, A.CrusaderStrike, A.Trinket1, A.Trinket2 },
             protection = { A.HolyShield, A.AvengingWrath, A.Trinket1, A.Trinket2 },
@@ -381,21 +381,7 @@ rotation_registry:register_class({
                 { id = Constants.DEBUFF_ID.FORBEARANCE, label = "Forb" },
             },
         },
-        timers = {
-            {
-                label = function() return (Player:GetSwingShoot() or 0) > 0 and "Shoot" or "Swing" end,
-                color = {0.96, 0.55, 0.73},
-                remaining = function(ctx)
-                    local shoot = Player:GetSwingShoot() or 0
-                    if shoot > 0 then return shoot end
-                    return ctx.time_to_swing or 0
-                end,
-                duration = function()
-                    if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
-                    return Player:GetSwing(1) or 2.0
-                end,
-            },
-        },
+        swing_label = "Shoot",
     },
 })
 

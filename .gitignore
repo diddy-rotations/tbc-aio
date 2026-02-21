@@ -20,6 +20,8 @@ node_modules/
 # External/reference folders (dependencies, not our code)
 TBC-main/
 Addon Libraries/
+framework-src/
+wowsims-tbc-ref/
 
 # Rotation: dev config (contains local paths)
 rotation/dev.ini

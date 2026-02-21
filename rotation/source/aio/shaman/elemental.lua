@@ -85,30 +85,7 @@ local Ele_ElementalMastery = {
     end,
 }
 
--- [2] Trinkets (off-GCD)
-local Ele_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-    is_burst = true,
-
-    matches = function(context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-        return false
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[ELE] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[ELE] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [3] Racial (off-GCD)
+-- [2] Racial (off-GCD)
 local Ele_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -348,7 +325,6 @@ local Ele_LightningBolt = {
 -- ============================================================================
 rotation_registry:register("elemental", {
     named("ElementalMastery", Ele_ElementalMastery),
-    named("Trinkets",         Ele_Trinkets),
     named("Racial",           Ele_Racial),
     named("TotemManagement",  Ele_TotemManagement),
     named("FireElemental",    Ele_FireElemental),    -- long CD, must be above filler

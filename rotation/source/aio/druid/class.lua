@@ -197,9 +197,9 @@ Action[A.PlayerClass] = {
    DarkRuneBear = Create({ Type = "Spell", ID = 9634, Desc = "Dark Rune Bear Shift", Click = { macrobefore = "/use item:20520\n" } }),
    DemonicRuneBear = Create({ Type = "Spell", ID = 9634, Desc = "Demonic Rune Bear Shift", Click = { macrobefore = "/use item:12662\n" } }),
 
-   -- Trinkets
-   Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-   Trinket2 = Create({ Type = "Trinket", ID = 14 }),
+   -- Trinkets (framework auto-creates Trinket1/Trinket2; explicit Create overrides and breaks them)
+   -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
+   -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 
    -- Racials
    Berserking = Create({ Type = "Spell", ID = 26297 }),
@@ -720,15 +720,15 @@ rotation_registry:register_class({
    end,
 
    dashboard = {
-      resource = { type = "mana", label = "Mana", color = {0.00, 0.44, 0.87} },
+      resource = { type = "mana", label = "Mana" },
       secondary_resource = {
-         cat  = { type = "energy", label = "Energy", color = {1.0, 1.0, 0.0} },
-         bear = { type = "rage",   label = "Rage",   color = {0.78, 0.25, 0.25} },
+         cat  = { type = "energy", label = "Energy" },
+         bear = { type = "rage",   label = "Rage" },
       },
       cooldowns = {
-         cat     = { A.TigersFury },
-         bear    = { A.FrenziedRegeneration, A.Enrage, A.Barkskin },
-         balance = { A.ForceOfNature, A.Barkskin, A.SelfInnervate },
+         cat     = { A.TigersFury, A.Trinket1, A.Trinket2 },
+         bear    = { A.FrenziedRegeneration, A.Enrage, A.Barkskin, A.Trinket1, A.Trinket2 },
+         balance = { A.ForceOfNature, A.Barkskin, A.SelfInnervate, A.Trinket1, A.Trinket2 },
          resto   = { A.NaturesSwiftness, A.Swiftmend, A.SelfInnervate, A.Barkskin, A.Tranquility },
          caster  = { A.Barkskin, A.SelfInnervate },
       },
@@ -737,23 +737,7 @@ rotation_registry:register_class({
          { id = THORNS_BUFF_IDS, label = "Thorns" },
          { id = 16864, label = "OoC" },
       },
-      timers = {
-         {
-            label = function() return (Player:GetSwingShoot() or 0) > 0 and "Shoot" or "Swing" end,
-            color = {1.00, 0.49, 0.04},
-            remaining = function()
-               local shoot = Player:GetSwingShoot() or 0
-               if shoot > 0 then return shoot end
-               local s = Player:GetSwingStart(1) or 0; local d = Player:GetSwing(1) or 0
-               if s > 0 and d > 0 then local r = (s + d) - GetTime(); return r > 0 and r or 0 end
-               return 0
-            end,
-            duration = function()
-               if (Player:GetSwingShoot() or 0) > 0 then return _G.UnitRangedDamage("player") or 1.5 end
-               return Player:GetSwing(1) or 2.0
-            end,
-         },
-      },
+      swing_label = "Shoot",
       debuffs = {
          cat = {
             { id = MANGLE_DEBUFF_IDS, label = "Mangle", target = true },

@@ -105,30 +105,7 @@ local Frost_ColdSnap = {
     end,
 }
 
--- [4] Trinkets (off-GCD)
-local Frost_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-    is_burst = true,
-
-    matches = function(context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-        return false
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[FROST] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[FROST] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [5] Racial (off-GCD)
+-- [4] Racial (off-GCD)
 local Frost_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -235,7 +212,6 @@ rotation_registry:register("frost", {
     named("IcyVeins",        Frost_IcyVeins),
     named("WaterElemental",  Frost_WaterElemental),
     named("ColdSnap",        Frost_ColdSnap),
-    named("Trinkets",        Frost_Trinkets),
     named("Racial",          Frost_Racial),
     named("AoE",             Frost_AoE),
     named("MovementSpell",   Frost_MovementSpell),

@@ -218,29 +218,7 @@ local Demo_AoE = {
     end,
 }
 
--- [7] Trinkets (off-GCD)
-local Demo_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-
-    matches = function(context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-        return false
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[DEMO] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[DEMO] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [8] Racial (off-GCD)
+-- [7] Racial (off-GCD)
 local Demo_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -313,7 +291,6 @@ rotation_registry:register("demonology", {
     named("MaintainCorruption",  Demo_MaintainCorruption),
     named("MaintainImmolate",    Demo_MaintainImmolate),
     named("AoE",                 Demo_AoE),
-    named("Trinkets",            Demo_Trinkets),
     named("Racial",              Demo_Racial),
     named("PrimarySpell",        Demo_PrimarySpell),
     named("LifeTap",             Demo_LifeTap),

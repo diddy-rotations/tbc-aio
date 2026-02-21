@@ -163,31 +163,7 @@ local Arcane_PresenceOfMind = {
     end,
 }
 
--- [5] Trinkets (off-GCD, burn phase only — suppress during conserve)
-local Arcane_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-    is_burst = true,
-
-    matches = function(context, state)
-        if not state.is_burning then return false end
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-        return false
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[ARCANE] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[ARCANE] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [6] Racial (off-GCD, burn phase only — DPS racials wasted during conserve)
+-- [5] Racial (off-GCD, burn phase only — DPS racials wasted during conserve)
 local Arcane_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -347,7 +323,6 @@ rotation_registry:register("arcane", {
     named("ColdSnap",        Arcane_ColdSnap),
     named("ArcanePower",     Arcane_ArcanePower),
     named("PresenceOfMind",  Arcane_PresenceOfMind),
-    named("Trinkets",        Arcane_Trinkets),
     named("Racial",          Arcane_Racial),
     named("AoE",             Arcane_AoE),
     named("MovementSpell",   Arcane_MovementSpell),

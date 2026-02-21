@@ -747,12 +747,14 @@ SlashCmdList["FLUXAIO"] = function(msg)
 
     if msg == "burst" then
         NS.set_force_flag("force_burst")
+        NS.show_notification("BURST", 3.0, { 1.0, 0.5, 0.1 })
         print(format("|cff%s[Flux AIO]|r |cFFFFFF00Burst|r cooldowns activated!", class_hex))
         return
     end
 
     if msg == "defensive" or msg == "def" then
         NS.set_force_flag("force_defensive")
+        NS.show_notification("DEFENSIVE", 3.0, { 0.3, 0.7, 1.0 })
         print(format("|cff%s[Flux AIO]|r |cFFFFFF00Defensive|r cooldowns activated!", class_hex))
         return
     end

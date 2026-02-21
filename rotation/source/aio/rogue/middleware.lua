@@ -252,6 +252,9 @@ rotation_registry:register_middleware({
     end,
 })
 
+-- Shared trinket middleware (burst + defensive, schema-driven)
+NS.register_trinket_middleware()
+
 -- ============================================================================
 -- MODULE LOADED
 -- ============================================================================

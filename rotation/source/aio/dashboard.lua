@@ -80,14 +80,28 @@ local CLASS_HEX = {
     Warrior = "c79c6e",
 }
 
+local CLASS_RGB = {
+    Druid   = {1.00, 0.49, 0.04}, Hunter  = {0.67, 0.83, 0.45},
+    Mage    = {0.41, 0.80, 0.94}, Paladin = {0.96, 0.55, 0.73},
+    Priest  = {1.00, 1.00, 1.00}, Rogue   = {1.00, 0.96, 0.41},
+    Shaman  = {0.00, 0.44, 0.87}, Warlock = {0.58, 0.51, 0.79},
+    Warrior = {0.78, 0.61, 0.43},
+}
+
 -- ============================================================================
 -- ICON HELPERS
 -- ============================================================================
 
 local function get_action_icon(spell)
-    local tex = GetSpellTexture(spell.ID)
-    if tex then return tex end
-    return GetInventoryItemTexture("player", spell.ID) or ICON_FALLBACK
+    -- Framework trinkets (TrinketBySlot) store inventory slot in SlotID
+    if spell.SlotID then
+        local inv = GetInventoryItemTexture("player", spell.SlotID)
+        if inv then return inv end
+    end
+    -- Direct slot IDs (13/14) or item IDs
+    local inv = GetInventoryItemTexture("player", spell.ID)
+    if inv then return inv end
+    return GetSpellTexture(spell.ID) or ICON_FALLBACK
 end
 
 local function get_buff_icon(id)
@@ -151,7 +165,11 @@ local function create_icon_slot(parent)
 
     -- Tooltip on hover
     f:SetScript("OnEnter", function(self)
-        if self.spell_id then
+        if self.slot_id then
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetInventoryItem("player", self.slot_id)
+            GameTooltip:Show()
+        elseif self.spell_id then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetSpellByID(self.spell_id)
             GameTooltip:Show()
@@ -187,6 +205,9 @@ local buff_label_fs = nil
 local debuff_label_fs = nil
 local target_info_fs = nil
 local timer_bars = {}
+local accent_bar_tex = nil
+local bottom_bar_tex = nil
+local last_class_name = nil
 
 local dash_context = { settings = nil }
 
@@ -237,18 +258,18 @@ local function create_dashboard()
         f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 20, -200)
     end
 
-    -- Accent bars at top and bottom (2px, accent color)
-    local accent_bar = f:CreateTexture(nil, "ARTWORK")
-    accent_bar:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
-    accent_bar:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, -1)
-    accent_bar:SetHeight(2)
-    accent_bar:SetColorTexture(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.8)
+    -- Accent bars at top and bottom (2px, class color — updated dynamically)
+    accent_bar_tex = f:CreateTexture(nil, "ARTWORK")
+    accent_bar_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
+    accent_bar_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, -1)
+    accent_bar_tex:SetHeight(2)
+    accent_bar_tex:SetColorTexture(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.8)
 
-    local bottom_bar = f:CreateTexture(nil, "ARTWORK")
-    bottom_bar:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 1, 1)
-    bottom_bar:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
-    bottom_bar:SetHeight(2)
-    bottom_bar:SetColorTexture(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.4)
+    bottom_bar_tex = f:CreateTexture(nil, "ARTWORK")
+    bottom_bar_tex:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 1, 1)
+    bottom_bar_tex:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
+    bottom_bar_tex:SetHeight(2)
+    bottom_bar_tex:SetColorTexture(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.4)
 
     local y = -6
 
@@ -456,6 +477,17 @@ local function update_dashboard()
     header_text:SetTextColor(1, 1, 1)
     local active_ps = cc.get_active_playstyle and cc.get_active_playstyle(dash_context) or "?"
 
+    -- Update border/accent colors to match class (once per class switch)
+    if cc.name ~= last_class_name then
+        last_class_name = cc.name
+        local rgb = CLASS_RGB[cc.name]
+        if rgb then
+            dashboard_frame:SetBackdropBorderColor(rgb[1], rgb[2], rgb[3], 0.6)
+            accent_bar_tex:SetColorTexture(rgb[1], rgb[2], rgb[3], 0.8)
+            bottom_bar_tex:SetColorTexture(rgb[1], rgb[2], rgb[3], 0.4)
+        end
+    end
+
     local f = dashboard_frame
     local bar_max = FRAME_WIDTH - 22
 
@@ -553,40 +585,50 @@ local function update_dashboard()
         content_y = content_y - (TIMER_BAR_HEIGHT + 2)
     end
 
-    -- Class-specific timer bars (swing, auto-shot, etc.)
-    local class_timers = resolve_list(dash_config.timers, active_ps)
-    if class_timers then
-        for i = 1, #class_timers do
-            if timer_idx > MAX_TIMER_BARS then break end
-            local t = class_timers[i]
-            local remaining = t.remaining and t.remaining(dash_context) or 0
-            local duration = t.duration and t.duration(dash_context) or 1
-
-            local ctb = timer_bars[timer_idx]
-            ctb.bg:ClearAllPoints()
-            ctb.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 10, content_y)
-            local lbl = type(t.label) == "function" and t.label(dash_context) or t.label
-            ctb.label:SetText(lbl or "Timer")
-
-            local tpct = (duration > 0 and remaining > 0) and (remaining / duration) or 0
-            if tpct > 0 then
-                local tbw = bar_max * tpct
-                if tbw < 1 then tbw = 1 end
-                ctb.bar:SetWidth(tbw)
-                local tcolor = t.color or {1, 1, 1}
-                ctb.bar:SetVertexColor(tcolor[1], tcolor[2], tcolor[3])
-                ctb.bar:Show()
-                ctb.value:SetText(format("%.1f", remaining))
-                ctb.value:Show()
+    -- Swing / shoot timer bar (driven by swing_label in class dashboard config)
+    local sl = dash_config.swing_label
+    local swing_label = type(sl) == "string" and sl or (type(sl) == "table" and sl[active_ps] or nil)
+    if swing_label and timer_idx <= MAX_TIMER_BARS then
+        local shoot = Player:GetSwingShoot() or 0
+        local remaining, duration
+        if shoot > 0 then
+            remaining = shoot
+            duration = _G.UnitRangedDamage("player") or 1.5
+        else
+            local s = Player:GetSwingStart(1) or 0
+            local d = Player:GetSwing(1) or 0
+            if s > 0 and d > 0 then
+                local r = (s + d) - GetTime()
+                remaining = r > 0 and r or 0
             else
-                ctb.bar:Hide()
-                ctb.value:SetText("")
-                ctb.value:Hide()
+                remaining = 0
             end
-            ctb.bg:Show()
-            content_y = content_y - (TIMER_BAR_HEIGHT + 2)
-            timer_idx = timer_idx + 1
+            duration = d > 0 and d or 2.0
         end
+
+        local lbl = shoot > 0 and swing_label or "Swing"
+        local ctb = timer_bars[timer_idx]
+        ctb.bg:ClearAllPoints()
+        ctb.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 10, content_y)
+        ctb.label:SetText(lbl)
+
+        local tpct = (duration > 0 and remaining > 0) and (remaining / duration) or 0
+        if tpct > 0 then
+            local tbw = bar_max * tpct
+            if tbw < 1 then tbw = 1 end
+            ctb.bar:SetWidth(tbw)
+            ctb.bar:SetVertexColor(1.00, 0.49, 0.04)
+            ctb.bar:Show()
+            ctb.value:SetText(format("%.1f", remaining))
+            ctb.value:Show()
+        else
+            ctb.bar:Hide()
+            ctb.value:SetText("")
+            ctb.value:Hide()
+        end
+        ctb.bg:Show()
+        content_y = content_y - (TIMER_BAR_HEIGHT + 2)
+        timer_idx = timer_idx + 1
     end
 
     -- Hide unused timer bars
@@ -594,7 +636,7 @@ local function update_dashboard()
         timer_bars[i].bg:Hide()
     end
 
-    content_y = content_y - 2
+    content_y = content_y - 8
 
     -- Current Priority (inline)
     local la = NS.last_action
@@ -666,9 +708,17 @@ local function update_dashboard()
             local slot = cd_slots[i]
             if i <= num_cds then
                 local spell = cd_list[i]
-                local cd_remain = spell:GetCooldown() or 0
-
-                slot.frame.spell_id = spell.ID
+                local equip_slot = spell.SlotID or (GetInventoryItemTexture("player", spell.ID) and spell.ID) or nil
+                local cd_remain
+                if equip_slot then
+                    local start, duration = GetInventoryItemCooldown("player", equip_slot)
+                    cd_remain = (start and duration and start > 0) and (start + duration - GetTime()) or 0
+                    if cd_remain < 0 then cd_remain = 0 end
+                else
+                    cd_remain = spell:GetCooldown() or 0
+                end
+                slot.frame.spell_id = not equip_slot and spell.ID or nil
+                slot.frame.slot_id = equip_slot
                 slot.icon:SetTexture(get_action_icon(spell))
                 position_icon(slot, f, ICON_X, icons_y, i)
 
@@ -812,7 +862,7 @@ local function update_dashboard()
             if clabel then
                 line:SetText(format("|cff9494a8%s:|r %s", clabel, tostring(cvalue or "")))
                 line:ClearAllPoints()
-                line:SetPoint("TOPLEFT", f, "TOPLEFT", 14, y - num_custom * 14)
+                line:SetPoint("TOPLEFT", f, "TOPLEFT", 10, y - num_custom * 14)
                 line:Show()
                 num_custom = num_custom + 1
             else

@@ -227,29 +227,7 @@ local Aff_AoE = {
     end,
 }
 
--- [9] Trinkets (off-GCD)
-local Aff_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-
-    matches = function(context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-        return false
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[AFF] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[AFF] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [10] Racial (off-GCD)
+-- [9] Racial (off-GCD)
 local Aff_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -319,7 +297,6 @@ rotation_registry:register("affliction", {
     named("MaintainImmolate",    Aff_MaintainImmolate),
     named("DrainSoul",           Aff_DrainSoul),
     named("AoE",                 Aff_AoE),              -- below DoT maintenance
-    named("Trinkets",            Aff_Trinkets),
     named("Racial",              Aff_Racial),
     named("ShadowBolt",          Aff_ShadowBolt),
     named("LifeTap",             Aff_LifeTap),

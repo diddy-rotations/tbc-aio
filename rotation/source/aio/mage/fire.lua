@@ -110,30 +110,7 @@ local Fire_IcyVeins = {
     end,
 }
 
--- [4] Trinkets (off-GCD)
-local Fire_Trinkets = {
-    requires_combat = true,
-    is_gcd_gated = false,
-    is_burst = true,
-
-    matches = function(context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then return true end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then return true end
-        return false
-    end,
-
-    execute = function(icon, context, state)
-        if context.settings.use_trinket1 and A.Trinket1:IsReady(PLAYER_UNIT) then
-            return A.Trinket1:Show(icon), "[FIRE] Trinket 1"
-        end
-        if context.settings.use_trinket2 and A.Trinket2:IsReady(PLAYER_UNIT) then
-            return A.Trinket2:Show(icon), "[FIRE] Trinket 2"
-        end
-        return nil
-    end,
-}
-
--- [5] Racial (off-GCD)
+-- [4] Racial (off-GCD)
 local Fire_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -287,7 +264,6 @@ rotation_registry:register("fire", {
     named("MaintainScorch",  Fire_MaintainScorch),
     named("Combustion",      Fire_Combustion),
     named("IcyVeins",        Fire_IcyVeins),
-    named("Trinkets",        Fire_Trinkets),
     named("Racial",          Fire_Racial),
     named("BlastWave",       Fire_BlastWave),
     named("DragonsBreath",   Fire_DragonsBreath),
