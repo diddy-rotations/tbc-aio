@@ -40,6 +40,11 @@ NS.Player = Player
 NS.Unit = Unit
 NS.GetToggle = GetToggle
 
+-- Stub: overridden by dashboard.lua with real implementation
+if not NS.set_last_action then
+    NS.set_last_action = function() end
+end
+
 -- ============================================================================
 -- UNIT CONSTANTS
 -- ============================================================================

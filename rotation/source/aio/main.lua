@@ -161,7 +161,8 @@ local function create_context(icon)
 
    local mana_pct = Player:ManaPercentage()
 
-    local dist = Unit("target"):GetRange()
+   -- GetRange returns (maxRange, minRange) - use minRange for accurate melee detection
+   local max_range, min_range = Unit(TARGET_UNIT):GetRange()
 
    -- Generic fields (all classes)
    ctx.on_gcd = on_gcd
@@ -176,8 +177,8 @@ local function create_context(icon)
    ctx.has_valid_enemy_target = ctx.target_exists and not ctx.target_dead and ctx.target_enemy
    ctx.target_hp = Unit(TARGET_UNIT):HealthPercent()
    ctx.ttd = get_time_to_die(TARGET_UNIT)
-   ctx.target_range = dist
-   ctx.in_melee_range = dist <= 5 or false
+   ctx.target_range = max_range or 0
+   ctx.in_melee_range = (min_range and min_range <= 5) or false
    ctx.target_phys_immune = has_phys_immunity(TARGET_UNIT)
    ctx.settings = cached_settings
    ctx.gcd_remaining = gcd_remaining

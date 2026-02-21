@@ -17,7 +17,9 @@ local GetSpellTexture = _G.GetSpellTexture
 local GetSpellInfo = _G.GetSpellInfo
 local GetInventoryItemTexture = _G.GetInventoryItemTexture
 local UnitName = _G.UnitName
+local UnitGUID = _G.UnitGUID
 local UnitDetailedThreatSituation = _G.UnitDetailedThreatSituation
+local CombatLogGetCurrentEventInfo = _G.CombatLogGetCurrentEventInfo
 
 local NS = _G.FluxAIO
 if not NS then
@@ -30,12 +32,52 @@ local Player = NS.Player
 local rotation_registry = NS.rotation_registry
 
 -- Last action state (updated by main.lua via set_last_action)
+-- Tracks what the rotation RECOMMENDS (for Priority text label only)
 local last_action = { name = nil, source = nil }
 
 function NS.set_last_action(name, source)
     last_action.name = name
     last_action.source = source
 end
+
+-- Action history ring buffer — driven by CLEU (actual casts, not recommendations)
+local MAX_HISTORY = 6
+local action_history = {}
+for i = 1, MAX_HISTORY do
+    action_history[i] = { name = nil, texture = nil, spell_id = nil }
+end
+local history_count = 0
+
+-- CLEU handler: tracks spells that ACTUALLY cast (ground truth)
+local player_guid = nil
+local cleu_frame = CreateFrame("Frame")
+cleu_frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+cleu_frame:SetScript("OnEvent", function()
+    if not player_guid then
+        player_guid = UnitGUID("player")
+        if not player_guid then return end
+    end
+
+    local _, subevent, _, sourceGUID, _, _, _, _, _, _, _, spellId, spellName = CombatLogGetCurrentEventInfo()
+    if sourceGUID ~= player_guid then return end
+    if subevent ~= "SPELL_CAST_SUCCESS" then return end
+
+    local texture = GetSpellTexture(spellId)
+    if not texture then return end
+
+    -- Push to history (every real cast, no dedup — shows actual sequence)
+    for i = MAX_HISTORY, 2, -1 do
+        action_history[i].name = action_history[i - 1].name
+        action_history[i].texture = action_history[i - 1].texture
+        action_history[i].spell_id = action_history[i - 1].spell_id
+    end
+    action_history[1].name = spellName
+    action_history[1].texture = texture
+    action_history[1].spell_id = spellId
+    if history_count < MAX_HISTORY then
+        history_count = history_count + 1
+    end
+end)
 
 -- ============================================================================
 -- THEME
@@ -65,14 +107,15 @@ local MAX_CUSTOM_LINES = 6
 local UPDATE_INTERVAL = 0.1
 local TOGGLE_CHECK_INTERVAL = 0.5
 
-local FRAME_WIDTH = 210
-local ICON_SIZE = 28
-local ICON_GAP = 3
-local ICON_STEP = ICON_SIZE + ICON_GAP   -- 31px per icon cell
+local FRAME_WIDTH = 170
+local ICON_SIZE = 20
+local ICON_GAP = 4
+local ICON_STEP = ICON_SIZE + ICON_GAP   -- 24px per icon cell
 local ICONS_PER_ROW = 6
-local ICON_X = 12             -- left padding for icon grid
+local ICON_X = 10             -- left padding for icon grid
+
 local MAX_TIMER_BARS = 3
-local TIMER_BAR_HEIGHT = 10
+local TIMER_BAR_HEIGHT = 8
 
 local ICON_FALLBACK = "Interface\\Icons\\INV_Misc_QuestionMark"
 
@@ -158,7 +201,7 @@ local function create_icon_slot(parent)
 
     -- Timer/status text (centered, large outline font)
     local text = f:CreateFontString(nil, "OVERLAY")
-    text:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE")
+    text:SetFont("Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
     text:SetPoint("CENTER", 0, 0)
     text:SetTextColor(1, 1, 1)
     text:Hide()
@@ -183,29 +226,31 @@ local function create_icon_slot(parent)
 end
 
 -- ============================================================================
--- STATE
+-- STATE (packed into single table to stay under 60-upvalue Lua 5.1 limit)
 -- ============================================================================
 local dashboard_frame = nil
-local cd_slots = {}
-local buff_slots = {}
-local debuff_slots = {}
-local custom_lines = {}
-local priority_text = nil
-local resource_bar = nil
-local resource_text = nil
-local resource_bg2 = nil
-local resource_bar2 = nil
-local resource_text2 = nil
-local header_text = nil
-local sep2_tex = nil
-local playstyle_line_fs = nil
-local playstyle_sep = nil
-local cd_label_fs = nil
-local buff_label_fs = nil
-local debuff_label_fs = nil
-local target_info_fs = nil
-local timer_bars = {}
 local last_class_name = nil
+local ui = {
+    cd_slots = {},
+    buff_slots = {},
+    debuff_slots = {},
+    custom_lines = {},
+    timer_bars = {},
+    history_icon_slots = {},
+    priority_text = nil,
+    resource_bar = nil,
+    resource_text = nil,
+    resource_bg2 = nil,
+    resource_bar2 = nil,
+    resource_text2 = nil,
+    header_text = nil,
+    sep2_tex = nil,
+    cd_label_fs = nil,
+    buff_label_fs = nil,
+    debuff_label_fs = nil,
+    recent_label_fs = nil,
+    target_info_fs = nil,
+}
 
 local dash_context = { settings = nil }
 
@@ -239,7 +284,7 @@ local function create_dashboard()
     f:SetSize(FRAME_WIDTH, 300)
     f:SetBackdrop(BACKDROP_THIN)
     f:SetBackdropColor(THEME.bg[1], THEME.bg[2], THEME.bg[3], THEME.bg[4])
-    f:SetBackdropBorderColor(0, 0, 0, 0)
+    f:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], 0.6)
     f:SetMovable(true)
     f:EnableMouse(true)
     f:SetClampedToScreen(true)
@@ -282,10 +327,9 @@ local function create_dashboard()
 
     local y = -6
 
-    -- Header (class name only, playstyle shown at bottom)
-    header_text = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    header_text:SetPoint("TOPLEFT", f, "TOPLEFT", 10, y)
-    header_text:SetTextColor(THEME.accent[1], THEME.accent[2], THEME.accent[3])
+    -- Header (class name + playstyle, compact)
+    ui.header_text = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    ui.header_text:SetPoint("TOPLEFT", f, "TOPLEFT", 8, y)
 
     -- Close button
     local close = CreateFrame("Button", nil, f)
@@ -309,46 +353,49 @@ local function create_dashboard()
     sep:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 1)
     y = y - 4
 
-    -- Resource bar (wider for new frame width)
+    -- Resource bar
+    local RES_BAR_H = 12
     local bar_bg = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    bar_bg:SetSize(FRAME_WIDTH - 20, 16)
-    bar_bg:SetPoint("TOPLEFT", f, "TOPLEFT", 10, y)
+    bar_bg:SetSize(FRAME_WIDTH - 16, RES_BAR_H)
+    bar_bg:SetPoint("TOPLEFT", f, "TOPLEFT", 8, y)
     bar_bg:SetBackdrop(BACKDROP_THIN)
     bar_bg:SetBackdropColor(0, 0, 0, 0.6)
     bar_bg:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], 0.5)
 
-    resource_bar = bar_bg:CreateTexture(nil, "ARTWORK")
-    resource_bar:SetPoint("TOPLEFT", 1, -1)
-    resource_bar:SetHeight(14)
-    resource_bar:SetTexture("Interface\\Buttons\\WHITE8X8")
+    ui.resource_bar = bar_bg:CreateTexture(nil, "ARTWORK")
+    ui.resource_bar:SetPoint("TOPLEFT", 1, -1)
+    ui.resource_bar:SetHeight(RES_BAR_H - 2)
+    ui.resource_bar:SetTexture("Interface\\Buttons\\WHITE8X8")
 
-    resource_text = bar_bg:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    resource_text:SetPoint("CENTER", bar_bg)
-    resource_text:SetTextColor(1, 1, 1)
-    y = y - 22
+    ui.resource_text = bar_bg:CreateFontString(nil, "OVERLAY")
+    ui.resource_text:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
+    ui.resource_text:SetPoint("CENTER", bar_bg)
+    ui.resource_text:SetTextColor(1, 1, 1)
+    y = y - (RES_BAR_H + 3)
 
     -- Secondary resource bar (positioned dynamically in update)
-    resource_bg2 = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    resource_bg2:SetSize(FRAME_WIDTH - 20, 16)
-    resource_bg2:SetBackdrop(BACKDROP_THIN)
-    resource_bg2:SetBackdropColor(0, 0, 0, 0.6)
-    resource_bg2:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], 0.5)
-    resource_bg2:Hide()
+    ui.resource_bg2 = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    ui.resource_bg2:SetSize(FRAME_WIDTH - 16, RES_BAR_H)
+    ui.resource_bg2:SetBackdrop(BACKDROP_THIN)
+    ui.resource_bg2:SetBackdropColor(0, 0, 0, 0.6)
+    ui.resource_bg2:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], 0.5)
+    ui.resource_bg2:Hide()
 
-    resource_bar2 = resource_bg2:CreateTexture(nil, "ARTWORK")
-    resource_bar2:SetPoint("TOPLEFT", 1, -1)
-    resource_bar2:SetHeight(14)
-    resource_bar2:SetTexture("Interface\\Buttons\\WHITE8X8")
+    ui.resource_bar2 = ui.resource_bg2:CreateTexture(nil, "ARTWORK")
+    ui.resource_bar2:SetPoint("TOPLEFT", 1, -1)
+    ui.resource_bar2:SetHeight(RES_BAR_H - 2)
+    ui.resource_bar2:SetTexture("Interface\\Buttons\\WHITE8X8")
 
-    resource_text2 = resource_bg2:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    resource_text2:SetPoint("CENTER", resource_bg2)
-    resource_text2:SetTextColor(1, 1, 1)
+    ui.resource_text2 = ui.resource_bg2:CreateFontString(nil, "OVERLAY")
+    ui.resource_text2:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
+    ui.resource_text2:SetPoint("CENTER", ui.resource_bg2)
+    ui.resource_text2:SetTextColor(1, 1, 1)
     -- Don't advance y — positioned dynamically in update
 
     -- Timer bars (GCD + class timers, thin progress bars)
     for i = 1, MAX_TIMER_BARS do
         local tbg = CreateFrame("Frame", nil, f, "BackdropTemplate")
-        tbg:SetSize(FRAME_WIDTH - 20, TIMER_BAR_HEIGHT)
+        tbg:SetSize(FRAME_WIDTH - 16, TIMER_BAR_HEIGHT)
         tbg:SetBackdrop(BACKDROP_THIN)
         tbg:SetBackdropColor(0, 0, 0, 0.4)
         tbg:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], 0.3)
@@ -360,82 +407,89 @@ local function create_dashboard()
         tbar:SetTexture("Interface\\Buttons\\WHITE8X8")
 
         local tlabel = tbg:CreateFontString(nil, "OVERLAY")
-        tlabel:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
-        tlabel:SetPoint("LEFT", tbg, "LEFT", 3, 0)
+        tlabel:SetFont("Fonts\\FRIZQT__.TTF", 7, "OUTLINE")
+        tlabel:SetPoint("LEFT", tbg, "LEFT", 2, 0)
         tlabel:SetTextColor(1, 1, 1, 0.9)
 
         local tvalue = tbg:CreateFontString(nil, "OVERLAY")
-        tvalue:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
-        tvalue:SetPoint("RIGHT", tbg, "RIGHT", -3, 0)
+        tvalue:SetFont("Fonts\\FRIZQT__.TTF", 7, "OUTLINE")
+        tvalue:SetPoint("RIGHT", tbg, "RIGHT", -2, 0)
         tvalue:SetTextColor(1, 1, 1, 0.9)
 
-        timer_bars[i] = { bg = tbg, bar = tbar, label = tlabel, value = tvalue }
+        ui.timer_bars[i] = { bg = tbg, bar = tbar, label = tlabel, value = tvalue }
     end
 
     -- Current Priority (inline label + value, positioned dynamically)
-    priority_text = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    priority_text:SetPoint("TOPLEFT", f, "TOPLEFT", 10, y)
-    priority_text:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, y)
-    priority_text:SetJustifyH("LEFT")
-    priority_text:SetTextColor(THEME.text[1], THEME.text[2], THEME.text[3])
+    ui.priority_text = f:CreateFontString(nil, "OVERLAY")
+    ui.priority_text:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
+    ui.priority_text:SetPoint("TOPLEFT", f, "TOPLEFT", 10, y)
+    ui.priority_text:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, y)
+    ui.priority_text:SetJustifyH("LEFT")
+    ui.priority_text:SetTextColor(THEME.text[1], THEME.text[2], THEME.text[3])
     y = y - 16
 
+    -- Recent cast label (small, dim — matches Cooldowns/Buffs/Debuffs pattern)
+    ui.recent_label_fs = f:CreateFontString(nil, "OVERLAY")
+    ui.recent_label_fs:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
+    ui.recent_label_fs:SetText("Recent")
+    ui.recent_label_fs:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3], 0.7)
+
+    -- Action history icon slots (CLEU-confirmed casts)
+    for i = 1, MAX_HISTORY do
+        ui.history_icon_slots[i] = create_icon_slot(f)
+    end
+
     -- Target info (label + name + stats on separate lines, positioned dynamically)
-    target_info_fs = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    target_info_fs:SetTextColor(THEME.text[1], THEME.text[2], THEME.text[3])
-    target_info_fs:SetJustifyH("LEFT")
-    target_info_fs:SetSpacing(4)
+    ui.target_info_fs = f:CreateFontString(nil, "OVERLAY")
+    ui.target_info_fs:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
+    ui.target_info_fs:SetTextColor(THEME.text[1], THEME.text[2], THEME.text[3])
+    ui.target_info_fs:SetJustifyH("LEFT")
+    ui.target_info_fs:SetSpacing(3)
 
     -- Separator (positioned dynamically in update)
-    sep2_tex = f:CreateTexture(nil, "ARTWORK")
-    sep2_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 1, y)
-    sep2_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, y)
-    sep2_tex:SetHeight(1)
-    sep2_tex:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 0.5)
+    ui.sep2_tex = f:CreateTexture(nil, "ARTWORK")
+    ui.sep2_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 1, y)
+    ui.sep2_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, y)
+    ui.sep2_tex:SetHeight(1)
+    ui.sep2_tex:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 0.5)
     y = y - 4
 
-    -- Section labels (accent-colored, no background panels)
-    cd_label_fs = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    cd_label_fs:SetText("Cooldowns")
-    cd_label_fs:SetTextColor(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.8)
+    -- Section labels (small, dim — unobtrusive category headers)
+    ui.cd_label_fs = f:CreateFontString(nil, "OVERLAY")
+    ui.cd_label_fs:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
+    ui.cd_label_fs:SetText("Cooldowns")
+    ui.cd_label_fs:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3], 0.7)
 
-    buff_label_fs = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    buff_label_fs:SetText("Buffs")
-    buff_label_fs:SetTextColor(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.8)
+    ui.buff_label_fs = f:CreateFontString(nil, "OVERLAY")
+    ui.buff_label_fs:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
+    ui.buff_label_fs:SetText("Buffs")
+    ui.buff_label_fs:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3], 0.7)
 
-    debuff_label_fs = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    debuff_label_fs:SetText("Debuffs")
-    debuff_label_fs:SetTextColor(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.8)
-
-    -- Playstyle/Form line (shown at bottom with separator)
-    playstyle_sep = f:CreateTexture(nil, "ARTWORK")
-    playstyle_sep:SetHeight(1)
-    playstyle_sep:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 0.5)
-
-    playstyle_line_fs = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    playstyle_line_fs:SetJustifyH("LEFT")
-    playstyle_line_fs:SetTextColor(THEME.text[1], THEME.text[2], THEME.text[3])
+    ui.debuff_label_fs = f:CreateFontString(nil, "OVERLAY")
+    ui.debuff_label_fs:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
+    ui.debuff_label_fs:SetText("Debuffs")
+    ui.debuff_label_fs:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3], 0.7)
 
     -- Pre-allocate all icon slots
     for i = 1, MAX_COOLDOWNS do
-        cd_slots[i] = create_icon_slot(f)
+        ui.cd_slots[i] = create_icon_slot(f)
     end
     for i = 1, MAX_BUFFS do
-        buff_slots[i] = create_icon_slot(f)
+        ui.buff_slots[i] = create_icon_slot(f)
     end
     for i = 1, MAX_DEBUFFS do
-        debuff_slots[i] = create_icon_slot(f)
+        ui.debuff_slots[i] = create_icon_slot(f)
     end
 
     -- Custom lines (text-based)
     for i = 1, MAX_CUSTOM_LINES do
         local line = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        line:SetPoint("TOPLEFT", f, "TOPLEFT", 14, 0)
-        line:SetWidth(FRAME_WIDTH - 28)
+        line:SetPoint("TOPLEFT", f, "TOPLEFT", 8, 0)
+        line:SetWidth(FRAME_WIDTH - 16)
         line:SetJustifyH("LEFT")
         line:SetTextColor(THEME.text[1], THEME.text[2], THEME.text[3])
         line:Hide()
-        custom_lines[i] = line
+        ui.custom_lines[i] = line
     end
 
     dashboard_frame = f
@@ -480,16 +534,16 @@ local function update_dashboard()
         cc.extend_context(dash_context)
     end
 
-    -- Header: class name in class color, "AIO" in accent purple
+    -- Header: class name + playstyle in one line
     local class_hex = CLASS_HEX[cc.name] or "6c63ff"
-    header_text:SetText(format("|cff%s%s|r |cff6c63ffAIO|r", class_hex, cc.name or "Unknown"))
-    header_text:SetTextColor(1, 1, 1)
     local active_ps = cc.get_active_playstyle and cc.get_active_playstyle(dash_context) or "?"
+    local ps_display = active_ps:sub(1, 1):upper() .. active_ps:sub(2)
+    ui.header_text:SetText(format("|cff%s%s|r |cff9494a8\194\183|r |cff6c63ff%s|r", class_hex, cc.name or "Unknown", ps_display))
 
     last_class_name = cc.name
 
     local f = dashboard_frame
-    local bar_max = FRAME_WIDTH - 22
+    local bar_max = FRAME_WIDTH - 18
 
     -- Primary resource bar
     local res = resolve_config(dash_config.resource, active_ps)
@@ -511,15 +565,15 @@ local function update_dashboard()
         local pct = max_value > 0 and (value / max_value) or 0
         local bw = bar_max * pct
         if bw < 1 then bw = 1 end
-        resource_bar:SetWidth(bw)
+        ui.resource_bar:SetWidth(bw)
 
         local color = res.color or RESOURCE_COLORS[res.type] or { 1, 1, 1 }
-        resource_bar:SetVertexColor(color[1], color[2], color[3])
-        resource_text:SetText(res.type == "mana" and label or format("%s: %d", res.label or res.type, value))
+        ui.resource_bar:SetVertexColor(color[1], color[2], color[3])
+        ui.resource_text:SetText(res.type == "mana" and label or format("%s: %d", res.label or res.type, value))
     end
 
     -- Secondary resource bar (e.g., energy/rage when primary is mana)
-    local content_y = -50  -- y after primary resource bar
+    local content_y = -40  -- y after primary resource bar (header + sep + bar + gap)
     local res2 = resolve_config(dash_config.secondary_resource, active_ps)
     if res2 then
         local value = 0
@@ -538,18 +592,18 @@ local function update_dashboard()
         local bw = bar_max * pct
         if bw < 1 then bw = 1 end
 
-        resource_bg2:ClearAllPoints()
-        resource_bg2:SetPoint("TOPLEFT", f, "TOPLEFT", 10, content_y)
-        resource_bar2:SetWidth(bw)
+        ui.resource_bg2:ClearAllPoints()
+        ui.resource_bg2:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
+        ui.resource_bar2:SetWidth(bw)
         local color = res2.color or RESOURCE_COLORS[res2.type] or { 1, 1, 1 }
-        resource_bar2:SetVertexColor(color[1], color[2], color[3])
-        resource_text2:SetText(res2.type == "mana"
+        ui.resource_bar2:SetVertexColor(color[1], color[2], color[3])
+        ui.resource_text2:SetText(res2.type == "mana"
             and format("%s (%.0f%%)", res2.label or "Mana", value)
             or format("%s: %d", res2.label or res2.type, value))
-        resource_bg2:Show()
-        content_y = content_y - 22
+        ui.resource_bg2:Show()
+        content_y = content_y - 15
     else
-        resource_bg2:Hide()
+        ui.resource_bg2:Hide()
     end
 
     -- Timer bars (GCD built-in + class timers)
@@ -558,12 +612,12 @@ local function update_dashboard()
 
     -- GCD bar (always present when framework available)
     if class_A then
-        local tb = timer_bars[1]
+        local tb = ui.timer_bars[1]
         local gcd_total = class_A.GetGCD and class_A.GetGCD() or 1.5
         local gcd_remaining = class_A.GetCurrentGCD and class_A.GetCurrentGCD() or 0
 
         tb.bg:ClearAllPoints()
-        tb.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 10, content_y)
+        tb.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
         tb.label:SetText("GCD")
 
         local gcd_pct = (gcd_total > 0 and gcd_remaining > 0) and (gcd_remaining / gcd_total) or 0
@@ -607,9 +661,9 @@ local function update_dashboard()
         end
 
         local lbl = shoot > 0 and swing_label or "Swing"
-        local ctb = timer_bars[timer_idx]
+        local ctb = ui.timer_bars[timer_idx]
         ctb.bg:ClearAllPoints()
-        ctb.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 10, content_y)
+        ctb.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
         ctb.label:SetText(lbl)
 
         local tpct = (duration > 0 and remaining > 0) and (remaining / duration) or 0
@@ -633,25 +687,51 @@ local function update_dashboard()
 
     -- Hide unused timer bars
     for i = timer_idx, MAX_TIMER_BARS do
-        timer_bars[i].bg:Hide()
+        ui.timer_bars[i].bg:Hide()
     end
 
-    content_y = content_y - 8
+    content_y = content_y - 4
 
     -- Current Priority (inline)
     local la = last_action
     local accent_hex = "6c63ff"
     if la and la.name then
-        priority_text:SetText(format("|cff%sPriority|r  > %s", accent_hex, la.name))
+        ui.priority_text:SetText(format("|cff%sPriority|r  > %s", accent_hex, la.name))
     else
-        priority_text:SetText(format("|cff%sPriority|r  |cff666666Idle|r", accent_hex))
+        ui.priority_text:SetText(format("|cff%sPriority|r  |cff666666Idle|r", accent_hex))
     end
-    priority_text:ClearAllPoints()
-    priority_text:SetPoint("TOPLEFT", f, "TOPLEFT", 10, content_y)
-    priority_text:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, content_y)
-    local info_y = content_y - 16
+    ui.priority_text:ClearAllPoints()
+    ui.priority_text:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
+    ui.priority_text:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, content_y)
+    content_y = content_y - 11
 
-    -- Target info (name inline with label, stats below — static 2-line height)
+    -- Recent cast icons (CLEU-confirmed) — always reserves 1 row of space
+    ui.recent_label_fs:ClearAllPoints()
+    ui.recent_label_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
+    ui.recent_label_fs:Show()
+    content_y = content_y - 12
+
+    for i = 1, MAX_HISTORY do
+        local hs = ui.history_icon_slots[i]
+        if i <= history_count and action_history[i].texture then
+            local entry = action_history[i]
+            local alpha = i == 1 and 1.0 or (0.8 - (i - 2) * 0.12)
+            if alpha < 0.3 then alpha = 0.3 end
+            hs.icon:SetTexture(entry.texture)
+            hs.frame.spell_id = entry.spell_id
+            hs.frame.slot_id = nil
+            hs.frame:SetAlpha(alpha)
+            hs.tint:Hide()
+            hs.text:Hide()
+            position_icon(hs, f, ICON_X, content_y, i)
+            hs.frame:Show()
+        else
+            hs.frame:Hide()
+        end
+    end
+    content_y = content_y - ICON_STEP - 2
+
+    -- Target info — always reserves fixed 2-line height
     local tname = UnitName("target")
     if tname then
         local stats = ""
@@ -659,10 +739,14 @@ local function update_dashboard()
         if ttd > 0 then
             stats = format("TTD: %s", format_timer(ttd))
         end
-        local dist = Unit("target"):GetRange()
-        if dist then
+        local max_range, min_range = Unit("target"):GetRange()
+        if max_range then
             if stats ~= "" then stats = stats .. "  " end
-            stats = stats .. format("%dyd", dist)
+            if min_range and min_range > 0 then
+                stats = stats .. format("%d-%dyd", min_range, max_range)
+            else
+                stats = stats .. format("%dyd", max_range)
+            end
         end
         local _, _, threat_pct = UnitDetailedThreatSituation("player", "target")
         if threat_pct and threat_pct > 0 then
@@ -672,20 +756,20 @@ local function update_dashboard()
         end
         local text = format("|cff%sTarget|r  |cffcccccc%s|r", accent_hex, tname)
         text = text .. "\n|cff9494a8" .. (stats ~= "" and stats or " ") .. "|r"
-        target_info_fs:SetText(text)
+        ui.target_info_fs:SetText(text)
     else
-        target_info_fs:SetText(format("|cff%sTarget|r  |cff666666N/A|r\n ", accent_hex))
+        ui.target_info_fs:SetText(format("|cff%sTarget|r  |cff666666N/A|r\n ", accent_hex))
     end
-    target_info_fs:ClearAllPoints()
-    target_info_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 10, info_y)
-    target_info_fs:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, info_y)
-    target_info_fs:Show()
-    info_y = info_y - 34  -- fixed: 2 lines + SetSpacing(4) padding
+    ui.target_info_fs:ClearAllPoints()
+    ui.target_info_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
+    ui.target_info_fs:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, content_y)
+    ui.target_info_fs:Show()
+    content_y = content_y - 24
 
-    sep2_tex:ClearAllPoints()
-    sep2_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 1, info_y - 2)
-    sep2_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, info_y - 2)
-    local sections_y = info_y - 4
+    ui.sep2_tex:ClearAllPoints()
+    ui.sep2_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 1, content_y)
+    ui.sep2_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, content_y)
+    local sections_y = content_y - 3
     local cd_list = resolve_list(dash_config.cooldowns, active_ps)
     local buff_list = resolve_list(dash_config.buffs, active_ps)
     local debuff_list = resolve_list(dash_config.debuffs, active_ps)
@@ -697,15 +781,15 @@ local function update_dashboard()
 
     -- ---- COOLDOWNS SECTION ----
     if num_cds > 0 then
-        local label_y = y - 2
-        local icons_y = y - 16
+        local label_y = y - 1
+        local icons_y = y - 13
 
-        cd_label_fs:ClearAllPoints()
-        cd_label_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 10, label_y)
-        cd_label_fs:Show()
+        ui.cd_label_fs:ClearAllPoints()
+        ui.cd_label_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 8, label_y)
+        ui.cd_label_fs:Show()
 
         for i = 1, MAX_COOLDOWNS do
-            local slot = cd_slots[i]
+            local slot = ui.cd_slots[i]
             if i <= num_cds then
                 local spell = cd_list[i]
                 local equip_slot = spell.SlotID or (GetInventoryItemTexture("player", spell.ID) and spell.ID) or nil
@@ -745,23 +829,23 @@ local function update_dashboard()
             end
         end
 
-        y = icons_y - icon_rows(num_cds) * ICON_STEP - 6
+        y = icons_y - icon_rows(num_cds) * ICON_STEP - 3
     else
-        cd_label_fs:Hide()
-        for i = 1, MAX_COOLDOWNS do cd_slots[i].frame:Hide() end
+        ui.cd_label_fs:Hide()
+        for i = 1, MAX_COOLDOWNS do ui.cd_slots[i].frame:Hide() end
     end
 
     -- ---- BUFFS SECTION ----
     if num_buffs > 0 then
-        local label_y = y - 2
-        local icons_y = y - 16
+        local label_y = y - 1
+        local icons_y = y - 13
 
-        buff_label_fs:ClearAllPoints()
-        buff_label_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 10, label_y)
-        buff_label_fs:Show()
+        ui.buff_label_fs:ClearAllPoints()
+        ui.buff_label_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 8, label_y)
+        ui.buff_label_fs:Show()
 
         for i = 1, MAX_BUFFS do
-            local slot = buff_slots[i]
+            local slot = ui.buff_slots[i]
             if i <= num_buffs then
                 local b = buff_list[i]
                 local dur = Unit("player"):HasBuffs(b.id) or 0
@@ -787,23 +871,23 @@ local function update_dashboard()
             end
         end
 
-        y = icons_y - icon_rows(num_buffs) * ICON_STEP - 6
+        y = icons_y - icon_rows(num_buffs) * ICON_STEP - 3
     else
-        buff_label_fs:Hide()
-        for i = 1, MAX_BUFFS do buff_slots[i].frame:Hide() end
+        ui.buff_label_fs:Hide()
+        for i = 1, MAX_BUFFS do ui.buff_slots[i].frame:Hide() end
     end
 
     -- ---- DEBUFFS SECTION ----
     if num_debuffs > 0 then
-        local label_y = y - 2
-        local icons_y = y - 16
+        local label_y = y - 1
+        local icons_y = y - 13
 
-        debuff_label_fs:ClearAllPoints()
-        debuff_label_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 10, label_y)
-        debuff_label_fs:Show()
+        ui.debuff_label_fs:ClearAllPoints()
+        ui.debuff_label_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 8, label_y)
+        ui.debuff_label_fs:Show()
 
         for i = 1, MAX_DEBUFFS do
-            local slot = debuff_slots[i]
+            local slot = ui.debuff_slots[i]
             if i <= num_debuffs then
                 local d = debuff_list[i]
                 local dur
@@ -846,23 +930,23 @@ local function update_dashboard()
             end
         end
 
-        y = icons_y - icon_rows(num_debuffs) * ICON_STEP - 6
+        y = icons_y - icon_rows(num_debuffs) * ICON_STEP - 3
     else
-        debuff_label_fs:Hide()
-        for i = 1, MAX_DEBUFFS do debuff_slots[i].frame:Hide() end
+        ui.debuff_label_fs:Hide()
+        for i = 1, MAX_DEBUFFS do ui.debuff_slots[i].frame:Hide() end
     end
 
     -- Custom lines (text-based)
     local cl = dash_config.custom_lines
     local num_custom = 0
     for i = 1, MAX_CUSTOM_LINES do
-        local line = custom_lines[i]
+        local line = ui.custom_lines[i]
         if cl and cl[i] then
             local clabel, cvalue = cl[i](dash_context)
             if clabel then
                 line:SetText(format("|cff9494a8%s:|r %s", clabel, tostring(cvalue or "")))
                 line:ClearAllPoints()
-                line:SetPoint("TOPLEFT", f, "TOPLEFT", 10, y - num_custom * 14)
+                line:SetPoint("TOPLEFT", f, "TOPLEFT", 8, y - num_custom * 14)
                 line:Show()
                 num_custom = num_custom + 1
             else
@@ -876,21 +960,8 @@ local function update_dashboard()
         y = y - num_custom * 14 - 2
     end
 
-    -- Playstyle/Form line (always visible at bottom, with separator)
-    playstyle_sep:ClearAllPoints()
-    playstyle_sep:SetPoint("TOPLEFT", f, "TOPLEFT", 1, y - 2)
-    playstyle_sep:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, y - 2)
-    y = y - 8
-
-    local ps_label = cc.name == "Druid" and "Form" or "Playstyle"
-    local ps_display = active_ps:sub(1, 1):upper() .. active_ps:sub(2)
-    playstyle_line_fs:SetText(format("|cff%s%s:|r  %s", accent_hex, ps_label, ps_display))
-    playstyle_line_fs:ClearAllPoints()
-    playstyle_line_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 10, y)
-    y = y - 16
-
     -- Auto-resize frame height
-    dashboard_frame:SetHeight(math_max(-y + 8, 120))
+    dashboard_frame:SetHeight(math_max(-y + 6, 80))
 end
 
 -- ============================================================================
