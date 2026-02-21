@@ -7,6 +7,7 @@ local A = _G.Action
 
 if not A then return end
 if A.PlayerClass ~= "HUNTER" then return end
+local S = _G.FluxAIO_SECTIONS
 
 -- Enable this profile
 A.Data.ProfileEnabled[A.CurrentProfile] = true
@@ -43,12 +44,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "mana_rune_mana", default = 20, min = 0, max = 100, label = "Mana Rune Mana (%)",
               tooltip = "Use Dark/Demonic Rune when mana drops below this.", format = "%d%%" },
         }},
-        { header = "Debug", settings = {
-            { type = "checkbox", key = "debug_mode", default = false, label = "Debug Mode",
-              tooltip = "Print rotation debug messages." },
-            { type = "checkbox", key = "debug_system", default = false, label = "Debug System (Advanced)",
-              tooltip = "Print system debug messages (middleware, strategies)." },
-        }},
+        S.burst(),
+        S.dashboard(),
+        S.debug(),
     }},
 
     -- Tab 2: Rotation
@@ -208,24 +206,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "Debug Panel", settings = {
             { type = "checkbox", key = "show_debug_panel", default = false, label = "Show Debug Panel",
               tooltip = "Show real-time hunter debug information." },
-        }},
-    }},
-
-    -- Tab 6: Dashboard & Commands
-    [6] = { name = "Dashboard", sections = {
-        { header = "Dashboard", settings = {
-            { type = "checkbox", key = "show_dashboard", default = false, label = "Show Dashboard",
-              tooltip = "Display the combat dashboard overlay (/flux status)." },
-        }},
-        { header = "Burst Conditions", description = "When to automatically use burst cooldowns.", settings = {
-            { type = "checkbox", key = "burst_on_bloodlust", default = false, label = "During Bloodlust/Heroism",
-              tooltip = "Auto-burst when Bloodlust or Heroism buff is detected." },
-            { type = "checkbox", key = "burst_on_pull", default = false, label = "On Pull (first 5s)",
-              tooltip = "Auto-burst within the first 5 seconds of combat." },
-            { type = "checkbox", key = "burst_on_execute", default = false, label = "Execute Phase (<20% HP)",
-              tooltip = "Auto-burst when target is below 20% health." },
-            { type = "checkbox", key = "burst_in_combat", default = false, label = "Always in Combat",
-              tooltip = "Always auto-burst when in combat with a valid target (most aggressive)." },
         }},
     }},
 }

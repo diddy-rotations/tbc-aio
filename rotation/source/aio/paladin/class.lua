@@ -103,10 +103,6 @@ Action[A.PlayerClass] = {
     -- Buff tracking
     Heroism   = Create({ Type = "Spell", ID = 32182 }),
     Bloodlust = Create({ Type = "Spell", ID = 2825 }),
-
-    -- Trinkets (framework auto-creates; explicit Create breaks them)
-    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -119,8 +115,6 @@ local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local is_spell_known = NS.is_spell_known
-local check_spell_availability = NS.check_spell_availability
-local unavailable_spells = NS.unavailable_spells
 local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
@@ -210,82 +204,6 @@ NS.SealOfBloodAction = SealOfBloodAction
 NS.SEAL_BLOOD_BUFF_ID = SEAL_BLOOD_BUFF_ID
 
 -- ============================================================================
--- PLAYSTYLE SPELL VALIDATION
--- ============================================================================
-local last_validated_playstyle = nil
-
-local function validate_playstyle_spells(playstyle)
-    if playstyle == last_validated_playstyle then return end
-    last_validated_playstyle = playstyle
-
-    for k in pairs(unavailable_spells) do
-        unavailable_spells[k] = nil
-    end
-
-    local missing_spells = {}
-    local optional_missing = {}
-
-    if playstyle == "retribution" then
-        local ret_core = {
-            { spell = SealOfBloodAction, name = is_horde and "Seal of Blood" or "Seal of the Martyr", required = true },
-            { spell = A.SealOfCommandR1, name = "Seal of Command", required = true },
-            { spell = A.Judgement, name = "Judgement", required = true },
-            { spell = A.CrusaderStrike, name = "Crusader Strike", required = false, note = "41-pt Ret talent" },
-            { spell = A.Exorcism, name = "Exorcism", required = false },
-            { spell = A.Consecration, name = "Consecration", required = false },
-            { spell = A.HammerOfWrath, name = "Hammer of Wrath", required = false },
-        }
-        check_spell_availability(ret_core, missing_spells, optional_missing)
-    elseif playstyle == "protection" then
-        local prot_core = {
-            { spell = A.SealOfRighteousness, name = "Seal of Righteousness", required = true },
-            { spell = A.Judgement, name = "Judgement", required = true },
-            { spell = A.Consecration, name = "Consecration", required = true },
-            { spell = A.RighteousFury, name = "Righteous Fury", required = true },
-            { spell = A.HolyShield, name = "Holy Shield", required = false, note = "Prot talent" },
-            { spell = A.AvengersShield, name = "Avenger's Shield", required = false, note = "41-pt Prot talent" },
-            { spell = A.RighteousDefense, name = "Righteous Defense", required = false },
-            { spell = A.Exorcism, name = "Exorcism", required = false },
-            { spell = A.HammerOfWrath, name = "Hammer of Wrath", required = false },
-        }
-        check_spell_availability(prot_core, missing_spells, optional_missing)
-    elseif playstyle == "holy" then
-        local holy_core = {
-            { spell = A.FlashOfLight, name = "Flash of Light", required = true },
-            { spell = A.HolyLight, name = "Holy Light", required = true },
-            { spell = A.Judgement, name = "Judgement", required = true },
-            { spell = A.Cleanse, name = "Cleanse", required = false },
-            { spell = A.HolyShock, name = "Holy Shock", required = false, note = "31-pt Holy talent" },
-            { spell = A.DivineFavor, name = "Divine Favor", required = false, note = "Holy talent" },
-            { spell = A.DivineIllumination, name = "Divine Illumination", required = false, note = "41-pt Holy talent" },
-        }
-        check_spell_availability(holy_core, missing_spells, optional_missing)
-    end
-
-    print("|cFF00FF00[Flux AIO]|r Switched to " .. playstyle .. " playstyle")
-
-    if #missing_spells > 0 then
-        print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
-        for _, spell_name in ipairs(missing_spells) do
-            print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #optional_missing > 0 then
-        print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
-        for _, spell_name in ipairs(optional_missing) do
-            print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #missing_spells == 0 and #optional_missing == 0 then
-        print("|cFF00FF00[Flux AIO]|r All spells available!")
-    end
-end
-
-NS.validate_playstyle_spells = validate_playstyle_spells
-
--- ============================================================================
 -- CLASS REGISTRATION
 -- ============================================================================
 rotation_registry:register_class({
@@ -299,6 +217,38 @@ rotation_registry:register_class({
     end,
 
     get_idle_playstyle = nil,
+
+    playstyle_spells = {
+        retribution = {
+            { spell = SealOfBloodAction, name = is_horde and "Seal of Blood" or "Seal of the Martyr", required = true },
+            { spell = A.SealOfCommandR1, name = "Seal of Command", required = true },
+            { spell = A.Judgement, name = "Judgement", required = true },
+            { spell = A.CrusaderStrike, name = "Crusader Strike", required = false, note = "41-pt Ret talent" },
+            { spell = A.Exorcism, name = "Exorcism", required = false },
+            { spell = A.Consecration, name = "Consecration", required = false },
+            { spell = A.HammerOfWrath, name = "Hammer of Wrath", required = false },
+        },
+        protection = {
+            { spell = A.SealOfRighteousness, name = "Seal of Righteousness", required = true },
+            { spell = A.Judgement, name = "Judgement", required = true },
+            { spell = A.Consecration, name = "Consecration", required = true },
+            { spell = A.RighteousFury, name = "Righteous Fury", required = true },
+            { spell = A.HolyShield, name = "Holy Shield", required = false, note = "Prot talent" },
+            { spell = A.AvengersShield, name = "Avenger's Shield", required = false, note = "41-pt Prot talent" },
+            { spell = A.RighteousDefense, name = "Righteous Defense", required = false },
+            { spell = A.Exorcism, name = "Exorcism", required = false },
+            { spell = A.HammerOfWrath, name = "Hammer of Wrath", required = false },
+        },
+        holy = {
+            { spell = A.FlashOfLight, name = "Flash of Light", required = true },
+            { spell = A.HolyLight, name = "Holy Light", required = true },
+            { spell = A.Judgement, name = "Judgement", required = true },
+            { spell = A.Cleanse, name = "Cleanse", required = false },
+            { spell = A.HolyShock, name = "Holy Shock", required = false, note = "31-pt Holy talent" },
+            { spell = A.DivineFavor, name = "Divine Favor", required = false, note = "Holy talent" },
+            { spell = A.DivineIllumination, name = "Divine Illumination", required = false, note = "41-pt Holy talent" },
+        },
+    },
 
     extend_context = function(ctx)
         local moving = Player:IsMoving()

@@ -197,10 +197,6 @@ Action[A.PlayerClass] = {
    DarkRuneBear = Create({ Type = "Spell", ID = 9634, Desc = "Dark Rune Bear Shift", Click = { macrobefore = "/use item:20520\n" } }),
    DemonicRuneBear = Create({ Type = "Spell", ID = 9634, Desc = "Demonic Rune Bear Shift", Click = { macrobefore = "/use item:12662\n" } }),
 
-   -- Trinkets (framework auto-creates Trinket1/Trinket2; explicit Create overrides and breaks them)
-   -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-   -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
-
    -- Racials
    Berserking = Create({ Type = "Spell", ID = 26297 }),
    BloodFury = Create({ Type = "Spell", ID = 33697 }),
@@ -227,8 +223,6 @@ local get_spell_mana_cost = NS.get_spell_mana_cost
 local try_cast = NS.try_cast
 local try_cast_fmt = NS.try_cast_fmt
 local is_spell_known = NS.is_spell_known
-local check_spell_availability = NS.check_spell_availability
-local unavailable_spells = NS.unavailable_spells
 local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
@@ -483,118 +477,6 @@ local PLAYSTYLE_NAMES = {
 NS.PLAYSTYLE_NAMES = PLAYSTYLE_NAMES
 
 -- ============================================================================
--- PLAYSTYLE SPELL VALIDATION
--- ============================================================================
-local last_validated_playstyle = nil
-
-local function validate_playstyle_spells(playstyle)
-   if playstyle == last_validated_playstyle then return end
-   last_validated_playstyle = playstyle
-
-   for k in pairs(unavailable_spells) do
-      unavailable_spells[k] = nil
-   end
-
-   local playstyle_name = PLAYSTYLE_NAMES[playstyle] or "Unknown"
-   local missing_spells = {}
-   local optional_missing = {}
-
-   if playstyle == PLAYSTYLE_CAT then
-      local cat_core = {
-         { spell = A.CatForm, name = "Cat Form", required = true },
-         { spell = A.Shred, name = "Shred", required = true },
-         { spell = A.Rip, name = "Rip", required = true },
-         { spell = A.Rake, name = "Rake", required = true },
-         { spell = A.FerociousBite, name = "Ferocious Bite", required = true },
-         { spell = A.MangleCat, name = "Mangle (Cat)", required = false, note = "41pt Feral talent" },
-         { spell = A.TigersFury, name = "Tiger's Fury", required = false },
-         { spell = A.Prowl, name = "Prowl", required = false },
-         { spell = A.Ravage, name = "Ravage", required = false },
-         { spell = A.FaerieFire, name = "Faerie Fire (Feral)", required = false },
-      }
-      check_spell_availability(cat_core, missing_spells, optional_missing)
-
-   elseif playstyle == PLAYSTYLE_BEAR then
-      local bear_core = {
-         { spell = A.BearForm, name = "Dire Bear Form", required = true },
-         { spell = A.Maul, name = "Maul", required = true },
-         { spell = A.Swipe, name = "Swipe", required = true },
-         { spell = A.DemoralizingRoar, name = "Demoralizing Roar", required = true },
-         { spell = A.Growl, name = "Growl", required = true },
-         { spell = A.MangleBear, name = "Mangle (Bear)", required = false, note = "41pt Feral talent" },
-         { spell = A.Lacerate, name = "Lacerate", required = false, note = "requires level 66" },
-         { spell = A.FrenziedRegeneration, name = "Frenzied Regeneration", required = false },
-         { spell = A.Enrage, name = "Enrage", required = false },
-         { spell = A.ChallengingRoar, name = "Challenging Roar", required = false },
-         { spell = A.FaerieFire, name = "Faerie Fire (Feral)", required = false },
-      }
-      check_spell_availability(bear_core, missing_spells, optional_missing)
-
-   elseif playstyle == PLAYSTYLE_BALANCE then
-      local balance_core = {
-         { spell = A.MoonkinForm, name = "Moonkin Form", required = true, note = "41pt Balance talent" },
-         { spell = A.Starfire, name = "Starfire", required = true },
-         { spell = A.Moonfire, name = "Moonfire", required = true },
-         { spell = A.Wrath, name = "Wrath", required = true },
-         { spell = A.InsectSwarm, name = "Insect Swarm", required = false, note = "Balance talent" },
-         { spell = A.Hurricane, name = "Hurricane", required = false },
-         { spell = A.ForceOfNature, name = "Force of Nature", required = false, note = "41pt Balance talent" },
-         { spell = A.FaerieFire, name = "Faerie Fire", required = false },
-         { spell = A.Barkskin, name = "Barkskin", required = false },
-      }
-      check_spell_availability(balance_core, missing_spells, optional_missing)
-
-   elseif playstyle == PLAYSTYLE_RESTO then
-      local resto_core = {
-         { spell = A.Rejuvenation13, name = "Rejuvenation", required = true },
-         { spell = A.Regrowth10, name = "Regrowth", required = true },
-         { spell = A.NaturesSwiftness, name = "Nature's Swiftness", required = false, note = "21pt Resto talent" },
-         { spell = A.Swiftmend, name = "Swiftmend", required = false, note = "31pt Resto talent" },
-         { spell = A.Lifebloom, name = "Lifebloom", required = false, note = "requires level 64" },
-         { spell = A.Tranquility, name = "Tranquility", required = false },
-         { spell = A.Innervate, name = "Innervate", required = false },
-         { spell = A.Barkskin, name = "Barkskin", required = false },
-         { spell = A.RemoveCurse, name = "Remove Curse", required = false },
-         { spell = A.AbolishPoison, name = "Abolish Poison", required = false },
-      }
-      check_spell_availability(resto_core, missing_spells, optional_missing)
-
-      local has_healing_touch = false
-      for _, rank in ipairs(HEALING_TOUCH_RANKS or {}) do
-         if rank.spell and is_spell_known(rank.spell) then
-            has_healing_touch = true
-            break
-         end
-      end
-      if not has_healing_touch then
-         tinsert(missing_spells, "Healing Touch (any rank)")
-      end
-   end
-
-   print("|cFF00FF00[Flux AIO]|r Switched to " .. playstyle_name .. " playstyle")
-
-   if #missing_spells > 0 then
-      print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
-      for _, spell_name in ipairs(missing_spells) do
-         print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
-      end
-   end
-
-   if #optional_missing > 0 then
-      print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
-      for _, spell_name in ipairs(optional_missing) do
-         print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
-      end
-   end
-
-   if #missing_spells == 0 and #optional_missing == 0 then
-      print("|cFF00FF00[Flux AIO]|r All spells available!")
-   end
-end
-
-NS.validate_playstyle_spells = validate_playstyle_spells
-
--- ============================================================================
 -- FORM COST UTILITIES
 -- ============================================================================
 local FORM_COST_CACHE_TTL = 5.0
@@ -682,6 +564,79 @@ rotation_registry:register_class({
          return "caster"
       end
       return nil
+   end,
+
+   playstyle_spells = {
+      cat = {
+         { spell = A.CatForm, name = "Cat Form", required = true },
+         { spell = A.Shred, name = "Shred", required = true },
+         { spell = A.Rip, name = "Rip", required = true },
+         { spell = A.Rake, name = "Rake", required = true },
+         { spell = A.FerociousBite, name = "Ferocious Bite", required = true },
+         { spell = A.MangleCat, name = "Mangle (Cat)", required = false, note = "41pt Feral talent" },
+         { spell = A.TigersFury, name = "Tiger's Fury", required = false },
+         { spell = A.Prowl, name = "Prowl", required = false },
+         { spell = A.Ravage, name = "Ravage", required = false },
+         { spell = A.FaerieFire, name = "Faerie Fire (Feral)", required = false },
+      },
+      bear = {
+         { spell = A.BearForm, name = "Dire Bear Form", required = true },
+         { spell = A.Maul, name = "Maul", required = true },
+         { spell = A.Swipe, name = "Swipe", required = true },
+         { spell = A.DemoralizingRoar, name = "Demoralizing Roar", required = true },
+         { spell = A.Growl, name = "Growl", required = true },
+         { spell = A.MangleBear, name = "Mangle (Bear)", required = false, note = "41pt Feral talent" },
+         { spell = A.Lacerate, name = "Lacerate", required = false, note = "requires level 66" },
+         { spell = A.FrenziedRegeneration, name = "Frenzied Regeneration", required = false },
+         { spell = A.Enrage, name = "Enrage", required = false },
+         { spell = A.ChallengingRoar, name = "Challenging Roar", required = false },
+         { spell = A.FaerieFire, name = "Faerie Fire (Feral)", required = false },
+      },
+      balance = {
+         { spell = A.MoonkinForm, name = "Moonkin Form", required = true, note = "41pt Balance talent" },
+         { spell = A.Starfire, name = "Starfire", required = true },
+         { spell = A.Moonfire, name = "Moonfire", required = true },
+         { spell = A.Wrath, name = "Wrath", required = true },
+         { spell = A.InsectSwarm, name = "Insect Swarm", required = false, note = "Balance talent" },
+         { spell = A.Hurricane, name = "Hurricane", required = false },
+         { spell = A.ForceOfNature, name = "Force of Nature", required = false, note = "41pt Balance talent" },
+         { spell = A.FaerieFire, name = "Faerie Fire", required = false },
+         { spell = A.Barkskin, name = "Barkskin", required = false },
+      },
+      resto = {
+         { spell = A.Rejuvenation13, name = "Rejuvenation", required = true },
+         { spell = A.Regrowth10, name = "Regrowth", required = true },
+         { spell = A.NaturesSwiftness, name = "Nature's Swiftness", required = false, note = "21pt Resto talent" },
+         { spell = A.Swiftmend, name = "Swiftmend", required = false, note = "31pt Resto talent" },
+         { spell = A.Lifebloom, name = "Lifebloom", required = false, note = "requires level 64" },
+         { spell = A.Tranquility, name = "Tranquility", required = false },
+         { spell = A.Innervate, name = "Innervate", required = false },
+         { spell = A.Barkskin, name = "Barkskin", required = false },
+         { spell = A.RemoveCurse, name = "Remove Curse", required = false },
+         { spell = A.AbolishPoison, name = "Abolish Poison", required = false },
+      },
+   },
+
+   playstyle_labels = {
+      cat = "Cat (Feral DPS)",
+      bear = "Bear (Feral Tank)",
+      balance = "Balance (Moonkin)",
+      resto = "Resto (Healer)",
+   },
+
+   validate_playstyle_extra = function(playstyle, missing_spells, optional_missing)
+      if playstyle == "resto" then
+         local has_healing_touch = false
+         for _, rank in ipairs(HEALING_TOUCH_RANKS or {}) do
+            if rank.spell and is_spell_known(rank.spell) then
+               has_healing_touch = true
+               break
+            end
+         end
+         if not has_healing_touch then
+            tinsert(missing_spells, "Healing Touch (any rank)")
+         end
+      end
    end,
 
    extend_context = function(ctx)

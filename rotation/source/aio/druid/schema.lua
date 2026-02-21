@@ -7,6 +7,7 @@ local A = _G.Action
 
 if not A then return end
 if A.PlayerClass ~= "DRUID" then return end
+local S = _G.FluxAIO_SECTIONS
 
 -- Enable this profile
 A.Data.ProfileEnabled[A.CurrentProfile] = true
@@ -61,10 +62,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "use_innervate_self", default = true, label = "Innervate Self (Solo)", tooltip = "Use Innervate on yourself when low mana and solo." },
             { type = "slider", key = "innervate_mana", default = 30, min = 15, max = 50, label = "Innervate Mana (%)", tooltip = "Use Innervate below this mana %.", format = "%d%%" },
         }},
-        { header = "Debug", settings = {
-            { type = "checkbox", key = "debug_mode", default = true, label = "Debug Mode", tooltip = "Print rotation debug messages." },
-            { type = "checkbox", key = "debug_system", default = false, label = "Debug System (Advanced)", tooltip = "Print system debug messages (middleware, strategies)." },
-        }},
+        S.burst(),
+        S.dashboard(),
+        S.debug(),
     }},
 
     -- Tab 2: Cat (Feral DPS)
@@ -214,24 +214,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "Dispels", settings = {
             { type = "checkbox", key = "resto_auto_dispel_curse", default = true, label = "Auto Remove Curse (Party)", tooltip = "Remove Curse from party members (castable in Tree form)." },
             { type = "checkbox", key = "resto_auto_dispel_poison", default = true, label = "Auto Abolish Poison (Party)", tooltip = "Abolish Poison on party members (castable in Tree form)." },
-        }},
-    }},
-
-    -- Tab 7: Dashboard & Commands
-    [7] = { name = "Dashboard", sections = {
-        { header = "Dashboard", settings = {
-            { type = "checkbox", key = "show_dashboard", default = false, label = "Show Dashboard",
-              tooltip = "Display the combat dashboard overlay (/flux status)." },
-        }},
-        { header = "Burst Conditions", description = "When to automatically use burst cooldowns.", settings = {
-            { type = "checkbox", key = "burst_on_bloodlust", default = false, label = "During Bloodlust/Heroism",
-              tooltip = "Auto-burst when Bloodlust or Heroism buff is detected." },
-            { type = "checkbox", key = "burst_on_pull", default = false, label = "On Pull (first 5s)",
-              tooltip = "Auto-burst within the first 5 seconds of combat." },
-            { type = "checkbox", key = "burst_on_execute", default = false, label = "Execute Phase (<20% HP)",
-              tooltip = "Auto-burst when target is below 20% health." },
-            { type = "checkbox", key = "burst_in_combat", default = false, label = "Always in Combat",
-              tooltip = "Always auto-burst when in combat with a valid target (most aggressive)." },
         }},
     }},
 }

@@ -100,10 +100,6 @@ Action[A.PlayerClass] = {
     HealthstoneMaster = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
     HealthstoneMajor  = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
     HealthstoneFel    = Create({ Type = "Item", ID = 22103, Click = { unit = "player", type = "item", item = 22103 } }),
-
-    -- Trinkets (framework auto-creates; explicit Create breaks them)
-    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -116,8 +112,6 @@ local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local is_spell_known = NS.is_spell_known
-local check_spell_availability = NS.check_spell_availability
-local unavailable_spells = NS.unavailable_spells
 local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
@@ -210,84 +204,6 @@ NS.get_curse_duration = get_curse_duration
 NS.get_curse_spell = get_curse_spell
 
 -- ============================================================================
--- PLAYSTYLE SPELL VALIDATION
--- ============================================================================
-local last_validated_playstyle = nil
-
-local function validate_playstyle_spells(playstyle)
-    if playstyle == last_validated_playstyle then return end
-    last_validated_playstyle = playstyle
-
-    for k in pairs(unavailable_spells) do
-        unavailable_spells[k] = nil
-    end
-
-    local missing_spells = {}
-    local optional_missing = {}
-
-    if playstyle == "affliction" then
-        local core = {
-            { spell = A.ShadowBolt, name = "Shadow Bolt", required = true },
-            { spell = A.Corruption, name = "Corruption", required = true },
-            { spell = A.LifeTap, name = "Life Tap", required = true },
-            { spell = A.UnstableAffliction, name = "Unstable Affliction", required = false, note = "41pt Affliction talent" },
-            { spell = A.SiphonLife, name = "Siphon Life", required = false, note = "Affliction talent" },
-            { spell = A.DarkPact, name = "Dark Pact", required = false, note = "Affliction talent" },
-            { spell = A.AmplifyCurse, name = "Amplify Curse", required = false, note = "Affliction talent" },
-            { spell = A.DrainSoul, name = "Drain Soul", required = false },
-            { spell = A.Immolate, name = "Immolate", required = false },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "demonology" then
-        local core = {
-            { spell = A.ShadowBolt, name = "Shadow Bolt", required = true },
-            { spell = A.LifeTap, name = "Life Tap", required = true },
-            { spell = A.Corruption, name = "Corruption", required = false },
-            { spell = A.Immolate, name = "Immolate", required = false },
-            { spell = A.HealthFunnel, name = "Health Funnel", required = false },
-            { spell = A.SummonFelguard, name = "Summon Felguard", required = false, note = "41pt Demo talent" },
-            { spell = A.DemonicSacrifice, name = "Demonic Sacrifice", required = false, note = "Demo talent" },
-            { spell = A.FelDomination, name = "Fel Domination", required = false, note = "Demo talent" },
-            { spell = A.SoulLink, name = "Soul Link", required = false, note = "Demo talent" },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "destruction" then
-        local core = {
-            { spell = A.ShadowBolt, name = "Shadow Bolt", required = true },
-            { spell = A.LifeTap, name = "Life Tap", required = true },
-            { spell = A.Immolate, name = "Immolate", required = false },
-            { spell = A.Incinerate, name = "Incinerate", required = false, note = "TBC ability" },
-            { spell = A.Conflagrate, name = "Conflagrate", required = false, note = "Destro talent" },
-            { spell = A.Shadowburn, name = "Shadowburn", required = false, note = "Destro talent" },
-            { spell = A.Shadowfury, name = "Shadowfury", required = false, note = "41pt Destro talent" },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    end
-
-    print("|cFF00FF00[Flux AIO]|r Switched to " .. playstyle .. " playstyle")
-
-    if #missing_spells > 0 then
-        print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
-        for _, spell_name in ipairs(missing_spells) do
-            print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #optional_missing > 0 then
-        print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
-        for _, spell_name in ipairs(optional_missing) do
-            print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #missing_spells == 0 and #optional_missing == 0 then
-        print("|cFF00FF00[Flux AIO]|r All spells available!")
-    end
-end
-
-NS.validate_playstyle_spells = validate_playstyle_spells
-
--- ============================================================================
 -- CLASS REGISTRATION
 -- ============================================================================
 rotation_registry:register_class({
@@ -301,6 +217,40 @@ rotation_registry:register_class({
     end,
 
     get_idle_playstyle = nil,
+
+    playstyle_spells = {
+        affliction = {
+            { spell = A.ShadowBolt, name = "Shadow Bolt", required = true },
+            { spell = A.Corruption, name = "Corruption", required = true },
+            { spell = A.LifeTap, name = "Life Tap", required = true },
+            { spell = A.UnstableAffliction, name = "Unstable Affliction", required = false, note = "41pt Affliction talent" },
+            { spell = A.SiphonLife, name = "Siphon Life", required = false, note = "Affliction talent" },
+            { spell = A.DarkPact, name = "Dark Pact", required = false, note = "Affliction talent" },
+            { spell = A.AmplifyCurse, name = "Amplify Curse", required = false, note = "Affliction talent" },
+            { spell = A.DrainSoul, name = "Drain Soul", required = false },
+            { spell = A.Immolate, name = "Immolate", required = false },
+        },
+        demonology = {
+            { spell = A.ShadowBolt, name = "Shadow Bolt", required = true },
+            { spell = A.LifeTap, name = "Life Tap", required = true },
+            { spell = A.Corruption, name = "Corruption", required = false },
+            { spell = A.Immolate, name = "Immolate", required = false },
+            { spell = A.HealthFunnel, name = "Health Funnel", required = false },
+            { spell = A.SummonFelguard, name = "Summon Felguard", required = false, note = "41pt Demo talent" },
+            { spell = A.DemonicSacrifice, name = "Demonic Sacrifice", required = false, note = "Demo talent" },
+            { spell = A.FelDomination, name = "Fel Domination", required = false, note = "Demo talent" },
+            { spell = A.SoulLink, name = "Soul Link", required = false, note = "Demo talent" },
+        },
+        destruction = {
+            { spell = A.ShadowBolt, name = "Shadow Bolt", required = true },
+            { spell = A.LifeTap, name = "Life Tap", required = true },
+            { spell = A.Immolate, name = "Immolate", required = false },
+            { spell = A.Incinerate, name = "Incinerate", required = false, note = "TBC ability" },
+            { spell = A.Conflagrate, name = "Conflagrate", required = false, note = "Destro talent" },
+            { spell = A.Shadowburn, name = "Shadowburn", required = false, note = "Destro talent" },
+            { spell = A.Shadowfury, name = "Shadowfury", required = false, note = "41pt Destro talent" },
+        },
+    },
 
     extend_context = function(ctx)
         local moving = Player:IsMoving()

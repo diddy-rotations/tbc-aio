@@ -92,10 +92,6 @@ Action[A.PlayerClass] = {
     -- Buff tracking (for HasBuffs checks)
     Heroism   = Create({ Type = "Spell", ID = 32182 }),
     Bloodlust = Create({ Type = "Spell", ID = 2825 }),
-
-    -- Trinkets (framework auto-creates; explicit Create breaks them)
-    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -108,8 +104,6 @@ local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local is_spell_known = NS.is_spell_known
-local check_spell_availability = NS.check_spell_availability
-local unavailable_spells = NS.unavailable_spells
 local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
@@ -165,81 +159,6 @@ local Constants = {
 NS.Constants = Constants
 
 -- ============================================================================
--- PLAYSTYLE SPELL VALIDATION
--- ============================================================================
-local last_validated_playstyle = nil
-
-local function validate_playstyle_spells(playstyle)
-    if playstyle == last_validated_playstyle then return end
-    last_validated_playstyle = playstyle
-
-    for k in pairs(unavailable_spells) do
-        unavailable_spells[k] = nil
-    end
-
-    local missing_spells = {}
-    local optional_missing = {}
-
-    if playstyle == "fire" then
-        local fire_core = {
-            { spell = A.Fireball, name = "Fireball", required = true },
-            { spell = A.Scorch, name = "Scorch", required = true },
-            { spell = A.FireBlast, name = "Fire Blast", required = false },
-            { spell = A.Combustion, name = "Combustion", required = false, note = "Fire talent" },
-            { spell = A.IcyVeins, name = "Icy Veins", required = false, note = "Frost talent" },
-            { spell = A.BlastWave, name = "Blast Wave", required = false, note = "Fire talent" },
-            { spell = A.DragonsBreath, name = "Dragon's Breath", required = false, note = "Fire talent" },
-        }
-        check_spell_availability(fire_core, missing_spells, optional_missing)
-    elseif playstyle == "frost" then
-        local frost_core = {
-            { spell = A.Frostbolt, name = "Frostbolt", required = true },
-            { spell = A.FireBlast, name = "Fire Blast", required = false },
-            { spell = A.IceLance, name = "Ice Lance", required = false },
-            { spell = A.ConeOfCold, name = "Cone of Cold", required = false },
-            { spell = A.IcyVeins, name = "Icy Veins", required = false, note = "Frost talent" },
-            { spell = A.ColdSnap, name = "Cold Snap", required = false, note = "Frost talent" },
-            { spell = A.SummonWaterElemental, name = "Water Elemental", required = false, note = "41pt Frost talent" },
-        }
-        check_spell_availability(frost_core, missing_spells, optional_missing)
-    elseif playstyle == "arcane" then
-        local arcane_core = {
-            { spell = A.ArcaneBlast, name = "Arcane Blast", required = true },
-            { spell = A.Frostbolt, name = "Frostbolt", required = false, note = "Filler" },
-            { spell = A.ArcaneMissiles, name = "Arcane Missiles", required = false, note = "Filler" },
-            { spell = A.Scorch, name = "Scorch", required = false, note = "Filler" },
-            { spell = A.ArcanePower, name = "Arcane Power", required = false, note = "Arcane talent" },
-            { spell = A.PresenceOfMind, name = "Presence of Mind", required = false, note = "Arcane talent" },
-            { spell = A.IcyVeins, name = "Icy Veins", required = false, note = "Frost talent" },
-            { spell = A.ColdSnap, name = "Cold Snap", required = false, note = "Frost talent" },
-        }
-        check_spell_availability(arcane_core, missing_spells, optional_missing)
-    end
-
-    print("|cFF00FF00[Flux AIO]|r Switched to " .. playstyle .. " playstyle")
-
-    if #missing_spells > 0 then
-        print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
-        for _, spell_name in ipairs(missing_spells) do
-            print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #optional_missing > 0 then
-        print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
-        for _, spell_name in ipairs(optional_missing) do
-            print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #missing_spells == 0 and #optional_missing == 0 then
-        print("|cFF00FF00[Flux AIO]|r All spells available!")
-    end
-end
-
-NS.validate_playstyle_spells = validate_playstyle_spells
-
--- ============================================================================
 -- CLASS REGISTRATION
 -- ============================================================================
 rotation_registry:register_class({
@@ -253,6 +172,37 @@ rotation_registry:register_class({
     end,
 
     get_idle_playstyle = nil,
+
+    playstyle_spells = {
+        fire = {
+            { spell = A.Fireball, name = "Fireball", required = true },
+            { spell = A.Scorch, name = "Scorch", required = true },
+            { spell = A.FireBlast, name = "Fire Blast", required = false },
+            { spell = A.Combustion, name = "Combustion", required = false, note = "Fire talent" },
+            { spell = A.IcyVeins, name = "Icy Veins", required = false, note = "Frost talent" },
+            { spell = A.BlastWave, name = "Blast Wave", required = false, note = "Fire talent" },
+            { spell = A.DragonsBreath, name = "Dragon's Breath", required = false, note = "Fire talent" },
+        },
+        frost = {
+            { spell = A.Frostbolt, name = "Frostbolt", required = true },
+            { spell = A.FireBlast, name = "Fire Blast", required = false },
+            { spell = A.IceLance, name = "Ice Lance", required = false },
+            { spell = A.ConeOfCold, name = "Cone of Cold", required = false },
+            { spell = A.IcyVeins, name = "Icy Veins", required = false, note = "Frost talent" },
+            { spell = A.ColdSnap, name = "Cold Snap", required = false, note = "Frost talent" },
+            { spell = A.SummonWaterElemental, name = "Water Elemental", required = false, note = "41pt Frost talent" },
+        },
+        arcane = {
+            { spell = A.ArcaneBlast, name = "Arcane Blast", required = true },
+            { spell = A.Frostbolt, name = "Frostbolt", required = false, note = "Filler" },
+            { spell = A.ArcaneMissiles, name = "Arcane Missiles", required = false, note = "Filler" },
+            { spell = A.Scorch, name = "Scorch", required = false, note = "Filler" },
+            { spell = A.ArcanePower, name = "Arcane Power", required = false, note = "Arcane talent" },
+            { spell = A.PresenceOfMind, name = "Presence of Mind", required = false, note = "Arcane talent" },
+            { spell = A.IcyVeins, name = "Icy Veins", required = false, note = "Frost talent" },
+            { spell = A.ColdSnap, name = "Cold Snap", required = false, note = "Frost talent" },
+        },
+    },
 
     extend_context = function(ctx)
         local moving = Player:IsMoving()

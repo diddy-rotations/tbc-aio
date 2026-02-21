@@ -74,10 +74,6 @@ Action[A.PlayerClass] = {
     MajorHealingPotion = Create({ Type = "Item", ID = 13446, Click = { unit = "player", type = "item", item = 13446 } }),
     HealthstoneMaster  = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
     HealthstoneMajor   = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
-
-    -- Trinkets (framework auto-creates; explicit Create breaks them)
-    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -90,8 +86,6 @@ local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local is_spell_known = NS.is_spell_known
-local check_spell_availability = NS.check_spell_availability
-local unavailable_spells = NS.unavailable_spells
 local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
@@ -155,85 +149,6 @@ local Constants = {
 NS.Constants = Constants
 
 -- ============================================================================
--- PLAYSTYLE SPELL VALIDATION
--- ============================================================================
-local last_validated_playstyle = nil
-
-local function validate_playstyle_spells(playstyle)
-    if playstyle == last_validated_playstyle then return end
-    last_validated_playstyle = playstyle
-
-    for k in pairs(unavailable_spells) do
-        unavailable_spells[k] = nil
-    end
-
-    local missing_spells = {}
-    local optional_missing = {}
-
-    if playstyle == "combat" then
-        local core = {
-            { spell = A.SinisterStrike, name = "Sinister Strike", required = true },
-            { spell = A.SliceAndDice, name = "Slice and Dice", required = true },
-            { spell = A.Eviscerate, name = "Eviscerate", required = true },
-            { spell = A.Rupture, name = "Rupture", required = false },
-            { spell = A.BladeFlurry, name = "Blade Flurry", required = false, note = "Combat talent" },
-            { spell = A.AdrenalineRush, name = "Adrenaline Rush", required = false, note = "Combat talent" },
-            { spell = A.ExposeArmor, name = "Expose Armor", required = false },
-            { spell = A.Shiv, name = "Shiv", required = false, note = "TBC ability" },
-            { spell = A.Kick, name = "Kick", required = false },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "assassination" then
-        local core = {
-            { spell = A.Mutilate, name = "Mutilate", required = true, note = "41pt Assassination talent" },
-            { spell = A.SliceAndDice, name = "Slice and Dice", required = true },
-            { spell = A.Eviscerate, name = "Eviscerate", required = true },
-            { spell = A.Rupture, name = "Rupture", required = false },
-            { spell = A.Envenom, name = "Envenom", required = false, note = "TBC ability" },
-            { spell = A.ColdBlood, name = "Cold Blood", required = false, note = "Assassination talent" },
-            { spell = A.Shiv, name = "Shiv", required = false, note = "TBC ability" },
-            { spell = A.Kick, name = "Kick", required = false },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "subtlety" then
-        local core = {
-            { spell = A.Hemorrhage, name = "Hemorrhage", required = true, note = "Subtlety talent" },
-            { spell = A.SliceAndDice, name = "Slice and Dice", required = true },
-            { spell = A.Eviscerate, name = "Eviscerate", required = true },
-            { spell = A.Rupture, name = "Rupture", required = false },
-            { spell = A.Shadowstep, name = "Shadowstep", required = false, note = "41pt Subtlety talent" },
-            { spell = A.GhostlyStrike, name = "Ghostly Strike", required = false, note = "Subtlety talent" },
-            { spell = A.Preparation, name = "Preparation", required = false, note = "Subtlety talent" },
-            { spell = A.Premeditation, name = "Premeditation", required = false, note = "Subtlety talent" },
-            { spell = A.Kick, name = "Kick", required = false },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    end
-
-    print("|cFF00FF00[Flux AIO]|r Switched to Rogue " .. playstyle .. " playstyle")
-
-    if #missing_spells > 0 then
-        print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
-        for _, spell_name in ipairs(missing_spells) do
-            print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #optional_missing > 0 then
-        print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
-        for _, spell_name in ipairs(optional_missing) do
-            print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #missing_spells == 0 and #optional_missing == 0 then
-        print("|cFF00FF00[Flux AIO]|r All spells available!")
-    end
-end
-
-NS.validate_playstyle_spells = validate_playstyle_spells
-
--- ============================================================================
 -- CLASS REGISTRATION
 -- ============================================================================
 rotation_registry:register_class({
@@ -247,6 +162,41 @@ rotation_registry:register_class({
     end,
 
     get_idle_playstyle = nil,
+
+    playstyle_spells = {
+        combat = {
+            { spell = A.SinisterStrike, name = "Sinister Strike", required = true },
+            { spell = A.SliceAndDice, name = "Slice and Dice", required = true },
+            { spell = A.Eviscerate, name = "Eviscerate", required = true },
+            { spell = A.Rupture, name = "Rupture", required = false },
+            { spell = A.BladeFlurry, name = "Blade Flurry", required = false, note = "Combat talent" },
+            { spell = A.AdrenalineRush, name = "Adrenaline Rush", required = false, note = "Combat talent" },
+            { spell = A.ExposeArmor, name = "Expose Armor", required = false },
+            { spell = A.Shiv, name = "Shiv", required = false, note = "TBC ability" },
+            { spell = A.Kick, name = "Kick", required = false },
+        },
+        assassination = {
+            { spell = A.Mutilate, name = "Mutilate", required = true, note = "41pt Assassination talent" },
+            { spell = A.SliceAndDice, name = "Slice and Dice", required = true },
+            { spell = A.Eviscerate, name = "Eviscerate", required = true },
+            { spell = A.Rupture, name = "Rupture", required = false },
+            { spell = A.Envenom, name = "Envenom", required = false, note = "TBC ability" },
+            { spell = A.ColdBlood, name = "Cold Blood", required = false, note = "Assassination talent" },
+            { spell = A.Shiv, name = "Shiv", required = false, note = "TBC ability" },
+            { spell = A.Kick, name = "Kick", required = false },
+        },
+        subtlety = {
+            { spell = A.Hemorrhage, name = "Hemorrhage", required = true, note = "Subtlety talent" },
+            { spell = A.SliceAndDice, name = "Slice and Dice", required = true },
+            { spell = A.Eviscerate, name = "Eviscerate", required = true },
+            { spell = A.Rupture, name = "Rupture", required = false },
+            { spell = A.Shadowstep, name = "Shadowstep", required = false, note = "41pt Subtlety talent" },
+            { spell = A.GhostlyStrike, name = "Ghostly Strike", required = false, note = "Subtlety talent" },
+            { spell = A.Preparation, name = "Preparation", required = false, note = "Subtlety talent" },
+            { spell = A.Premeditation, name = "Premeditation", required = false, note = "Subtlety talent" },
+            { spell = A.Kick, name = "Kick", required = false },
+        },
+    },
 
     extend_context = function(ctx)
         ctx.energy = Player:Energy()

@@ -95,10 +95,6 @@ Action[A.PlayerClass] = {
     -- Buff tracking
     Heroism   = Create({ Type = "Spell", ID = 32182 }),
     Bloodlust = Create({ Type = "Spell", ID = 2825 }),
-
-    -- Trinkets (framework auto-creates; explicit Create breaks them)
-    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -111,8 +107,6 @@ local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local is_spell_known = NS.is_spell_known
-local check_spell_availability = NS.check_spell_availability
-local unavailable_spells = NS.unavailable_spells
 local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
@@ -163,97 +157,6 @@ local Constants = {
 NS.Constants = Constants
 
 -- ============================================================================
--- PLAYSTYLE SPELL VALIDATION
--- ============================================================================
-local last_validated_playstyle = nil
-
-local function validate_playstyle_spells(playstyle)
-    if playstyle == last_validated_playstyle then return end
-    last_validated_playstyle = playstyle
-
-    for k in pairs(unavailable_spells) do
-        unavailable_spells[k] = nil
-    end
-
-    local missing_spells = {}
-    local optional_missing = {}
-
-    if playstyle == "shadow" then
-        local core = {
-            { spell = A.ShadowWordPain, name = "Shadow Word: Pain", required = true },
-            { spell = A.MindBlast, name = "Mind Blast", required = true },
-            { spell = A.MindFlay, name = "Mind Flay", required = false, note = "Shadow talent" },
-            { spell = A.VampiricTouch, name = "Vampiric Touch", required = false, note = "41pt Shadow talent" },
-            { spell = A.ShadowWordDeath, name = "Shadow Word: Death", required = false },
-            { spell = A.Shadowform, name = "Shadowform", required = false, note = "Shadow talent" },
-            { spell = A.VampiricEmbrace, name = "Vampiric Embrace", required = false, note = "Shadow talent" },
-            { spell = A.Silence, name = "Silence", required = false, note = "Shadow talent" },
-            { spell = A.Starshards, name = "Starshards", required = false, note = "Night Elf racial" },
-            { spell = A.DevouringPlague, name = "Devouring Plague", required = false, note = "Undead racial" },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "smite" then
-        local core = {
-            { spell = A.Smite, name = "Smite", required = true },
-            { spell = A.ShadowWordPain, name = "Shadow Word: Pain", required = true },
-            { spell = A.HolyFire, name = "Holy Fire", required = false },
-            { spell = A.MindBlast, name = "Mind Blast", required = false },
-            { spell = A.ShadowWordDeath, name = "Shadow Word: Death", required = false },
-            { spell = A.Starshards, name = "Starshards", required = false, note = "Night Elf racial" },
-            { spell = A.DevouringPlague, name = "Devouring Plague", required = false, note = "Undead racial" },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "holy" then
-        local core = {
-            { spell = A.FlashHeal, name = "Flash Heal", required = true },
-            { spell = A.GreaterHeal, name = "Greater Heal", required = true },
-            { spell = A.Renew, name = "Renew", required = true },
-            { spell = A.PrayerOfMending, name = "Prayer of Mending", required = false },
-            { spell = A.CircleOfHealing, name = "Circle of Healing", required = false, note = "41pt Holy talent" },
-            { spell = A.BindingHeal, name = "Binding Heal", required = false },
-            { spell = A.PrayerOfHealing, name = "Prayer of Healing", required = false },
-            { spell = A.PowerWordShield, name = "Power Word: Shield", required = false },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "discipline" then
-        local core = {
-            { spell = A.FlashHeal, name = "Flash Heal", required = true },
-            { spell = A.GreaterHeal, name = "Greater Heal", required = true },
-            { spell = A.PowerWordShield, name = "Power Word: Shield", required = true },
-            { spell = A.Renew, name = "Renew", required = true },
-            { spell = A.PrayerOfMending, name = "Prayer of Mending", required = false },
-            { spell = A.PainSuppression, name = "Pain Suppression", required = false, note = "41pt Disc talent" },
-            { spell = A.PowerInfusion, name = "Power Infusion", required = false, note = "Disc talent" },
-            { spell = A.InnerFocus, name = "Inner Focus", required = false, note = "Disc talent" },
-            { spell = A.PrayerOfHealing, name = "Prayer of Healing", required = false },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    end
-
-    print("|cFF00FF00[Flux AIO]|r Switched to " .. playstyle .. " playstyle")
-
-    if #missing_spells > 0 then
-        print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
-        for _, spell_name in ipairs(missing_spells) do
-            print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #optional_missing > 0 then
-        print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
-        for _, spell_name in ipairs(optional_missing) do
-            print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #missing_spells == 0 and #optional_missing == 0 then
-        print("|cFF00FF00[Flux AIO]|r All spells available!")
-    end
-end
-
-NS.validate_playstyle_spells = validate_playstyle_spells
-
--- ============================================================================
 -- CLASS REGISTRATION
 -- ============================================================================
 rotation_registry:register_class({
@@ -267,6 +170,51 @@ rotation_registry:register_class({
     end,
 
     get_idle_playstyle = nil,
+
+    playstyle_spells = {
+        shadow = {
+            { spell = A.ShadowWordPain, name = "Shadow Word: Pain", required = true },
+            { spell = A.MindBlast, name = "Mind Blast", required = true },
+            { spell = A.MindFlay, name = "Mind Flay", required = false, note = "Shadow talent" },
+            { spell = A.VampiricTouch, name = "Vampiric Touch", required = false, note = "41pt Shadow talent" },
+            { spell = A.ShadowWordDeath, name = "Shadow Word: Death", required = false },
+            { spell = A.Shadowform, name = "Shadowform", required = false, note = "Shadow talent" },
+            { spell = A.VampiricEmbrace, name = "Vampiric Embrace", required = false, note = "Shadow talent" },
+            { spell = A.Silence, name = "Silence", required = false, note = "Shadow talent" },
+            { spell = A.Starshards, name = "Starshards", required = false, note = "Night Elf racial" },
+            { spell = A.DevouringPlague, name = "Devouring Plague", required = false, note = "Undead racial" },
+        },
+        smite = {
+            { spell = A.Smite, name = "Smite", required = true },
+            { spell = A.ShadowWordPain, name = "Shadow Word: Pain", required = true },
+            { spell = A.HolyFire, name = "Holy Fire", required = false },
+            { spell = A.MindBlast, name = "Mind Blast", required = false },
+            { spell = A.ShadowWordDeath, name = "Shadow Word: Death", required = false },
+            { spell = A.Starshards, name = "Starshards", required = false, note = "Night Elf racial" },
+            { spell = A.DevouringPlague, name = "Devouring Plague", required = false, note = "Undead racial" },
+        },
+        holy = {
+            { spell = A.FlashHeal, name = "Flash Heal", required = true },
+            { spell = A.GreaterHeal, name = "Greater Heal", required = true },
+            { spell = A.Renew, name = "Renew", required = true },
+            { spell = A.PrayerOfMending, name = "Prayer of Mending", required = false },
+            { spell = A.CircleOfHealing, name = "Circle of Healing", required = false, note = "41pt Holy talent" },
+            { spell = A.BindingHeal, name = "Binding Heal", required = false },
+            { spell = A.PrayerOfHealing, name = "Prayer of Healing", required = false },
+            { spell = A.PowerWordShield, name = "Power Word: Shield", required = false },
+        },
+        discipline = {
+            { spell = A.FlashHeal, name = "Flash Heal", required = true },
+            { spell = A.GreaterHeal, name = "Greater Heal", required = true },
+            { spell = A.PowerWordShield, name = "Power Word: Shield", required = true },
+            { spell = A.Renew, name = "Renew", required = true },
+            { spell = A.PrayerOfMending, name = "Prayer of Mending", required = false },
+            { spell = A.PainSuppression, name = "Pain Suppression", required = false, note = "41pt Disc talent" },
+            { spell = A.PowerInfusion, name = "Power Infusion", required = false, note = "Disc talent" },
+            { spell = A.InnerFocus, name = "Inner Focus", required = false, note = "Disc talent" },
+            { spell = A.PrayerOfHealing, name = "Prayer of Healing", required = false },
+        },
+    },
 
     extend_context = function(ctx)
         local moving = Player:IsMoving()

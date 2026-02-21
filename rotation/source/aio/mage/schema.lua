@@ -7,6 +7,7 @@ local A = _G.Action
 
 if not A then return end
 if A.PlayerClass ~= "MAGE" then return end
+local S = _G.FluxAIO_SECTIONS
 
 -- Enable this profile
 A.Data.ProfileEnabled[A.CurrentProfile] = true
@@ -74,12 +75,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "use_ice_barrier", default = false, label = "Use Ice Barrier",
               tooltip = "Maintain Ice Barrier absorb shield in combat (requires Frost talent)." },
         }},
-        { header = "Debug", settings = {
-            { type = "checkbox", key = "debug_mode", default = false, label = "Debug Mode",
-              tooltip = "Print rotation debug messages." },
-            { type = "checkbox", key = "debug_system", default = false, label = "Debug System (Advanced)",
-              tooltip = "Print system debug messages (middleware, strategies)." },
-        }},
+        S.burst(),
+        S.dashboard(),
+        S.debug(),
     }},
 
     -- Tab 2: Fire
@@ -194,24 +192,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 
     -- Tab 5: Cooldowns & Mana
     [5] = { name = "CDs & Mana", sections = {
-        { header = "Trinkets & Racial", settings = {
-            { type = "dropdown", key = "trinket1_mode", default = "off", label = "Trinket 1",
-              tooltip = "Off = never use. Offensive = fires during burst. Defensive = fires during def.",
-              options = {
-                  { value = "off", text = "Off" },
-                  { value = "offensive", text = "Offensive (Burst)" },
-                  { value = "defensive", text = "Defensive" },
-              }},
-            { type = "dropdown", key = "trinket2_mode", default = "off", label = "Trinket 2",
-              tooltip = "Off = never use. Offensive = fires during burst. Defensive = fires during def.",
-              options = {
-                  { value = "off", text = "Off" },
-                  { value = "offensive", text = "Offensive (Burst)" },
-                  { value = "defensive", text = "Defensive" },
-              }},
-            { type = "checkbox", key = "use_racial", default = true, label = "Use Racial",
-              tooltip = "Use racial ability (Berserking, Arcane Torrent, etc.) during burst." },
-        }},
+        S.trinkets("Use racial ability (Berserking, Arcane Torrent, etc.) during burst."),
         { header = "Mana Recovery", settings = {
             { type = "checkbox", key = "use_mana_gem", default = true, label = "Use Mana Gem",
               tooltip = "Auto-use Mana Emerald for mana recovery." },
@@ -235,24 +216,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Auto-use Evocation when mana is critically low." },
             { type = "slider", key = "evocation_pct", default = 20, min = 5, max = 40, label = "Evocation Below%",
               tooltip = "Use Evocation when mana drops below this.", format = "%d%%" },
-        }},
-    }},
-
-    -- Tab 6: Dashboard & Commands
-    [6] = { name = "Dashboard", sections = {
-        { header = "Dashboard", settings = {
-            { type = "checkbox", key = "show_dashboard", default = false, label = "Show Dashboard",
-              tooltip = "Display the combat dashboard overlay (/flux status)." },
-        }},
-        { header = "Burst Conditions", description = "When to automatically use burst cooldowns.", settings = {
-            { type = "checkbox", key = "burst_on_bloodlust", default = false, label = "During Bloodlust/Heroism",
-              tooltip = "Auto-burst when Bloodlust or Heroism buff is detected." },
-            { type = "checkbox", key = "burst_on_pull", default = false, label = "On Pull (first 5s)",
-              tooltip = "Auto-burst within the first 5 seconds of combat." },
-            { type = "checkbox", key = "burst_on_execute", default = false, label = "Execute Phase (<20% HP)",
-              tooltip = "Auto-burst when target is below 20% health." },
-            { type = "checkbox", key = "burst_in_combat", default = false, label = "Always in Combat",
-              tooltip = "Always auto-burst when in combat with a valid target (most aggressive)." },
         }},
     }},
 }

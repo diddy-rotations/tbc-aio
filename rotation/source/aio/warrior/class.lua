@@ -93,10 +93,6 @@ Action[A.PlayerClass] = {
     -- Healthstones
     HealthstoneMaster  = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
     HealthstoneMajor   = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
-
-    -- Trinkets (framework auto-creates; explicit Create breaks them)
-    -- Trinket1           = Create({ Type = "Trinket", ID = 13 }),
-    -- Trinket2           = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -109,8 +105,6 @@ local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local is_spell_known = NS.is_spell_known
-local check_spell_availability = NS.check_spell_availability
-local unavailable_spells = NS.unavailable_spells
 local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
@@ -176,81 +170,6 @@ local Constants = {
 NS.Constants = Constants
 
 -- ============================================================================
--- PLAYSTYLE SPELL VALIDATION
--- ============================================================================
-local last_validated_playstyle = nil
-
-local function validate_playstyle_spells(playstyle)
-    if playstyle == last_validated_playstyle then return end
-    last_validated_playstyle = playstyle
-
-    for k in pairs(unavailable_spells) do
-        unavailable_spells[k] = nil
-    end
-
-    local missing_spells = {}
-    local optional_missing = {}
-
-    if playstyle == "arms" then
-        local core = {
-            { spell = A.MortalStrike, name = "Mortal Strike", required = true, note = "Arms talent" },
-            { spell = A.Overpower, name = "Overpower", required = false },
-            { spell = A.Whirlwind, name = "Whirlwind", required = false },
-            { spell = A.Slam, name = "Slam", required = false },
-            { spell = A.Execute, name = "Execute", required = false },
-            { spell = A.Rend, name = "Rend", required = false },
-            { spell = A.SweepingStrikes, name = "Sweeping Strikes", required = false, note = "Arms talent" },
-            { spell = A.DeathWish, name = "Death Wish", required = false, note = "Fury talent" },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "fury" then
-        local core = {
-            { spell = A.Bloodthirst, name = "Bloodthirst", required = true, note = "Fury talent" },
-            { spell = A.Whirlwind, name = "Whirlwind", required = false },
-            { spell = A.Execute, name = "Execute", required = false },
-            { spell = A.Slam, name = "Slam", required = false },
-            { spell = A.Rampage, name = "Rampage", required = false, note = "41pt Fury talent" },
-            { spell = A.DeathWish, name = "Death Wish", required = false, note = "Fury talent" },
-            { spell = A.Recklessness, name = "Recklessness", required = false },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "protection" then
-        local core = {
-            { spell = A.ShieldSlam, name = "Shield Slam", required = false, note = "Prot talent" },
-            { spell = A.Revenge, name = "Revenge", required = true },
-            { spell = A.Devastate, name = "Devastate", required = false, note = "41pt Prot talent" },
-            { spell = A.SunderArmor, name = "Sunder Armor", required = false },
-            { spell = A.ShieldBlock, name = "Shield Block", required = false },
-            { spell = A.ThunderClap, name = "Thunder Clap", required = false },
-            { spell = A.LastStand, name = "Last Stand", required = false, note = "Prot talent" },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    end
-
-    print("|cFF00FF00[Flux AIO]|r Switched to " .. playstyle .. " playstyle")
-
-    if #missing_spells > 0 then
-        print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
-        for _, spell_name in ipairs(missing_spells) do
-            print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #optional_missing > 0 then
-        print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
-        for _, spell_name in ipairs(optional_missing) do
-            print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #missing_spells == 0 and #optional_missing == 0 then
-        print("|cFF00FF00[Flux AIO]|r All spells available!")
-    end
-end
-
-NS.validate_playstyle_spells = validate_playstyle_spells
-
--- ============================================================================
 -- CLASS REGISTRATION
 -- ============================================================================
 local STANCE_NAMES = { "Battle", "Defensive", "Berserker" }
@@ -266,6 +185,37 @@ rotation_registry:register_class({
     end,
 
     get_idle_playstyle = nil,
+
+    playstyle_spells = {
+        arms = {
+            { spell = A.MortalStrike, name = "Mortal Strike", required = true, note = "Arms talent" },
+            { spell = A.Overpower, name = "Overpower", required = false },
+            { spell = A.Whirlwind, name = "Whirlwind", required = false },
+            { spell = A.Slam, name = "Slam", required = false },
+            { spell = A.Execute, name = "Execute", required = false },
+            { spell = A.Rend, name = "Rend", required = false },
+            { spell = A.SweepingStrikes, name = "Sweeping Strikes", required = false, note = "Arms talent" },
+            { spell = A.DeathWish, name = "Death Wish", required = false, note = "Fury talent" },
+        },
+        fury = {
+            { spell = A.Bloodthirst, name = "Bloodthirst", required = true, note = "Fury talent" },
+            { spell = A.Whirlwind, name = "Whirlwind", required = false },
+            { spell = A.Execute, name = "Execute", required = false },
+            { spell = A.Slam, name = "Slam", required = false },
+            { spell = A.Rampage, name = "Rampage", required = false, note = "41pt Fury talent" },
+            { spell = A.DeathWish, name = "Death Wish", required = false, note = "Fury talent" },
+            { spell = A.Recklessness, name = "Recklessness", required = false },
+        },
+        protection = {
+            { spell = A.ShieldSlam, name = "Shield Slam", required = false, note = "Prot talent" },
+            { spell = A.Revenge, name = "Revenge", required = true },
+            { spell = A.Devastate, name = "Devastate", required = false, note = "41pt Prot talent" },
+            { spell = A.SunderArmor, name = "Sunder Armor", required = false },
+            { spell = A.ShieldBlock, name = "Shield Block", required = false },
+            { spell = A.ThunderClap, name = "Thunder Clap", required = false },
+            { spell = A.LastStand, name = "Last Stand", required = false, note = "Prot talent" },
+        },
+    },
 
     extend_context = function(ctx)
         local moving = Player:IsMoving()

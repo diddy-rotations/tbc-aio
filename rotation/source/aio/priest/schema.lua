@@ -7,6 +7,7 @@ local A = _G.Action
 
 if not A then return end
 if A.PlayerClass ~= "PRIEST" then return end
+local S = _G.FluxAIO_SECTIONS
 
 -- Enable this profile
 A.Data.ProfileEnabled[A.CurrentProfile] = true
@@ -71,12 +72,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "healing_potion_hp", default = 25, min = 10, max = 50, label = "Healing Potion HP (%)",
               tooltip = "Use Healing Potion when HP drops below this.", format = "%d%%" },
         }},
-        { header = "Debug", settings = {
-            { type = "checkbox", key = "debug_mode", default = false, label = "Debug Mode",
-              tooltip = "Print rotation debug messages." },
-            { type = "checkbox", key = "debug_system", default = false, label = "Debug System (Advanced)",
-              tooltip = "Print system debug messages (middleware, strategies)." },
-        }},
+        S.burst(),
+        S.dashboard(),
+        S.debug(),
     }},
 
     -- Tab 2: Shadow
@@ -193,24 +191,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 
     -- Tab 6: Cooldowns & Mana
     [6] = { name = "CDs & Mana", sections = {
-        { header = "Trinkets & Racial", settings = {
-            { type = "dropdown", key = "trinket1_mode", default = "off", label = "Trinket 1",
-              tooltip = "Off = never use. Offensive = fires during burst. Defensive = fires during def.",
-              options = {
-                  { value = "off", text = "Off" },
-                  { value = "offensive", text = "Offensive (Burst)" },
-                  { value = "defensive", text = "Defensive" },
-              }},
-            { type = "dropdown", key = "trinket2_mode", default = "off", label = "Trinket 2",
-              tooltip = "Off = never use. Offensive = fires during burst. Defensive = fires during def.",
-              options = {
-                  { value = "off", text = "Off" },
-                  { value = "offensive", text = "Offensive (Burst)" },
-                  { value = "defensive", text = "Defensive" },
-              }},
-            { type = "checkbox", key = "use_racial", default = true, label = "Use Racial",
-              tooltip = "Use racial ability (Berserking, Arcane Torrent, etc.)." },
-        }},
+        S.trinkets("Use racial ability (Berserking, Arcane Torrent, etc.)."),
         { header = "Mana Recovery", settings = {
             { type = "checkbox", key = "use_shadowfiend", default = true, label = "Use Shadowfiend",
               tooltip = "Auto-use Shadowfiend for mana recovery." },
@@ -234,24 +215,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Desperate Prayer racial self-heal when HP low." },
             { type = "slider", key = "desperate_prayer_hp", default = 30, min = 10, max = 50, label = "Desperate Prayer HP%",
               tooltip = "Use Desperate Prayer below this HP%.", format = "%d%%" },
-        }},
-    }},
-
-    -- Tab 7: Dashboard & Commands
-    [7] = { name = "Dashboard", sections = {
-        { header = "Dashboard", settings = {
-            { type = "checkbox", key = "show_dashboard", default = false, label = "Show Dashboard",
-              tooltip = "Display the combat dashboard overlay (/flux status)." },
-        }},
-        { header = "Burst Conditions", description = "When to automatically use burst cooldowns.", settings = {
-            { type = "checkbox", key = "burst_on_bloodlust", default = false, label = "During Bloodlust/Heroism",
-              tooltip = "Auto-burst when Bloodlust or Heroism buff is detected." },
-            { type = "checkbox", key = "burst_on_pull", default = false, label = "On Pull (first 5s)",
-              tooltip = "Auto-burst within the first 5 seconds of combat." },
-            { type = "checkbox", key = "burst_on_execute", default = false, label = "Execute Phase (<20% HP)",
-              tooltip = "Auto-burst when target is below 20% health." },
-            { type = "checkbox", key = "burst_in_combat", default = false, label = "Always in Combat",
-              tooltip = "Always auto-burst when in combat with a valid target (most aggressive)." },
         }},
     }},
 }

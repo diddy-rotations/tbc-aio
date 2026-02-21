@@ -75,20 +75,22 @@ function getAIODir(config) {
 // the same Order value may load in ANY order. Only modules with NO mutual
 // dependencies should share an Order value.
 const ORDER_MAP = {
-    'schema.lua':     1,
-    'ui.lua':         2,
-    'core.lua':       3,
-    'class.lua':      4,
-    'healing.lua':    5,
-    'settings.lua':   5,
-    'middleware.lua':  6,
-    'dashboard.lua':  7,
-    'main.lua':       8,
+    'common.lua':     1,
+    'schema.lua':     2,
+    'ui.lua':         3,
+    'core.lua':       4,
+    'class.lua':      5,
+    'healing.lua':    6,
+    'settings.lua':   6,
+    'middleware.lua':  7,
+    'dashboard.lua':  8,
+    'main.lua':       9,
 };
 
 // Fixed load-order slots for known filenames. Unknowns get Order 7, sorted alphabetically.
 const LOAD_ORDER = [
-    { slot: 'class', source: 'schema.lua' },   // class-specific schema first
+    { slot: 'shared', source: 'common.lua' },   // shared schema section factories
+    { slot: 'class', source: 'schema.lua' },     // class-specific schema
     { slot: 'shared', source: 'ui.lua' },
     { slot: 'shared', source: 'core.lua' },
     { slot: 'class', source: 'class.lua' },

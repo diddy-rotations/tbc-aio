@@ -29,7 +29,6 @@ local refresh_settings = NS.refresh_settings
 local get_time_to_die = NS.get_time_to_die
 local has_phys_immunity = NS.has_phys_immunity
 local debug_print = NS.debug_print
-local validate_playstyle_spells = NS.validate_playstyle_spells
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 
@@ -267,7 +266,7 @@ A[3] = function(icon)
 
    -- Run active playstyle strategies (cat, bear, balance, resto, etc.)
    if active then
-      validate_playstyle_spells(active)
+      rotation_registry:validate_playstyle_spells(active)
       local result = rotation_registry:execute_strategies(active, icon, context)
       if result then
          return result

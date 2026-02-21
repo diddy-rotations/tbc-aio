@@ -808,6 +808,53 @@ function rotation_registry:register_class(config)
    end
 end
 
+local last_validated_playstyle = nil
+
+function rotation_registry:validate_playstyle_spells(playstyle)
+   if playstyle == last_validated_playstyle then return end
+   last_validated_playstyle = playstyle
+
+   for k in pairs(unavailable_spells) do
+      unavailable_spells[k] = nil
+   end
+
+   local cc = self.class_config
+   if not cc or not cc.playstyle_spells then return end
+
+   local entries = cc.playstyle_spells[playstyle]
+   if not entries then return end
+
+   local missing_spells = {}
+   local optional_missing = {}
+
+   check_spell_availability(entries, missing_spells, optional_missing)
+
+   if cc.validate_playstyle_extra then
+      cc.validate_playstyle_extra(playstyle, missing_spells, optional_missing)
+   end
+
+   local label = (cc.playstyle_labels and cc.playstyle_labels[playstyle]) or playstyle
+   print("|cFF00FF00[Flux AIO]|r Switched to " .. label .. " playstyle")
+
+   if #missing_spells > 0 then
+      print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
+      for _, spell_name in ipairs(missing_spells) do
+         print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
+      end
+   end
+
+   if #optional_missing > 0 then
+      print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
+      for _, spell_name in ipairs(optional_missing) do
+         print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
+      end
+   end
+
+   if #missing_spells == 0 and #optional_missing == 0 then
+      print("|cFF00FF00[Flux AIO]|r All spells available!")
+   end
+end
+
 function rotation_registry:register(playstyle, strategies, config)
    local map = self.strategy_maps[playstyle]
    if not map then

@@ -124,10 +124,6 @@ Action[A.PlayerClass] = {
 
     -- Pet Attack
     PetAttack = Create({ Type = "Spell", ID = 1, FixedTexture = 134296, Desc = "Pet Attack", Macro = "/petattack" }),
-
-    -- Trinkets (framework auto-creates; explicit Create breaks them)
-    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -140,8 +136,6 @@ local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local is_spell_known = NS.is_spell_known
-local check_spell_availability = NS.check_spell_availability
-local unavailable_spells = NS.unavailable_spells
 local cached_settings = NS.cached_settings
 local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
@@ -375,23 +369,22 @@ A.ShouldUseWingClip = ShouldUseWingClip
 A.ShouldUseViperSting = ShouldUseViperSting
 
 -- ============================================================================
--- PLAYSTYLE SPELL VALIDATION
+-- CLASS REGISTRATION
 -- ============================================================================
-local last_validated_playstyle = nil
+rotation_registry:register_class({
+    name = "Hunter",
+    version = "v1.6.0",
+    playstyles = { "ranged" },
+    idle_playstyle_name = nil,
 
-local function validate_playstyle_spells(playstyle)
-    if playstyle == last_validated_playstyle then return end
-    last_validated_playstyle = playstyle
+    get_active_playstyle = function(context)
+        return "ranged"
+    end,
 
-    for k in pairs(unavailable_spells) do
-        unavailable_spells[k] = nil
-    end
+    get_idle_playstyle = nil,
 
-    local missing_spells = {}
-    local optional_missing = {}
-
-    if playstyle == "ranged" then
-        local hunter_core = {
+    playstyle_spells = {
+        ranged = {
             { spell = A.SteadyShot, name = "Steady Shot", required = true },
             { spell = A.ArcaneShot, name = "Arcane Shot", required = true },
             { spell = A.MultiShot, name = "Multi-Shot", required = false },
@@ -407,47 +400,8 @@ local function validate_playstyle_spells(playstyle)
             { spell = A.MendPet, name = "Mend Pet", required = false },
             { spell = A.FreezingTrap, name = "Freezing Trap", required = false },
             { spell = A.WingClip, name = "Wing Clip", required = false },
-        }
-        check_spell_availability(hunter_core, missing_spells, optional_missing)
-    end
-
-    print("|cFF00FF00[Flux AIO]|r Switched to Ranged playstyle")
-
-    if #missing_spells > 0 then
-        print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
-        for _, spell_name in ipairs(missing_spells) do
-            print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #optional_missing > 0 then
-        print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
-        for _, spell_name in ipairs(optional_missing) do
-            print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #missing_spells == 0 and #optional_missing == 0 then
-        print("|cFF00FF00[Flux AIO]|r All spells available!")
-    end
-end
-
-NS.validate_playstyle_spells = validate_playstyle_spells
-
--- ============================================================================
--- CLASS REGISTRATION
--- ============================================================================
-rotation_registry:register_class({
-    name = "Hunter",
-    version = "v1.6.0",
-    playstyles = { "ranged" },
-    idle_playstyle_name = nil,
-
-    get_active_playstyle = function(context)
-        return "ranged"
-    end,
-
-    get_idle_playstyle = nil,
+        },
+    },
 
     extend_context = function(ctx)
         ctx.weapon_speed = UnitRangedDamage("player") or 3.0

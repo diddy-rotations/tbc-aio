@@ -102,10 +102,6 @@ Action[A.PlayerClass] = {
     -- Healthstones
     HealthstoneMaster = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
     HealthstoneMajor  = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
-
-    -- Trinkets (framework auto-creates; explicit Create breaks them)
-    -- Trinket1 = Create({ Type = "Trinket", ID = 13 }),
-    -- Trinket2 = Create({ Type = "Trinket", ID = 14 }),
 }
 
 -- ============================================================================
@@ -118,8 +114,6 @@ local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local is_spell_known = NS.is_spell_known
-local check_spell_availability = NS.check_spell_availability
-local unavailable_spells = NS.unavailable_spells
 local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
@@ -246,77 +240,6 @@ end
 NS.resolve_totem_spell = resolve_totem_spell
 
 -- ============================================================================
--- PLAYSTYLE SPELL VALIDATION
--- ============================================================================
-local last_validated_playstyle = nil
-
-local function validate_playstyle_spells(playstyle)
-    if playstyle == last_validated_playstyle then return end
-    last_validated_playstyle = playstyle
-
-    for k in pairs(unavailable_spells) do
-        unavailable_spells[k] = nil
-    end
-
-    local missing_spells = {}
-    local optional_missing = {}
-
-    if playstyle == "elemental" then
-        local core = {
-            { spell = A.LightningBolt, name = "Lightning Bolt", required = true },
-            { spell = A.ChainLightning, name = "Chain Lightning", required = false },
-            { spell = A.EarthShock, name = "Earth Shock", required = true },
-            { spell = A.FlameShock, name = "Flame Shock", required = false },
-            { spell = A.ElementalMastery, name = "Elemental Mastery", required = false, note = "21pt Elemental talent" },
-            { spell = A.TotemOfWrath, name = "Totem of Wrath", required = false, note = "41pt Elemental talent" },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "enhancement" then
-        local core = {
-            { spell = A.Stormstrike, name = "Stormstrike", required = false, note = "40pt Enhancement talent" },
-            { spell = A.EarthShock, name = "Earth Shock", required = true },
-            { spell = A.FlameShock, name = "Flame Shock", required = false },
-            { spell = A.ShamanisticRage, name = "Shamanistic Rage", required = false, note = "41pt Enhancement talent" },
-            { spell = A.WindfuryWeapon, name = "Windfury Weapon", required = false },
-            { spell = A.FlametongueWeapon, name = "Flametongue Weapon", required = false },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    elseif playstyle == "restoration" then
-        local core = {
-            { spell = A.HealingWave, name = "Healing Wave", required = true },
-            { spell = A.LesserHealingWave, name = "Lesser Healing Wave", required = true },
-            { spell = A.ChainHeal, name = "Chain Heal", required = false },
-            { spell = A.EarthShield, name = "Earth Shield", required = false, note = "41pt Restoration talent" },
-            { spell = A.NaturesSwiftness, name = "Nature's Swiftness", required = false, note = "21pt Restoration talent" },
-            { spell = A.ManaTideTotem, name = "Mana Tide Totem", required = false, note = "31pt Restoration talent" },
-        }
-        check_spell_availability(core, missing_spells, optional_missing)
-    end
-
-    print("|cFF00FF00[Flux AIO]|r Switched to " .. playstyle .. " playstyle")
-
-    if #missing_spells > 0 then
-        print("|cFFFF0000[Flux AIO]|r MISSING REQUIRED SPELLS:")
-        for _, spell_name in ipairs(missing_spells) do
-            print("|cFFFF0000[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #optional_missing > 0 then
-        print("|cFFFF8800[Flux AIO]|r Optional spells not available (will be skipped):")
-        for _, spell_name in ipairs(optional_missing) do
-            print("|cFFFF8800[Flux AIO]|r   - " .. spell_name)
-        end
-    end
-
-    if #missing_spells == 0 and #optional_missing == 0 then
-        print("|cFF00FF00[Flux AIO]|r All spells available!")
-    end
-end
-
-NS.validate_playstyle_spells = validate_playstyle_spells
-
--- ============================================================================
 -- CLASS REGISTRATION
 -- ============================================================================
 rotation_registry:register_class({
@@ -330,6 +253,33 @@ rotation_registry:register_class({
     end,
 
     get_idle_playstyle = nil,
+
+    playstyle_spells = {
+        elemental = {
+            { spell = A.LightningBolt, name = "Lightning Bolt", required = true },
+            { spell = A.ChainLightning, name = "Chain Lightning", required = false },
+            { spell = A.EarthShock, name = "Earth Shock", required = true },
+            { spell = A.FlameShock, name = "Flame Shock", required = false },
+            { spell = A.ElementalMastery, name = "Elemental Mastery", required = false, note = "21pt Elemental talent" },
+            { spell = A.TotemOfWrath, name = "Totem of Wrath", required = false, note = "41pt Elemental talent" },
+        },
+        enhancement = {
+            { spell = A.Stormstrike, name = "Stormstrike", required = false, note = "40pt Enhancement talent" },
+            { spell = A.EarthShock, name = "Earth Shock", required = true },
+            { spell = A.FlameShock, name = "Flame Shock", required = false },
+            { spell = A.ShamanisticRage, name = "Shamanistic Rage", required = false, note = "41pt Enhancement talent" },
+            { spell = A.WindfuryWeapon, name = "Windfury Weapon", required = false },
+            { spell = A.FlametongueWeapon, name = "Flametongue Weapon", required = false },
+        },
+        restoration = {
+            { spell = A.HealingWave, name = "Healing Wave", required = true },
+            { spell = A.LesserHealingWave, name = "Lesser Healing Wave", required = true },
+            { spell = A.ChainHeal, name = "Chain Heal", required = false },
+            { spell = A.EarthShield, name = "Earth Shield", required = false, note = "41pt Restoration talent" },
+            { spell = A.NaturesSwiftness, name = "Nature's Swiftness", required = false, note = "21pt Restoration talent" },
+            { spell = A.ManaTideTotem, name = "Mana Tide Totem", required = false, note = "31pt Restoration talent" },
+        },
+    },
 
     extend_context = function(ctx)
         local moving = Player:IsMoving()
