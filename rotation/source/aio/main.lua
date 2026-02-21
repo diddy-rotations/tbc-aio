@@ -37,6 +37,7 @@ local is_force_active = NS.is_force_active
 local clear_force_flag = NS.clear_force_flag
 local should_auto_burst = NS.should_auto_burst
 local show_notification = NS.show_notification
+local set_last_action = NS.set_last_action
 
 -- Lua optimizations
 local format = string.format
@@ -44,9 +45,6 @@ local ipairs = ipairs
 
 -- Suggestion system for A[1] icon
 local suggestion = { spell = nil }
-
--- Dashboard state (set each frame for dashboard to read)
-local last_action = { name = nil, source = nil }
 
 -- ============================================================================
 -- ROTATION REGISTRY EXECUTION METHODS
@@ -83,8 +81,7 @@ function rotation_registry:execute_middleware(icon, context)
             elseif debug_system and debug_print then
                debug_print(format("[MW] EXECUTED %s (P%d)%s", mw.name, mw.priority, forced and " [FORCED]" or ""))
             end
-            last_action.name = mw.name
-            last_action.source = "MW"
+            set_last_action(mw.name, "MW")
             return result
          end
       end
@@ -138,8 +135,7 @@ function rotation_registry:execute_strategies(playstyle, icon, context)
             end
 
             if result then
-               last_action.name = strategy.name
-               last_action.source = playstyle
+               set_last_action(strategy.name, playstyle)
                return result
             end
          end
@@ -213,8 +209,7 @@ A[3] = function(icon)
    if not cc then return end
 
    -- Reset last action each frame
-   last_action.name = nil
-   last_action.source = nil
+   set_last_action(nil, nil)
 
    -- Gap closer: keeps showing gap spell on icon for 3s window.
    -- Once spell fires (goes on CD), handler returns nil → normal rotation resumes.
@@ -222,8 +217,7 @@ A[3] = function(icon)
       if cc.gap_handler then
          local result = cc.gap_handler(icon, context)
          if result then
-            last_action.name = "Gap Closer"
-            last_action.source = "CMD"
+            set_last_action("Gap Closer", "CMD")
             return result
          end
       else
@@ -285,9 +279,6 @@ A[5] = nil
 A[6] = nil
 A[7] = nil
 A[8] = nil
-
--- Export last action for dashboard
-NS.last_action = last_action
 
 -- ============================================================================
 -- INITIALIZATION COMPLETE

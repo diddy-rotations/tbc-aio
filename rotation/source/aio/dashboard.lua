@@ -29,6 +29,14 @@ local Unit = NS.Unit
 local Player = NS.Player
 local rotation_registry = NS.rotation_registry
 
+-- Last action state (updated by main.lua via set_last_action)
+local last_action = { name = nil, source = nil }
+
+function NS.set_last_action(name, source)
+    last_action.name = name
+    last_action.source = source
+end
+
 -- ============================================================================
 -- THEME
 -- ============================================================================
@@ -78,14 +86,6 @@ local CLASS_HEX = {
     Druid = "ff7d0a", Hunter = "abd473", Mage = "69ccf0", Paladin = "f58cba",
     Priest = "ffffff", Rogue = "fff569", Shaman = "0070dd", Warlock = "9482c9",
     Warrior = "c79c6e",
-}
-
-local CLASS_RGB = {
-    Druid   = {1.00, 0.49, 0.04}, Hunter  = {0.67, 0.83, 0.45},
-    Mage    = {0.41, 0.80, 0.94}, Paladin = {0.96, 0.55, 0.73},
-    Priest  = {1.00, 1.00, 1.00}, Rogue   = {1.00, 0.96, 0.41},
-    Shaman  = {0.00, 0.44, 0.87}, Warlock = {0.58, 0.51, 0.79},
-    Warrior = {0.78, 0.61, 0.43},
 }
 
 -- ============================================================================
@@ -205,8 +205,6 @@ local buff_label_fs = nil
 local debuff_label_fs = nil
 local target_info_fs = nil
 local timer_bars = {}
-local accent_bar_tex = nil
-local bottom_bar_tex = nil
 local last_class_name = nil
 
 local dash_context = { settings = nil }
@@ -241,7 +239,7 @@ local function create_dashboard()
     f:SetSize(FRAME_WIDTH, 300)
     f:SetBackdrop(BACKDROP_THIN)
     f:SetBackdropColor(THEME.bg[1], THEME.bg[2], THEME.bg[3], THEME.bg[4])
-    f:SetBackdropBorderColor(THEME.border[1], THEME.border[2], THEME.border[3], THEME.border[4])
+    f:SetBackdropBorderColor(0, 0, 0, 0)
     f:SetMovable(true)
     f:EnableMouse(true)
     f:SetClampedToScreen(true)
@@ -257,19 +255,6 @@ local function create_dashboard()
     if not f:IsUserPlaced() then
         f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 20, -200)
     end
-
-    -- Accent bars at top and bottom (2px, class color — updated dynamically)
-    accent_bar_tex = f:CreateTexture(nil, "ARTWORK")
-    accent_bar_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
-    accent_bar_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, -1)
-    accent_bar_tex:SetHeight(2)
-    accent_bar_tex:SetColorTexture(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.8)
-
-    bottom_bar_tex = f:CreateTexture(nil, "ARTWORK")
-    bottom_bar_tex:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 1, 1)
-    bottom_bar_tex:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
-    bottom_bar_tex:SetHeight(2)
-    bottom_bar_tex:SetColorTexture(THEME.accent[1], THEME.accent[2], THEME.accent[3], 0.4)
 
     local y = -6
 
@@ -477,16 +462,7 @@ local function update_dashboard()
     header_text:SetTextColor(1, 1, 1)
     local active_ps = cc.get_active_playstyle and cc.get_active_playstyle(dash_context) or "?"
 
-    -- Update border/accent colors to match class (once per class switch)
-    if cc.name ~= last_class_name then
-        last_class_name = cc.name
-        local rgb = CLASS_RGB[cc.name]
-        if rgb then
-            dashboard_frame:SetBackdropBorderColor(rgb[1], rgb[2], rgb[3], 0.6)
-            accent_bar_tex:SetColorTexture(rgb[1], rgb[2], rgb[3], 0.8)
-            bottom_bar_tex:SetColorTexture(rgb[1], rgb[2], rgb[3], 0.4)
-        end
-    end
+    last_class_name = cc.name
 
     local f = dashboard_frame
     local bar_max = FRAME_WIDTH - 22
@@ -639,7 +615,7 @@ local function update_dashboard()
     content_y = content_y - 8
 
     -- Current Priority (inline)
-    local la = NS.last_action
+    local la = last_action
     local accent_hex = "6c63ff"
     if la and la.name then
         priority_text:SetText(format("|cff%sPriority|r  > %s", accent_hex, la.name))
