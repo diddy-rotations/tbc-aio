@@ -984,7 +984,6 @@ NS.named = named
 
 local DEFENSIVE_TRINKET_HP = 35
 local PLAYER_UNIT = "player"
-local GetInventoryItemTexture = _G.GetInventoryItemTexture
 
 local function register_trinket_middleware()
    local A_class = NS.A
@@ -1021,10 +1020,10 @@ local function register_trinket_middleware()
       execute = function(icon, context)
          local s = context.settings
          if s.trinket1_mode == "offensive" and Trinket1 and Trinket1:IsReady(PLAYER_UNIT) then
-            return Trinket1:Show(icon, GetInventoryItemTexture(PLAYER_UNIT, Trinket1.SlotID)), "[MW] Trinket 1 (Burst)"
+            return Trinket1:Show(icon), "[MW] Trinket 1 (Burst)"
          end
          if s.trinket2_mode == "offensive" and Trinket2 and Trinket2:IsReady(PLAYER_UNIT) then
-            return Trinket2:Show(icon, GetInventoryItemTexture(PLAYER_UNIT, Trinket2.SlotID)), "[MW] Trinket 2 (Burst)"
+            return Trinket2:Show(icon), "[MW] Trinket 2 (Burst)"
          end
          return nil
       end,
@@ -1049,10 +1048,10 @@ local function register_trinket_middleware()
       execute = function(icon, context)
          local s = context.settings
          if s.trinket1_mode == "defensive" and Trinket1 and Trinket1:IsReady(PLAYER_UNIT) then
-            return Trinket1:Show(icon, GetInventoryItemTexture(PLAYER_UNIT, Trinket1.SlotID)), "[MW] Trinket 1 (Defensive)"
+            return Trinket1:Show(icon), "[MW] Trinket 1 (Defensive)"
          end
          if s.trinket2_mode == "defensive" and Trinket2 and Trinket2:IsReady(PLAYER_UNIT) then
-            return Trinket2:Show(icon, GetInventoryItemTexture(PLAYER_UNIT, Trinket2.SlotID)), "[MW] Trinket 2 (Defensive)"
+            return Trinket2:Show(icon), "[MW] Trinket 2 (Defensive)"
          end
          return nil
       end,
