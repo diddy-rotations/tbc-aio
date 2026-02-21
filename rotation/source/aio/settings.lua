@@ -422,44 +422,46 @@ local function create_tab_panel(tab_index)
         local ix = THEME.pad + cp
 
         for _, setting in ipairs(section.settings) do
-            local is_wide = setting.wide
-            if is_wide and col == 1 then
-                y_pos = y_pos - row_max_h
-                col = 0
-                row_max_h = 0
-            end
-
-            local x, w
-            if is_wide then
-                x = ix
-                w = inner_w
-            else
-                x = ix + col * (inner_col_w + THEME.col_gap)
-                w = inner_col_w
-            end
-
-            local widget, height
-            if setting.type == "checkbox" then
-                widget, height = create_checkbox(content, x, y_pos, w, setting, scroll)
-            elseif setting.type == "slider" then
-                widget, height = create_slider(content, x, y_pos, w, setting, scroll)
-            elseif setting.type == "dropdown" then
-                widget, height = create_dropdown(content, x, y_pos, w, setting, scroll)
-            end
-
-            if widget then
-                tinsert(widgets, widget)
-                if is_wide then
-                    y_pos = y_pos - height
+            if not setting.hidden then
+                local is_wide = setting.wide
+                if is_wide and col == 1 then
+                    y_pos = y_pos - row_max_h
+                    col = 0
                     row_max_h = 0
+                end
+
+                local x, w
+                if is_wide then
+                    x = ix
+                    w = inner_w
                 else
-                    row_max_h = max(row_max_h, height)
-                    if col == 0 then
-                        col = 1
-                    else
-                        y_pos = y_pos - row_max_h
-                        col = 0
+                    x = ix + col * (inner_col_w + THEME.col_gap)
+                    w = inner_col_w
+                end
+
+                local widget, height
+                if setting.type == "checkbox" then
+                    widget, height = create_checkbox(content, x, y_pos, w, setting, scroll)
+                elseif setting.type == "slider" then
+                    widget, height = create_slider(content, x, y_pos, w, setting, scroll)
+                elseif setting.type == "dropdown" then
+                    widget, height = create_dropdown(content, x, y_pos, w, setting, scroll)
+                end
+
+                if widget then
+                    tinsert(widgets, widget)
+                    if is_wide then
+                        y_pos = y_pos - height
                         row_max_h = 0
+                    else
+                        row_max_h = max(row_max_h, height)
+                        if col == 0 then
+                            col = 1
+                        else
+                            y_pos = y_pos - row_max_h
+                            col = 0
+                            row_max_h = 0
+                        end
                     end
                 end
             end
@@ -663,7 +665,7 @@ NS.toggle_settings = toggle_settings
 -- SETTINGS BUTTON (Free-floating, draggable anywhere)
 -- ============================================================================
 local function create_settings_button()
-    local btn = CreateFrame("Button", "FluxAIOSettingsBtn", UIParent)
+    local btn = CreateFrame("Button", nil, UIParent)
     btn:SetSize(32, 32)
     btn:SetFrameStrata("MEDIUM")
     btn:SetFrameLevel(8)
@@ -702,8 +704,13 @@ local function create_settings_button()
 
     btn:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        self:SetUserPlaced(true)
+        -- Capture position immediately after stop, before any other calls
+        local cx, cy = self:GetCenter()
         C_Timer.After(0.05, function() self.dragging = false end)
+        if cx and cy then
+            write_setting("_btn_x", floor(cx + 0.5))
+            write_setting("_btn_y", floor(cy + 0.5))
+        end
     end)
 
     btn:SetScript("OnClick", function(self)
@@ -722,10 +729,24 @@ local function create_settings_button()
     end)
     btn:SetScript("OnLeave", GameTooltip_Hide)
 
-    -- Default position near minimap if not previously placed by user
-    if not btn:IsUserPlaced() then
-        btn:SetPoint("CENTER", Minimap, "CENTER", 80, 0)
-    end
+    -- Default position until DB is ready
+    btn:SetPoint("CENTER", Minimap, "CENTER", 80, 0)
+
+    -- Poll until pActionDB is initialized, then restore saved position
+    local restorer = CreateFrame("Frame")
+    restorer:SetScript("OnUpdate", function(self)
+        local sx = GetToggle(2, "_btn_x")
+        if sx == nil then return end
+        self:SetScript("OnUpdate", nil)
+        self:Hide()
+        if sx > 0 then
+            local sy = GetToggle(2, "_btn_y") or -1
+            if sy > 0 then
+                btn:ClearAllPoints()
+                btn:SetPoint("CENTER", UIParent, "BOTTOMLEFT", sx, sy)
+            end
+        end
+    end)
 
     return btn
 end

@@ -9,6 +9,17 @@ if not A then return end
 local schema = _G.FluxAIO_SETTINGS_SCHEMA
 if not schema then return end
 
+-- Inject internal position storage into the schema so it flows through the
+-- exact same build_widget → ProfileUI → pActionDB pipeline as every other setting.
+-- The custom settings UI skips entries with hidden = true.
+if schema[1] and schema[1].sections and schema[1].sections[1] then
+    local s = schema[1].sections[1].settings
+    s[#s + 1] = { type = "slider", key = "_btn_x", label = "", default = -1, min = -10000, max = 10000, hidden = true }
+    s[#s + 1] = { type = "slider", key = "_btn_y", label = "", default = -1, min = -10000, max = 10000, hidden = true }
+    s[#s + 1] = { type = "slider", key = "_dash_x", label = "", default = -1, min = -10000, max = 10000, hidden = true }
+    s[#s + 1] = { type = "slider", key = "_dash_y", label = "", default = -1, min = -10000, max = 10000, hidden = true }
+end
+
 -- ============================================================================
 -- PROFILE UI GENERATOR
 -- ============================================================================

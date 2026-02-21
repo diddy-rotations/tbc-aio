@@ -654,14 +654,14 @@ rotation_registry:register_class({
 
       -- Fallback melee range detection: GetRange() can return nil or incorrect values
       -- for some users. Use a melee spell's IsInRange as a more reliable check.
-      if not ctx.in_melee_range and ctx.has_valid_enemy_target then
+--[[       if not ctx.in_melee_range and ctx.has_valid_enemy_target then
          local stance = ctx.stance
          if stance == Constants.STANCE.CAT then
             ctx.in_melee_range = A.MangleCat:IsInRange(TARGET_UNIT) == true
          elseif stance == Constants.STANCE.BEAR then
             ctx.in_melee_range = A.MangleBear:IsInRange(TARGET_UNIT) == true
          end
-      end
+      end ]]
    end,
 
    gap_handler = function(icon, context)

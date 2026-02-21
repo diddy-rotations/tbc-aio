@@ -247,14 +247,38 @@ local function create_dashboard()
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        self:SetUserPlaced(true)
+        -- Capture position immediately after stop, before any other calls
+        local cx, cy = self:GetCenter()
+        if cx and cy then
+            local A = NS.A
+            if A and A.SetToggle then
+                A.SetToggle({2, "_dash_x", nil, true}, floor(cx + 0.5))
+                A.SetToggle({2, "_dash_y", nil, true}, floor(cy + 0.5))
+            end
+        end
     end)
     f:SetFrameStrata("HIGH")
     f:Hide()
 
-    if not f:IsUserPlaced() then
-        f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 20, -200)
-    end
+    -- Default position until DB is ready
+    f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 20, -200)
+
+    -- Poll until pActionDB is initialized, then restore saved position
+    local A = NS.A
+    local dash_restorer = CreateFrame("Frame")
+    dash_restorer:SetScript("OnUpdate", function(self)
+        local sx = A and A.GetToggle(2, "_dash_x")
+        if sx == nil then return end
+        self:SetScript("OnUpdate", nil)
+        self:Hide()
+        if sx > 0 then
+            local sy = A.GetToggle(2, "_dash_y") or -1
+            if sy > 0 then
+                f:ClearAllPoints()
+                f:SetPoint("CENTER", UIParent, "BOTTOMLEFT", sx, sy)
+            end
+        end
+    end)
 
     local y = -6
 
