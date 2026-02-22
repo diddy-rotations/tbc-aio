@@ -179,6 +179,10 @@ Action[A.PlayerClass] = {
    DarkRune = Create({ Type = "Item", ID = 20520, Desc = "Dark Rune" }),
    DemonicRune = Create({ Type = "Item", ID = 12662, Desc = "Demonic Rune" }),
 
+   -- Sapper Charges
+   GoblinSapperCharge = Create({ Type = "Item", ID = 10646, Desc = "Goblin Sapper Charge" }),
+   SuperSapperCharge = Create({ Type = "Item", ID = 23827, Desc = "Super Sapper Charge" }),
+
    -- Form-aware consumables (Cat Form variants)
    HealthstoneMasterCat = Create({ Type = "Spell", ID = 768, Desc = "Healthstone Master Cat Shift", Click = { macrobefore = "/use item:22105\n" } }),
    HealthstoneMajorCat = Create({ Type = "Spell", ID = 768, Desc = "Healthstone Major Cat Shift", Click = { macrobefore = "/use item:22104\n" } }),
@@ -196,6 +200,10 @@ Action[A.PlayerClass] = {
    SuperManaPotionBear = Create({ Type = "Spell", ID = 9634, Desc = "Super Mana Potion Bear Shift", Click = { macrobefore = "/use item:22832\n" } }),
    DarkRuneBear = Create({ Type = "Spell", ID = 9634, Desc = "Dark Rune Bear Shift", Click = { macrobefore = "/use item:20520\n" } }),
    DemonicRuneBear = Create({ Type = "Spell", ID = 9634, Desc = "Demonic Rune Bear Shift", Click = { macrobefore = "/use item:12662\n" } }),
+
+   -- Sapper Shifting (Cat Form) - DMH instant-cast sequences
+   CatGoblinSapperChargeAndShift = Create({ Type = "Spell", ID = 768, Desc = "Goblin Sapper Cat Shift", Click = { macrobefore = "/dmh start\n/dmh cd sapper\n/use Goblin Sapper Charge\n/cast !Cat Form\n/dmh end\n" } }),
+   CatSuperSapperChargeAndShift = Create({ Type = "Spell", ID = 768, Desc = "Super Sapper Cat Shift", Click = { macrobefore = "/dmh start\n/dmh cd sapper\n/use Super Sapper Charge\n/cast !Cat Form\n/dmh end\n" } }),
 
    -- Racials
    Berserking = Create({ Type = "Spell", ID = 26297 }),
