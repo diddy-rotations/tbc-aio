@@ -186,6 +186,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Dark Rune when mana drops below this.", format = "%d%%" },
             { type = "slider", key = "dark_rune_min_hp", default = 50, min = 25, max = 75, label = "Dark Rune Min HP (%)",
               tooltip = "Only use Dark Rune when HP is above this (it costs HP).", format = "%d%%" },
+            { type = "checkbox", key = "use_seal_of_wisdom_low_mana", default = true, label = "Seal of Wisdom (Low Mana)",
+              tooltip = "Auto-switch to Seal of Wisdom when mana is low for mana regen." },
+            { type = "slider", key = "seal_of_wisdom_mana_pct", default = 20, min = 5, max = 50, label = "Seal of Wisdom Below%",
+              tooltip = "Switch to Seal of Wisdom when mana drops below this.", format = "%d%%" },
         }},
     }},
 }

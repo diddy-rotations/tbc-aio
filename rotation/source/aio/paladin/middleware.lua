@@ -144,7 +144,7 @@ rotation_registry:register_middleware({
     end,
 
     execute = function(icon, context)
-        if A.SuperManaPotion:IsReady(PLAYER_UNIT) then
+        if A.SuperManaPotion:IsExists() and A.SuperManaPotion:IsReady(PLAYER_UNIT) then
             return A.SuperManaPotion:Show(icon), format("[MW] Super Mana Potion - Mana: %.0f%%", context.mana_pct)
         end
         return nil
@@ -170,11 +170,37 @@ rotation_registry:register_middleware({
     end,
 
     execute = function(icon, context)
-        if A.DarkRune:IsReady(PLAYER_UNIT) then
+        if A.DarkRune:IsExists() and A.DarkRune:IsReady(PLAYER_UNIT) then
             return A.DarkRune:Show(icon), format("[MW] Dark Rune - Mana: %.0f%%", context.mana_pct)
         end
-        if A.DemonicRune:IsReady(PLAYER_UNIT) then
+        if A.DemonicRune:IsExists() and A.DemonicRune:IsReady(PLAYER_UNIT) then
             return A.DemonicRune:Show(icon), format("[MW] Demonic Rune - Mana: %.0f%%", context.mana_pct)
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
+-- SEAL OF WISDOM (Low mana seal swap)
+-- ============================================================================
+rotation_registry:register_middleware({
+    name = "Paladin_SealOfWisdom",
+    priority = Priority.MIDDLEWARE.MANA_RECOVERY - 10,
+
+    matches = function(context)
+        if not context.settings.use_seal_of_wisdom_low_mana then return false end
+        if not context.in_combat then return false end
+        -- Don't switch if already using Seal of Wisdom
+        if context.seal_wisdom_active then return false end
+        -- Only switch when mana is below threshold
+        local threshold = context.settings.seal_of_wisdom_mana_pct or 20
+        if context.mana_pct > threshold then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        if A.SealOfWisdom:IsReady(PLAYER_UNIT) then
+            return A.SealOfWisdom:Show(icon), format("[MW] Seal of Wisdom - Mana: %.0f%%", context.mana_pct)
         end
         return nil
     end,

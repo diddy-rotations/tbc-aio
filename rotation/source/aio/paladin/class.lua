@@ -90,15 +90,15 @@ Action[A.PlayerClass] = {
     BlessingOfKings  = Create({ Type = "Spell", ID = 20217, Click = { unit = "player", type = "spell", spell = 20217 } }),
 
     -- Items
-    SuperManaPotion    = Create({ Type = "Item", ID = 22832, Click = { unit = "player", type = "item", item = 22832 } }),
-    SuperHealingPotion = Create({ Type = "Item", ID = 22829, Click = { unit = "player", type = "item", item = 22829 } }),
-    MajorHealingPotion = Create({ Type = "Item", ID = 13446, Click = { unit = "player", type = "item", item = 13446 } }),
-    DarkRune           = Create({ Type = "Item", ID = 20520, Click = { unit = "player", type = "item", item = 20520 } }),
-    DemonicRune        = Create({ Type = "Item", ID = 12662, Click = { unit = "player", type = "item", item = 12662 } }),
+    SuperManaPotion    = Create({ Type = "Item", ID = 22832 }),
+    SuperHealingPotion = Create({ Type = "Item", ID = 22829 }),
+    MajorHealingPotion = Create({ Type = "Item", ID = 13446 }),
+    DarkRune           = Create({ Type = "Item", ID = 20520 }),
+    DemonicRune        = Create({ Type = "Item", ID = 12662 }),
 
     -- Healthstones
-    HealthstoneMaster = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
-    HealthstoneMajor  = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
+    HealthstoneMaster = Create({ Type = "Item", ID = 22105 }),
+    HealthstoneMajor  = Create({ Type = "Item", ID = 22104 }),
 
     -- Buff tracking
     Heroism   = Create({ Type = "Spell", ID = 32182 }),
