@@ -3,7 +3,6 @@
 Thumbs.db
 
 # Editor
-.vscode/
 .playwright-mcp
 
 # Claude session data
@@ -23,6 +22,7 @@ TBC-main/
 Addon Libraries/
 framework-src/
 wowsims-tbc-ref/
+ActionTBC-ref/
 druid_addon/
 
 # Rotation: dev config (contains local paths)
