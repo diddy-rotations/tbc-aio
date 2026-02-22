@@ -1,0 +1,75 @@
+{
+  // --- General Editor ---
+  "editor.insertSpaces": true,
+  "editor.trimAutoWhitespace": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.eol": "\n",
+
+  // --- Per-Language Indentation ---
+  "[lua]": {
+    "editor.tabSize": 3
+  },
+  "[javascript]": {
+    "editor.tabSize": 2
+  },
+  "[typescript]": {
+    "editor.tabSize": 2
+  },
+  "[astro]": {
+    "editor.tabSize": 2
+  },
+  "[json]": {
+    "editor.tabSize": 2
+  },
+  "[jsonc]": {
+    "editor.tabSize": 2
+  },
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
+  },
+
+  // --- File Associations ---
+  "files.associations": {
+    "*.lua": "lua"
+  },
+
+  // --- Search Exclusions ---
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/TBC-main": true,
+    "**/Addon Libraries": true,
+    "rotation/output": true,
+    "**/dist": true
+  },
+  "files.exclude": {
+    "**/node_modules": true
+  },
+
+  // --- Lua Language Server ---
+  "Lua.workspace.library": [
+    "${workspaceFolder}/docs/api"
+  ],
+  "Lua.runtime.version": "Lua 5.1",
+  "Lua.diagnostics.globals": [
+    "_G",
+    "GetTime",
+    "UnitExists",
+    "UnitAffectingCombat",
+    "UnitFactionGroup",
+    "IsSpellKnown",
+    "GetTotemInfo",
+    "UnitIsPlayer",
+    "UnitIsUnit",
+    "UnitClass",
+    "GetNumRaidMembers",
+    "GetNumPartyMembers",
+    "GetRaidRosterInfo",
+    "select",
+    "unpack"
+  ],
+  "Lua.diagnostics.disable": [
+    "lowercase-global"
+  ]
+}
