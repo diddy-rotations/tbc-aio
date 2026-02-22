@@ -83,7 +83,7 @@ end)
 -- THEME
 -- ============================================================================
 local THEME = {
-    bg          = { 0.031, 0.031, 0.039, 0.92 },
+    bg          = { 0.031, 0.031, 0.039, 1 },
     bg_light    = { 0.047, 0.047, 0.059, 0.7 },
     border      = { 0.118, 0.118, 0.149, 1 },
     accent      = { 0.424, 0.388, 1.0, 1 },
@@ -228,7 +228,7 @@ local function create_icon_slot(parent)
 
     -- Timer/status text (centered, outline font with shadow)
     local text = f:CreateFontString(nil, "OVERLAY")
-    text:SetFont("Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
+    text:SetFont("Fonts\\FRIZQT__.TTF", 8, "OUTLINE")
     text:SetPoint("CENTER", 0, 0)
     text:SetTextColor(1, 1, 1)
     text:SetShadowColor(0, 0, 0, 1)
@@ -466,14 +466,18 @@ local function create_dashboard()
         tbar:SetTexture("Interface\\Buttons\\WHITE8X8")
 
         local tlabel = tbg:CreateFontString(nil, "OVERLAY")
-        tlabel:SetFont("Fonts\\FRIZQT__.TTF", 7, "OUTLINE")
+        tlabel:SetFont("Fonts\\FRIZQT__.TTF", 7, "")
         tlabel:SetPoint("LEFT", tbg, "LEFT", 2, 0)
         tlabel:SetTextColor(1, 1, 1, 0.9)
+        tlabel:SetShadowColor(0, 0, 0, 1)
+        tlabel:SetShadowOffset(1, -1)
 
         local tvalue = tbg:CreateFontString(nil, "OVERLAY")
-        tvalue:SetFont("Fonts\\FRIZQT__.TTF", 7, "OUTLINE")
+        tvalue:SetFont("Fonts\\FRIZQT__.TTF", 7, "")
         tvalue:SetPoint("RIGHT", tbg, "RIGHT", -2, 0)
         tvalue:SetTextColor(1, 1, 1, 0.9)
+        tvalue:SetShadowColor(0, 0, 0, 1)
+        tvalue:SetShadowOffset(1, -1)
 
         ui.timer_bars[i] = { bg = tbg, bar = tbar, label = tlabel, value = tvalue }
     end
@@ -507,8 +511,8 @@ local function create_dashboard()
 
     -- Separator (positioned dynamically in update)
     ui.sep2_tex = f:CreateTexture(nil, "ARTWORK")
-    ui.sep2_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 1, y)
-    ui.sep2_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, y)
+    ui.sep2_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 8, y)
+    ui.sep2_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, y)
     ui.sep2_tex:SetHeight(1)
     ui.sep2_tex:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 0.25)
     y = y - 4
@@ -552,7 +556,7 @@ local function create_dashboard()
     end
 
     -- Section separators (thin lines between CD/Buff/Debuff sections)
-    for i = 1, 2 do
+    for i = 1, 3 do
         local sep = f:CreateTexture(nil, "ARTWORK")
         sep:SetHeight(1)
         sep:SetColorTexture(THEME.border[1], THEME.border[2], THEME.border[3], 0.25)
@@ -560,7 +564,13 @@ local function create_dashboard()
         ui.section_seps[i] = sep
     end
 
-    -- Combo point pips (5 small squares)
+    -- Combo point pips (label + 5 small squares)
+    ui.combo_label = f:CreateFontString(nil, "OVERLAY")
+    ui.combo_label:SetFont("Fonts\\FRIZQT__.TTF", 7, "")
+    ui.combo_label:SetTextColor(0.55, 0.30, 0.90, 0.9)
+    ui.combo_label:SetText("CP")
+    ui.combo_label:Hide()
+
     for i = 1, MAX_COMBO_PIPS do
         local pip = CreateFrame("Frame", nil, f)
         pip:SetSize(PIP_SIZE, PIP_SIZE)
@@ -763,13 +773,17 @@ local function update_dashboard()
 
     if show_pips then
         local cp = dash_context.cp or 0
+        ui.combo_label:ClearAllPoints()
+        ui.combo_label:SetPoint("TOPLEFT", f, "TOPLEFT", ICON_X, content_y - 1)
+        ui.combo_label:Show()
+        local pip_x = ICON_X + 16
         for i = 1, MAX_COMBO_PIPS do
             local pip = ui.combo_pips[i]
             pip.frame:ClearAllPoints()
-            pip.frame:SetPoint("TOPLEFT", f, "TOPLEFT", ICON_X + (i - 1) * (PIP_SIZE + PIP_GAP), content_y)
+            pip.frame:SetPoint("TOPLEFT", f, "TOPLEFT", pip_x + (i - 1) * (PIP_SIZE + PIP_GAP), content_y)
             if i <= cp then
-                pip.fill:SetColorTexture(0.85, 0.70, 0.20, 1)
-                pip.border:SetColorTexture(0.60, 0.50, 0.15, 1)
+                pip.fill:SetColorTexture(0.90, 0.15, 0.15, 1)
+                pip.border:SetColorTexture(0.65, 0.10, 0.10, 1)
             else
                 pip.fill:SetColorTexture(0.15, 0.15, 0.15, 0.9)
                 pip.border:SetColorTexture(0.20, 0.20, 0.20, 1)
@@ -778,6 +792,7 @@ local function update_dashboard()
         end
         content_y = content_y - (PIP_SIZE + 3)
     else
+        ui.combo_label:Hide()
         for i = 1, MAX_COMBO_PIPS do
             ui.combo_pips[i].frame:Hide()
         end
@@ -875,6 +890,16 @@ local function update_dashboard()
 
     content_y = content_y - 4
 
+    -- Separator: resources/timers → priority
+    local sep_idx = 0
+    sep_idx = sep_idx + 1
+    local sep_top = ui.section_seps[sep_idx]
+    sep_top:ClearAllPoints()
+    sep_top:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
+    sep_top:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, content_y)
+    sep_top:Show()
+    content_y = content_y - 4
+
     -- Current Priority (inline)
     local la = last_action
     local accent_hex = "6c63ff"
@@ -921,59 +946,11 @@ local function update_dashboard()
         end
     end
 
-    -- Target info — always reserves fixed 2-line height
-    local tname = UnitName("target")
-    if tname then
-        local stats = ""
-        local ttd = Unit("target"):TimeToDie() or 0
-        if ttd > 0 then
-            stats = format("TTD: %s", format_timer(ttd))
-        end
-        local max_range, min_range = Unit("target"):GetRange()
-        if max_range and max_range < 1000 then
-            if stats ~= "" then stats = stats .. "  " end
-            if min_range and min_range > 0 and min_range < 1000 then
-                stats = stats .. format("Dist: %d-%dyd", min_range, max_range)
-            else
-                stats = stats .. format("Dist: %dyd", max_range)
-            end
-        end
-        local text = format("|cff%sTarget|r  |cffcccccc%s|r", accent_hex, tname)
-        text = text .. "\n|cff9494a8" .. (stats ~= "" and stats or " ") .. "|r"
-        ui.target_info_fs:SetText(text)
-    else
-        ui.target_info_fs:SetText(format("|cff%sTarget|r  |cff444444N/A|r\n ", accent_hex))
-    end
-    ui.target_info_fs:ClearAllPoints()
-    ui.target_info_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
-    ui.target_info_fs:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, content_y)
-    ui.target_info_fs:Show()
-    content_y = content_y - 24
-
-    -- Threat bar (progress bar below target info)
-    local _, _, threat_pct = UnitDetailedThreatSituation("player", "target")
-    if tname and threat_pct and threat_pct > 0 then
-        local capped = threat_pct > 130 and 130 or threat_pct
-        local tbw = bar_max * (capped / 130)
-        if tbw < 1 then tbw = 1 end
-        ui.threat_fill:SetWidth(tbw)
-        local tc = threat_pct >= 100 and THEME.threat_red
-            or (threat_pct >= 80 and THEME.threat_orange or THEME.threat_green)
-        ui.threat_fill:SetVertexColor(tc[1], tc[2], tc[3])
-        ui.threat_fill:Show()
-        ui.threat_text:SetText(format("Threat: %d%%", threat_pct))
-        ui.threat_bg:ClearAllPoints()
-        ui.threat_bg:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
-        ui.threat_bg:Show()
-        content_y = content_y - (THREAT_BAR_H + 2)
-    else
-        ui.threat_bg:Hide()
-    end
-
     ui.sep2_tex:ClearAllPoints()
-    ui.sep2_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 1, content_y)
-    ui.sep2_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, content_y)
+    ui.sep2_tex:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
+    ui.sep2_tex:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, content_y)
     local sections_y = content_y - 3
+    local tname = UnitName("target")
     local cd_list = resolve_list(dash_config.cooldowns, active_ps)
     local buff_list = resolve_list(dash_config.buffs, active_ps)
     local debuff_list = resolve_list(dash_config.debuffs, active_ps)
@@ -995,7 +972,6 @@ local function update_dashboard()
     end
 
     local y = sections_y
-    local sep_idx = 0
 
     -- ---- COOLDOWNS SECTION ----
     if num_cds > 0 then
@@ -1118,8 +1094,8 @@ local function update_dashboard()
         for i = 1, MAX_BUFFS do ui.buff_slots[i].frame:Hide() end
     end
 
-    -- Separator: Buffs → Debuffs
-    if (num_buffs > 0 or num_cds > 0) and show_debuffs then
+    -- Separator: Buffs → Target
+    if num_buffs > 0 or num_cds > 0 then
         sep_idx = sep_idx + 1
         local sep = ui.section_seps[sep_idx]
         sep:ClearAllPoints()
@@ -1130,8 +1106,56 @@ local function update_dashboard()
     end
 
     -- Hide unused separators
-    for si = sep_idx + 1, 2 do
+    for si = sep_idx + 1, 3 do
         ui.section_seps[si]:Hide()
+    end
+
+    -- Target info
+    if tname then
+        local stats = ""
+        local ttd = Unit("target"):TimeToDie() or 0
+        if ttd > 0 then
+            stats = format("TTD: %s", format_timer(ttd))
+        end
+        local max_range, min_range = Unit("target"):GetRange()
+        if max_range and max_range < 1000 then
+            if stats ~= "" then stats = stats .. "  " end
+            if min_range and min_range > 0 and min_range < 1000 then
+                stats = stats .. format("Dist: %d-%dyd", min_range, max_range)
+            else
+                stats = stats .. format("Dist: %dyd", max_range)
+            end
+        end
+        local text = format("|cff%sTarget|r  |cffcccccc%s|r", accent_hex, tname)
+        text = text .. "\n|cff9494a8" .. (stats ~= "" and stats or " ") .. "|r"
+        ui.target_info_fs:SetText(text)
+    else
+        ui.target_info_fs:SetText(format("|cff%sTarget|r  |cff444444N/A|r\n ", accent_hex))
+    end
+    ui.target_info_fs:ClearAllPoints()
+    ui.target_info_fs:SetPoint("TOPLEFT", f, "TOPLEFT", 8, y)
+    ui.target_info_fs:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, y)
+    ui.target_info_fs:Show()
+    y = y - 24
+
+    -- Threat bar (progress bar below target info)
+    local _, _, threat_pct = UnitDetailedThreatSituation("player", "target")
+    if tname and threat_pct and threat_pct > 0 then
+        local capped = threat_pct > 130 and 130 or threat_pct
+        local tbw = bar_max * (capped / 130)
+        if tbw < 1 then tbw = 1 end
+        ui.threat_fill:SetWidth(tbw)
+        local tc = threat_pct >= 100 and THEME.threat_red
+            or (threat_pct >= 80 and THEME.threat_orange or THEME.threat_green)
+        ui.threat_fill:SetVertexColor(tc[1], tc[2], tc[3])
+        ui.threat_fill:Show()
+        ui.threat_text:SetText(format("%d%%", threat_pct))
+        ui.threat_bg:ClearAllPoints()
+        ui.threat_bg:SetPoint("TOPLEFT", f, "TOPLEFT", 8, y)
+        ui.threat_bg:Show()
+        y = y - (THREAT_BAR_H + 2)
+    else
+        ui.threat_bg:Hide()
     end
 
     -- ---- DEBUFFS SECTION ----
@@ -1233,7 +1257,7 @@ local function update_dashboard()
     end
 
     -- Auto-resize frame height
-    dashboard_frame:SetHeight(math_max(-y + 6, 80))
+    dashboard_frame:SetHeight(math_max(-y + 10, 80))
 end
 
 -- ============================================================================
