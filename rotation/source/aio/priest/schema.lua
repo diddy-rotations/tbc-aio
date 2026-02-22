@@ -64,6 +64,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "fade_min_trash", default = 3, min = 1, max = 10, label = "Fade Trash Count",
               tooltip = "Fade if this many trash mobs are targeting you.", format = "%d" },
         }},
+        { header = "Cooldown Management", settings = {
+            { type = "slider", key = "cd_min_ttd", default = 0, min = 0, max = 60, label = "CD Min TTD (sec)",
+              tooltip = "Don't use major CDs (trinkets, racial) if target dies sooner than this. Set to 0 to disable.", format = "%d sec" },
+        }},
         { header = "Recovery Items", settings = {
             { type = "slider", key = "healthstone_hp", default = 35, min = 0, max = 100, label = "Healthstone HP (%)",
               tooltip = "Use Healthstone when HP drops below this. Set to 0 to disable.", format = "%d%%" },

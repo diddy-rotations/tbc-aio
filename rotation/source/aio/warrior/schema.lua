@@ -73,6 +73,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "aoe_threshold", default = 0, min = 0, max = 8, label = "AoE Threshold",
               tooltip = "Minimum enemies to use Cleave instead of Heroic Strike. 0 = disable.", format = "%d" },
         }},
+        { header = "Cooldown Management", settings = {
+            { type = "slider", key = "cd_min_ttd", default = 0, min = 0, max = 60, label = "CD Min TTD (sec)",
+              tooltip = "Don't use major CDs (trinkets, racial) if target dies sooner than this. Set to 0 to disable.", format = "%d sec" },
+        }},
         { header = "Recovery Items", settings = {
             { type = "slider", key = "healthstone_hp", default = 35, min = 0, max = 100, label = "Healthstone HP (%)",
               tooltip = "Use Healthstone when HP drops below this. 0 = disable.", format = "%d%%" },

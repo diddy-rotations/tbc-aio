@@ -55,6 +55,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "aoe_threshold", default = 0, min = 0, max = 8, label = "AoE Threshold",
               tooltip = "Minimum enemies to switch to AoE rotation (Seed of Corruption). Set to 0 to disable.", format = "%d" },
         }},
+        { header = "Cooldown Management", settings = {
+            { type = "slider", key = "cd_min_ttd", default = 0, min = 0, max = 60, label = "CD Min TTD (sec)",
+              tooltip = "Don't use major CDs (trinkets, racial) if target dies sooner than this. Set to 0 to disable.", format = "%d sec" },
+        }},
         { header = "Utility", settings = {
             { type = "checkbox", key = "use_soulshatter", default = true, label = "Auto Soulshatter",
               tooltip = "Use Soulshatter when threat is high (costs 1 Soul Shard)." },

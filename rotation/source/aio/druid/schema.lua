@@ -47,6 +47,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               }},
             { type = "checkbox", key = "use_racial", default = true, label = "Use Racial Ability", tooltip = "Use racial DPS cooldown (Berserking / Blood Fury)." },
         }},
+        { header = "Cooldown Management", settings = {
+            { type = "slider", key = "cd_min_ttd", default = 0, min = 0, max = 60, label = "CD Min TTD (sec)",
+              tooltip = "Don't use major CDs (trinkets, racial) if target dies sooner than this. Set to 0 to disable.", format = "%d sec" },
+        }},
         { header = "Recovery Items", settings = {
             { type = "checkbox", key = "use_healthstone", default = true, label = "Use Healthstone", tooltip = "Use Healthstone when HP drops below threshold." },
             { type = "slider", key = "healthstone_hp", default = 30, min = 15, max = 50, label = "Healthstone HP (%)", tooltip = "Use Healthstone below this HP.", format = "%d%%" },

@@ -32,6 +32,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "aoe", default = true, label = "Enable AoE",
               tooltip = "Enable multi-target abilities (Multi-Shot, Explosive Trap)." },
         }},
+        { header = "Cooldown Management", settings = {
+            { type = "slider", key = "cd_min_ttd", default = 0, min = 0, max = 60, label = "CD Min TTD (sec)",
+              tooltip = "Don't use major CDs (trinkets, racial) if target dies sooner than this. Set to 0 to disable.", format = "%d sec" },
+        }},
         { header = "Recovery Items", settings = {
             { type = "slider", key = "healthstone_hp", default = 40, min = 0, max = 100, label = "Healthstone HP (%)",
               tooltip = "Use Healthstone when HP drops below this. Set to 0 to disable.", format = "%d%%" },

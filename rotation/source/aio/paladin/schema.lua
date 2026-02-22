@@ -41,6 +41,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "use_hammer_of_justice", default = false, label = "Hammer of Justice",
               tooltip = "Use Hammer of Justice to interrupt enemy casts (stun, may break CC)." },
         }},
+        { header = "Cooldown Management", settings = {
+            { type = "slider", key = "cd_min_ttd", default = 0, min = 0, max = 60, label = "CD Min TTD (sec)",
+              tooltip = "Don't use major CDs (trinkets, racial) if target dies sooner than this. Set to 0 to disable.", format = "%d sec" },
+        }},
         { header = "Recovery Items", settings = {
             { type = "slider", key = "healthstone_hp", default = 35, min = 0, max = 100, label = "Healthstone HP (%)",
               tooltip = "Use Healthstone when HP drops below this. Set to 0 to disable.", format = "%d%%" },

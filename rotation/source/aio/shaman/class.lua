@@ -94,6 +94,7 @@ Action[A.PlayerClass] = {
 
     -- Items
     SuperManaPotion    = Create({ Type = "Item", ID = 22832, Click = { unit = "player", type = "item", item = 22832 } }),
+    MajorManaPotion    = Create({ Type = "Item", ID = 13444, Click = { unit = "player", type = "item", item = 13444 } }),
     SuperHealingPotion = Create({ Type = "Item", ID = 22829, Click = { unit = "player", type = "item", item = 22829 } }),
     MajorHealingPotion = Create({ Type = "Item", ID = 13446, Click = { unit = "player", type = "item", item = 13446 } }),
     DarkRune           = Create({ Type = "Item", ID = 20520, Click = { unit = "player", type = "item", item = 20520 } }),
@@ -244,7 +245,7 @@ NS.resolve_totem_spell = resolve_totem_spell
 -- ============================================================================
 rotation_registry:register_class({
     name = "Shaman",
-    version = "v1.6.1",
+    version = "v1.6.5",
     playstyles = { "elemental", "enhancement", "restoration" },
     idle_playstyle_name = nil,
 
@@ -317,6 +318,14 @@ rotation_registry:register_class({
         ctx.totem_water_remaining = totem_state.water_remaining
         ctx.totem_air_active = totem_state.air_active
         ctx.totem_air_remaining = totem_state.air_remaining
+
+        -- Fire Elemental protection: don't let rotation overwrite manually cast Fire Elemental
+        if ctx.totem_fire_active then
+            local _, fire_name = GetTotemInfo(1)
+            ctx.fire_elemental_active = fire_name and fire_name:find("Fire Elemental") ~= nil
+        else
+            ctx.fire_elemental_active = false
+        end
 
         -- Cache invalidation flags for per-playstyle context_builders
         ctx._ele_valid = false

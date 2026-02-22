@@ -15,6 +15,35 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.6.5 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-minor">Minor</span>
+
+      <h3>Shaman: Priority Interrupt Scanner</h3>
+      <ul class="features">
+        <li><strong>Nameplate Scanning</strong> &mdash; New priority interrupt system scans nearby nameplates (20yd) for dangerous NPC casts (heals, AoE, CC) and automatically tab-targets to interrupt them, then returns to your original target</li>
+        <li><strong>38 Priority Spells</strong> &mdash; Covers TBC dungeon and raid dangerous casts: healing (Dark Mending, Greater Heal, etc.), AoE (Blast Nova, Arcane Explosion, etc.), and CC (Polymorph, Domination, etc.)</li>
+        <li><strong>Toggle Setting</strong> &mdash; &ldquo;Priority Interrupt (Scan)&rdquo; checkbox in General &gt; Utility, enabled by default</li>
+      </ul>
+
+      <h3>Shaman: Fire Nova TTD Gate</h3>
+      <ul class="features">
+        <li><strong>AoE Totem TTD</strong> &mdash; Fire Nova and Magma Totem AoE drops (Elemental &amp; Enhancement) now respect the CD Min TTD setting, preventing wasted totems on dying targets</li>
+      </ul>
+
+      <h3>All Classes: CD Min TTD Setting</h3>
+      <ul class="features">
+        <li><strong>New Setting</strong> &mdash; Added &ldquo;CD Min TTD&rdquo; slider to all class schemas &mdash; prevents trinkets and major cooldowns from firing on targets that will die before the CD pays off</li>
+        <li><strong>Trinket Gate</strong> &mdash; Shared trinket middleware now checks cd_min_ttd before firing offensive trinkets</li>
+      </ul>
+
+      <h3>Shaman: Quality of Life</h3>
+      <ul class="features">
+        <li><strong>Major Mana Potion</strong> &mdash; Added Major Mana Potion as fallback when Super Mana Potion is unavailable</li>
+        <li><strong>Fire Elemental Protection</strong> &mdash; Rotation now detects active Fire Elemental Totem and won&rsquo;t overwrite it with other fire totems</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.6.4 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 

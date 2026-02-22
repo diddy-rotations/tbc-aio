@@ -33,6 +33,7 @@ local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
 local GetTime = _G.GetTime
+local GetTotemInfo = _G.GetTotemInfo
 
 -- ============================================================================
 -- TOTEM TWIST STATE (module-level, persists across frames)
@@ -111,6 +112,8 @@ local Enh_ShamanisticRage = {
     setting_key = "enh_use_shamanistic_rage",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         local threshold = context.settings.enh_shamanistic_rage_pct or 30
         if context.mana_pct > threshold then return false end
         return true
@@ -129,6 +132,8 @@ local Enh_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         -- Enhancement uses AP Blood Fury or Berserking
         if A.BloodFuryAP:IsReady(PLAYER_UNIT) then return true end
         if A.Berserking:IsReady(PLAYER_UNIT) then return true end
@@ -152,22 +157,35 @@ local Enh_TotemManagement = {
     requires_combat = true,
 
     matches = function(context, state)
+        local s = context.settings
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
 
-        -- Fire totem (skip if fire nova twist is handling it)
-        local skip_fire = context.settings.enh_twist_fire_nova
-        if not skip_fire then
+        -- Fire totem (skip if fire nova twist, Fire Elemental active, or set to "none")
+        local skip_fire = s.enh_twist_fire_nova or context.fire_elemental_active
+        if not skip_fire and (s.enh_fire_totem or "searing") ~= "none" then
             if not context.totem_fire_active or context.totem_fire_remaining < threshold then return true end
         end
 
-        -- Earth totem
-        if not context.totem_earth_active or context.totem_earth_remaining < threshold then return true end
+        -- Earth totem (skip if "none", or if Tremor is active)
+        local earth_setting = s.enh_earth_totem or "strength_of_earth"
+        if earth_setting ~= "none" then
+            local skip_earth = false
+            if s.use_auto_tremor and context.totem_earth_active then
+                local have, name = GetTotemInfo(2)
+                if have and name and name:find("Tremor") then skip_earth = true end
+            end
+            if not skip_earth then
+                if not context.totem_earth_active or context.totem_earth_remaining < threshold then return true end
+            end
+        end
 
-        -- Water totem
-        if not context.totem_water_active or context.totem_water_remaining < threshold then return true end
+        -- Water totem (skip if "none")
+        if (s.enh_water_totem or "mana_spring") ~= "none" then
+            if not context.totem_water_active or context.totem_water_remaining < threshold then return true end
+        end
 
-        -- Air totem (only if NOT twisting WF)
-        if not context.settings.enh_twist_windfury then
+        -- Air totem (only if NOT twisting WF and not "none")
+        if not s.enh_twist_windfury and (s.enh_air_totem or "windfury") ~= "none" then
             if not context.totem_air_active or context.totem_air_remaining < threshold then return true end
         end
 
@@ -178,8 +196,8 @@ local Enh_TotemManagement = {
         local s = context.settings
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
 
-        -- Fire totem (skip if FNT twist active)
-        if not s.enh_twist_fire_nova then
+        -- Fire totem (skip if FNT twist active, Fire Elemental active, or "none")
+        if not s.enh_twist_fire_nova and not context.fire_elemental_active and (s.enh_fire_totem or "searing") ~= "none" then
             if not context.totem_fire_active or context.totem_fire_remaining < threshold then
                 local spell = resolve_totem_spell(s.enh_fire_totem or "searing", NS.FIRE_TOTEM_SPELLS)
                 if spell and spell:IsReady(PLAYER_UNIT) then
@@ -188,24 +206,36 @@ local Enh_TotemManagement = {
             end
         end
 
-        -- Earth totem
-        if not context.totem_earth_active or context.totem_earth_remaining < threshold then
-            local spell = resolve_totem_spell(s.enh_earth_totem or "strength_of_earth", NS.EARTH_TOTEM_SPELLS)
-            if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[ENH] Earth Totem"
+        -- Earth totem (skip if "none" or Tremor active)
+        local earth_setting = s.enh_earth_totem or "strength_of_earth"
+        if earth_setting ~= "none" then
+            local skip_earth = false
+            if s.use_auto_tremor and context.totem_earth_active then
+                local have, name = GetTotemInfo(2)
+                if have and name and name:find("Tremor") then skip_earth = true end
+            end
+            if not skip_earth then
+                if not context.totem_earth_active or context.totem_earth_remaining < threshold then
+                    local spell = resolve_totem_spell(earth_setting, NS.EARTH_TOTEM_SPELLS)
+                    if spell and spell:IsReady(PLAYER_UNIT) then
+                        return spell:Show(icon), "[ENH] Earth Totem"
+                    end
+                end
             end
         end
 
-        -- Water totem
-        if not context.totem_water_active or context.totem_water_remaining < threshold then
-            local spell = resolve_totem_spell(s.enh_water_totem or "mana_spring", NS.WATER_TOTEM_SPELLS)
-            if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[ENH] Water Totem"
+        -- Water totem (skip if "none")
+        if (s.enh_water_totem or "mana_spring") ~= "none" then
+            if not context.totem_water_active or context.totem_water_remaining < threshold then
+                local spell = resolve_totem_spell(s.enh_water_totem or "mana_spring", NS.WATER_TOTEM_SPELLS)
+                if spell and spell:IsReady(PLAYER_UNIT) then
+                    return spell:Show(icon), "[ENH] Water Totem"
+                end
             end
         end
 
-        -- Air totem (only if NOT twisting)
-        if not s.enh_twist_windfury then
+        -- Air totem (only if NOT twisting and not "none")
+        if not s.enh_twist_windfury and (s.enh_air_totem or "windfury") ~= "none" then
             if not context.totem_air_active or context.totem_air_remaining < threshold then
                 local spell = resolve_totem_spell(s.enh_air_totem or "windfury", NS.AIR_TOTEM_SPELLS)
                 if spell and spell:IsReady(PLAYER_UNIT) then
@@ -316,6 +346,10 @@ local Enh_FireNovaTotemTwist = {
     setting_key = "enh_twist_fire_nova",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
+        -- Don't overwrite Fire Elemental Totem
+        if context.fire_elemental_active then return false end
         -- OOM protection
         if context.mana_pct < Constants.TWIST.OOM_THRESHOLD * 100 then return false end
 
@@ -434,6 +468,12 @@ local Enh_FireElemental = {
     spell_target = PLAYER_UNIT,
     setting_key = "enh_use_fire_elemental",
 
+    matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
+        return true
+    end,
+
     execute = function(icon, context, state)
         return try_cast(A.FireElementalTotem, icon, PLAYER_UNIT, "[ENH] Fire Elemental Totem")
     end,
@@ -452,13 +492,19 @@ local Enh_AoE = {
     end,
 
     execute = function(icon, context, state)
-        -- Fire Nova Totem for burst AoE
-        if A.FireNovaTotem:IsReady(PLAYER_UNIT) then
-            return try_cast(A.FireNovaTotem, icon, PLAYER_UNIT, "[ENH] Fire Nova Totem (AoE)")
-        end
-        -- Magma Totem for sustained AoE
-        if A.MagmaTotem:IsReady(PLAYER_UNIT) then
-            return try_cast(A.MagmaTotem, icon, PLAYER_UNIT, "[ENH] Magma Totem (AoE)")
+        -- Skip fire totems if FNT twist is managing the fire slot or Fire Elemental is active
+        local min_ttd = context.settings.cd_min_ttd or 0
+        local ttd_ok = min_ttd <= 0 or not context.ttd or context.ttd <= 0 or context.ttd >= min_ttd
+        if ttd_ok and not context.settings.enh_twist_fire_nova and not context.fire_elemental_active then
+            -- Only drop fire totems if fire slot is empty/expiring
+            if not context.totem_fire_active or context.totem_fire_remaining < Constants.TOTEM_REFRESH_THRESHOLD then
+                if A.FireNovaTotem:IsReady(PLAYER_UNIT) then
+                    return try_cast(A.FireNovaTotem, icon, PLAYER_UNIT, "[ENH] Fire Nova Totem (AoE)")
+                end
+                if A.MagmaTotem:IsReady(PLAYER_UNIT) then
+                    return try_cast(A.MagmaTotem, icon, PLAYER_UNIT, "[ENH] Magma Totem (AoE)")
+                end
+            end
         end
         -- Fall through to regular melee rotation (no CL — 2s cast breaks melee momentum)
         return nil

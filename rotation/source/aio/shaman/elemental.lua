@@ -32,6 +32,7 @@ local totem_state = NS.totem_state
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
+local GetTotemInfo = _G.GetTotemInfo
 
 -- ============================================================================
 -- ELEMENTAL STATE (context_builder)
@@ -80,6 +81,12 @@ local Ele_ElementalMastery = {
     spell_target = PLAYER_UNIT,
     setting_key = "ele_use_elemental_mastery",
 
+    matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
+        return true
+    end,
+
     execute = function(icon, context, state)
         return try_cast(A.ElementalMastery, icon, PLAYER_UNIT, "[ELE] Elemental Mastery")
     end,
@@ -93,6 +100,8 @@ local Ele_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         -- Caster shaman uses SP Blood Fury or Berserking
         if A.BloodFurySP:IsReady(PLAYER_UNIT) then return true end
         if A.Berserking:IsReady(PLAYER_UNIT) then return true end
@@ -116,12 +125,29 @@ local Ele_TotemManagement = {
 
     matches = function(context, state)
         if context.is_moving then return false end
+        local s = context.settings
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
-        -- Check each totem slot for missing or expiring
-        if not context.totem_fire_active or context.totem_fire_remaining < threshold then return true end
-        if not context.totem_earth_active or context.totem_earth_remaining < threshold then return true end
-        if not context.totem_water_active or context.totem_water_remaining < threshold then return true end
-        if not context.totem_air_active or context.totem_air_remaining < threshold then return true end
+        -- Check each totem slot for missing or expiring (skip if "none" or Fire Elemental active)
+        if not context.fire_elemental_active and (s.ele_fire_totem or "totem_of_wrath") ~= "none" then
+            if not context.totem_fire_active or context.totem_fire_remaining < threshold then return true end
+        end
+        local earth_setting = s.ele_earth_totem or "strength_of_earth"
+        if earth_setting ~= "none" then
+            local skip_earth = false
+            if s.use_auto_tremor and context.totem_earth_active then
+                local have, name = GetTotemInfo(2)
+                if have and name and name:find("Tremor") then skip_earth = true end
+            end
+            if not skip_earth then
+                if not context.totem_earth_active or context.totem_earth_remaining < threshold then return true end
+            end
+        end
+        if (s.ele_water_totem or "mana_spring") ~= "none" then
+            if not context.totem_water_active or context.totem_water_remaining < threshold then return true end
+        end
+        if (s.ele_air_totem or "wrath_of_air") ~= "none" then
+            if not context.totem_air_active or context.totem_air_remaining < threshold then return true end
+        end
         return false
     end,
 
@@ -129,35 +155,51 @@ local Ele_TotemManagement = {
         local s = context.settings
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
 
-        -- Fire totem
-        if not context.totem_fire_active or context.totem_fire_remaining < threshold then
-            local spell = resolve_totem_spell(s.ele_fire_totem or "totem_of_wrath", NS.FIRE_TOTEM_SPELLS)
-            if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[ELE] Fire Totem"
+        -- Fire totem (skip if "none" or Fire Elemental active)
+        if not context.fire_elemental_active and (s.ele_fire_totem or "totem_of_wrath") ~= "none" then
+            if not context.totem_fire_active or context.totem_fire_remaining < threshold then
+                local spell = resolve_totem_spell(s.ele_fire_totem or "totem_of_wrath", NS.FIRE_TOTEM_SPELLS)
+                if spell and spell:IsReady(PLAYER_UNIT) then
+                    return spell:Show(icon), "[ELE] Fire Totem"
+                end
             end
         end
 
-        -- Earth totem
-        if not context.totem_earth_active or context.totem_earth_remaining < threshold then
-            local spell = resolve_totem_spell(s.ele_earth_totem or "strength_of_earth", NS.EARTH_TOTEM_SPELLS)
-            if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[ELE] Earth Totem"
+        -- Earth totem (skip if "none" or Tremor active)
+        local earth_setting = s.ele_earth_totem or "strength_of_earth"
+        if earth_setting ~= "none" then
+            local skip_earth = false
+            if s.use_auto_tremor and context.totem_earth_active then
+                local have, name = GetTotemInfo(2)
+                if have and name and name:find("Tremor") then skip_earth = true end
+            end
+            if not skip_earth then
+                if not context.totem_earth_active or context.totem_earth_remaining < threshold then
+                    local spell = resolve_totem_spell(earth_setting, NS.EARTH_TOTEM_SPELLS)
+                    if spell and spell:IsReady(PLAYER_UNIT) then
+                        return spell:Show(icon), "[ELE] Earth Totem"
+                    end
+                end
             end
         end
 
-        -- Water totem
-        if not context.totem_water_active or context.totem_water_remaining < threshold then
-            local spell = resolve_totem_spell(s.ele_water_totem or "mana_spring", NS.WATER_TOTEM_SPELLS)
-            if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[ELE] Water Totem"
+        -- Water totem (skip if "none")
+        if (s.ele_water_totem or "mana_spring") ~= "none" then
+            if not context.totem_water_active or context.totem_water_remaining < threshold then
+                local spell = resolve_totem_spell(s.ele_water_totem or "mana_spring", NS.WATER_TOTEM_SPELLS)
+                if spell and spell:IsReady(PLAYER_UNIT) then
+                    return spell:Show(icon), "[ELE] Water Totem"
+                end
             end
         end
 
-        -- Air totem
-        if not context.totem_air_active or context.totem_air_remaining < threshold then
-            local spell = resolve_totem_spell(s.ele_air_totem or "wrath_of_air", NS.AIR_TOTEM_SPELLS)
-            if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[ELE] Air Totem"
+        -- Air totem (skip if "none")
+        if (s.ele_air_totem or "wrath_of_air") ~= "none" then
+            if not context.totem_air_active or context.totem_air_remaining < threshold then
+                local spell = resolve_totem_spell(s.ele_air_totem or "wrath_of_air", NS.AIR_TOTEM_SPELLS)
+                if spell and spell:IsReady(PLAYER_UNIT) then
+                    return spell:Show(icon), "[ELE] Air Totem"
+                end
             end
         end
 
@@ -172,6 +214,12 @@ local Ele_FireElemental = {
     spell = A.FireElementalTotem,
     spell_target = PLAYER_UNIT,
     setting_key = "ele_use_fire_elemental",
+
+    matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
+        return true
+    end,
 
     execute = function(icon, context, state)
         return try_cast(A.FireElementalTotem, icon, PLAYER_UNIT, "[ELE] Fire Elemental Totem")
@@ -266,13 +314,16 @@ local Ele_AoE = {
             lb_casts_since_cl = 0
             return try_cast(A.ChainLightning, icon, TARGET_UNIT, "[ELE] Chain Lightning (AoE)")
         end
-        -- Fire Nova Totem for burst AoE
-        if A.FireNovaTotem:IsReady(PLAYER_UNIT) then
-            return try_cast(A.FireNovaTotem, icon, PLAYER_UNIT, "[ELE] Fire Nova Totem (AoE)")
-        end
-        -- Magma Totem for sustained AoE
-        if A.MagmaTotem:IsReady(PLAYER_UNIT) then
-            return try_cast(A.MagmaTotem, icon, PLAYER_UNIT, "[ELE] Magma Totem (AoE)")
+        -- Fire totems for AoE: only if fire slot is empty/expiring and no Fire Elemental
+        local min_ttd = context.settings.cd_min_ttd or 0
+        local ttd_ok = min_ttd <= 0 or not context.ttd or context.ttd <= 0 or context.ttd >= min_ttd
+        if ttd_ok and not context.fire_elemental_active and (not context.totem_fire_active or context.totem_fire_remaining < Constants.TOTEM_REFRESH_THRESHOLD) then
+            if A.FireNovaTotem:IsReady(PLAYER_UNIT) then
+                return try_cast(A.FireNovaTotem, icon, PLAYER_UNIT, "[ELE] Fire Nova Totem (AoE)")
+            end
+            if A.MagmaTotem:IsReady(PLAYER_UNIT) then
+                return try_cast(A.MagmaTotem, icon, PLAYER_UNIT, "[ELE] Magma Totem (AoE)")
+            end
         end
         -- Fall through to LB on primary target
         return nil

@@ -33,6 +33,7 @@ local totem_state = NS.totem_state
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
+local GetTotemInfo = _G.GetTotemInfo
 
 -- ============================================================================
 -- PARTY/RAID HEALING TARGET SCAN
@@ -280,11 +281,28 @@ local Resto_TotemManagement = {
 
     matches = function(context, state)
         if context.is_moving then return false end
+        local s = context.settings
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
-        if not context.totem_fire_active or context.totem_fire_remaining < threshold then return true end
-        if not context.totem_earth_active or context.totem_earth_remaining < threshold then return true end
-        if not context.totem_water_active or context.totem_water_remaining < threshold then return true end
-        if not context.totem_air_active or context.totem_air_remaining < threshold then return true end
+        if not context.fire_elemental_active and (s.resto_fire_totem or "searing") ~= "none" then
+            if not context.totem_fire_active or context.totem_fire_remaining < threshold then return true end
+        end
+        local earth_setting = s.resto_earth_totem or "strength_of_earth"
+        if earth_setting ~= "none" then
+            local skip_earth = false
+            if s.use_auto_tremor and context.totem_earth_active then
+                local have, name = GetTotemInfo(2)
+                if have and name and name:find("Tremor") then skip_earth = true end
+            end
+            if not skip_earth then
+                if not context.totem_earth_active or context.totem_earth_remaining < threshold then return true end
+            end
+        end
+        if (s.resto_water_totem or "mana_spring") ~= "none" then
+            if not context.totem_water_active or context.totem_water_remaining < threshold then return true end
+        end
+        if (s.resto_air_totem or "wrath_of_air") ~= "none" then
+            if not context.totem_air_active or context.totem_air_remaining < threshold then return true end
+        end
         return false
     end,
 
@@ -292,35 +310,51 @@ local Resto_TotemManagement = {
         local s = context.settings
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
 
-        -- Fire totem
-        if not context.totem_fire_active or context.totem_fire_remaining < threshold then
-            local spell = resolve_totem_spell(s.resto_fire_totem or "searing", NS.FIRE_TOTEM_SPELLS)
-            if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[RESTO] Fire Totem"
+        -- Fire totem (skip if "none" or Fire Elemental active)
+        if not context.fire_elemental_active and (s.resto_fire_totem or "searing") ~= "none" then
+            if not context.totem_fire_active or context.totem_fire_remaining < threshold then
+                local spell = resolve_totem_spell(s.resto_fire_totem or "searing", NS.FIRE_TOTEM_SPELLS)
+                if spell and spell:IsReady(PLAYER_UNIT) then
+                    return spell:Show(icon), "[RESTO] Fire Totem"
+                end
             end
         end
 
-        -- Earth totem
-        if not context.totem_earth_active or context.totem_earth_remaining < threshold then
-            local spell = resolve_totem_spell(s.resto_earth_totem or "strength_of_earth", NS.EARTH_TOTEM_SPELLS)
-            if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[RESTO] Earth Totem"
+        -- Earth totem (skip if "none" or Tremor active)
+        local earth_setting = s.resto_earth_totem or "strength_of_earth"
+        if earth_setting ~= "none" then
+            local skip_earth = false
+            if s.use_auto_tremor and context.totem_earth_active then
+                local have, name = GetTotemInfo(2)
+                if have and name and name:find("Tremor") then skip_earth = true end
+            end
+            if not skip_earth then
+                if not context.totem_earth_active or context.totem_earth_remaining < threshold then
+                    local spell = resolve_totem_spell(earth_setting, NS.EARTH_TOTEM_SPELLS)
+                    if spell and spell:IsReady(PLAYER_UNIT) then
+                        return spell:Show(icon), "[RESTO] Earth Totem"
+                    end
+                end
             end
         end
 
-        -- Water totem (skip if Mana Tide is actively ticking)
-        if not context.totem_water_active or context.totem_water_remaining < threshold then
-            local spell = resolve_totem_spell(s.resto_water_totem or "mana_spring", NS.WATER_TOTEM_SPELLS)
-            if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[RESTO] Water Totem"
+        -- Water totem (skip if "none")
+        if (s.resto_water_totem or "mana_spring") ~= "none" then
+            if not context.totem_water_active or context.totem_water_remaining < threshold then
+                local spell = resolve_totem_spell(s.resto_water_totem or "mana_spring", NS.WATER_TOTEM_SPELLS)
+                if spell and spell:IsReady(PLAYER_UNIT) then
+                    return spell:Show(icon), "[RESTO] Water Totem"
+                end
             end
         end
 
-        -- Air totem
-        if not context.totem_air_active or context.totem_air_remaining < threshold then
-            local spell = resolve_totem_spell(s.resto_air_totem or "wrath_of_air", NS.AIR_TOTEM_SPELLS)
-            if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[RESTO] Air Totem"
+        -- Air totem (skip if "none")
+        if (s.resto_air_totem or "wrath_of_air") ~= "none" then
+            if not context.totem_air_active or context.totem_air_remaining < threshold then
+                local spell = resolve_totem_spell(s.resto_air_totem or "wrath_of_air", NS.AIR_TOTEM_SPELLS)
+                if spell and spell:IsReady(PLAYER_UNIT) then
+                    return spell:Show(icon), "[RESTO] Air Totem"
+                end
             end
         end
 
@@ -335,6 +369,8 @@ local Resto_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         -- Caster shaman uses SP Blood Fury or Berserking
         if A.BloodFurySP:IsReady(PLAYER_UNIT) then return true end
         if A.Berserking:IsReady(PLAYER_UNIT) then return true end

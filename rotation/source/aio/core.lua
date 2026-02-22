@@ -1011,6 +1011,9 @@ local function register_trinket_middleware()
          if not context.in_combat then return false end
          if not context.has_valid_enemy_target then return false end
          if not should_auto_burst(context) then return false end
+         -- TTD gate: skip trinkets on dying mobs (cd_min_ttd setting; 0 = disabled)
+         local min_ttd = context.settings.cd_min_ttd or 0
+         if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
          local s = context.settings
          if s.trinket1_mode == "offensive" and Trinket1 and Trinket1:IsReady(PLAYER_UNIT) then return true end
          if s.trinket2_mode == "offensive" and Trinket2 and Trinket2:IsReady(PLAYER_UNIT) then return true end
