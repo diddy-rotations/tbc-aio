@@ -420,9 +420,23 @@ local Enh_Shock = {
         local s = context.settings
         local primary = s.enh_primary_shock or "earth_shock"
 
+        -- Mana conservation gate (bypassed when SR active or SR ready)
+        local mana_stop = s.enh_mana_stop_shocks or 0
+        if mana_stop > 0 and context.mana_pct < mana_stop then
+            -- Shamanistic Focus proc = nearly free shock, always allow
+            if not state.shamanistic_focus_active then
+                local sr_exempt = state.shamanistic_rage_active or (A.ShamanisticRage:GetCooldown() or 99) <= 0
+                if not sr_exempt then return false end
+            end
+        end
+
         -- Flame Shock weaving: apply DoT when not active
         if s.enh_weave_flame_shock and state.flame_shock_duration <= 2 then
-            return true
+            -- TTD gate for Flame Shock DoT
+            local fs_ttd = s.enh_fs_min_ttd or 0
+            if fs_ttd <= 0 or not context.ttd or context.ttd <= 0 or context.ttd >= fs_ttd then
+                return true
+            end
         end
 
         -- Primary shock filler (when FS DoT is ticking or weaving disabled)
@@ -436,11 +450,21 @@ local Enh_Shock = {
     execute = function(icon, context, state)
         local s = context.settings
 
+        -- Shamanistic Focus: nearly free shock — prioritize Earth Shock immediately
+        if state.shamanistic_focus_active then
+            local result = try_cast(A.EarthShock, icon, TARGET_UNIT, "[ENH] Earth Shock (Sham. Focus)")
+            if result then return result end
+        end
+
         -- Flame Shock weaving takes priority — maintain DoT before spending shocks on filler
         if s.enh_weave_flame_shock and state.flame_shock_duration <= 2 then
-            local result = try_cast(A.FlameShock, icon, TARGET_UNIT,
-                format("[ENH] Flame Shock - DoT: %.1fs", state.flame_shock_duration))
-            if result then return result end
+            local fs_ttd = s.enh_fs_min_ttd or 0
+            local ttd_ok = fs_ttd <= 0 or not context.ttd or context.ttd <= 0 or context.ttd >= fs_ttd
+            if ttd_ok then
+                local result = try_cast(A.FlameShock, icon, TARGET_UNIT,
+                    format("[ENH] Flame Shock - DoT: %.1fs", state.flame_shock_duration))
+                if result then return result end
+            end
         end
 
         -- Stormstrike synergy: prefer Earth Shock when SS +20% nature debuff is active
