@@ -84,6 +84,11 @@ local Ele_ElementalMastery = {
     matches = function(context, state)
         local min_ttd = context.settings.cd_min_ttd or 0
         if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
+        -- Hold EM for Chain Lightning (guaranteed-crit CL is optimal)
+        local rot = context.settings.ele_rotation_type or "cl_clearcast"
+        if context.settings.ele_em_hold_for_cl and rot ~= "lb_only" and state.chain_lightning_cd > 0 then
+            return false
+        end
         return true
     end,
 
@@ -236,6 +241,12 @@ local Ele_FlameShock = {
     matches = function(context, state)
         -- Only apply if DoT is not active
         if state.flame_shock_duration > 2 then return false end
+        -- TTD gate: don't waste mana applying DoT on dying target
+        local fs_ttd = context.settings.ele_fs_min_ttd or 0
+        if fs_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < fs_ttd then return false end
+        -- Mana conservation gate
+        local mana_stop = context.settings.ele_mana_stop_shocks or 0
+        if mana_stop > 0 and context.mana_pct < mana_stop then return false end
         return true
     end,
 
@@ -253,11 +264,15 @@ local Ele_ChainLightning = {
 
     matches = function(context, state)
         if context.is_moving then return false end
-        local rot = context.settings.ele_rotation_type or "cl_clearcast"
-        if rot == "lb_only" then return false end
 
         -- CL must be off cooldown
         if state.chain_lightning_cd > 0 then return false end
+
+        -- EM active: always consume with CL (guaranteed crit, highest value)
+        if state.elemental_mastery_active then return true end
+
+        local rot = context.settings.ele_rotation_type or "cl_clearcast"
+        if rot == "lb_only" then return false end
 
         if rot == "cl_on_cd" then
             return true
@@ -288,6 +303,9 @@ local Ele_EarthShock = {
     matches = function(context, state)
         -- Only use as filler when FS DoT is already active
         if state.flame_shock_duration <= 2 then return false end
+        -- Mana conservation gate
+        local mana_stop = context.settings.ele_mana_stop_shocks or 0
+        if mana_stop > 0 and context.mana_pct < mana_stop then return false end
         return true
     end,
 
@@ -341,13 +359,20 @@ local Ele_MovementSpell = {
     end,
 
     execute = function(icon, context, state)
+        local mana_stop = context.settings.ele_mana_stop_shocks or 0
+        local mana_ok = mana_stop <= 0 or context.mana_pct >= mana_stop
+
         -- Flame Shock if DoT is down
-        if state.flame_shock_duration <= 2 and context.settings.ele_use_flame_shock then
-            local result = try_cast(A.FlameShock, icon, TARGET_UNIT, "[ELE] Flame Shock (moving)")
-            if result then return result end
+        if mana_ok and state.flame_shock_duration <= 2 and context.settings.ele_use_flame_shock then
+            local fs_ttd = context.settings.ele_fs_min_ttd or 0
+            local ttd_ok = fs_ttd <= 0 or not context.ttd or context.ttd <= 0 or context.ttd >= fs_ttd
+            if ttd_ok then
+                local result = try_cast(A.FlameShock, icon, TARGET_UNIT, "[ELE] Flame Shock (moving)")
+                if result then return result end
+            end
         end
         -- Earth Shock as filler while moving
-        if context.settings.ele_use_earth_shock then
+        if mana_ok and context.settings.ele_use_earth_shock then
             return try_cast(A.EarthShock, icon, TARGET_UNIT, "[ELE] Earth Shock (moving)")
         end
         return nil
