@@ -164,9 +164,14 @@ function BitUtils.isPet(Flags) end
 function GetTime() end
 
 --- Get spell info
----@param spellID number Spell ID
+---@param spellID number|string Spell ID or name
 ---@return string name, string rank, number icon, number castTime, number minRange, number maxRange, number spellID
 function GetSpellInfo(spellID) end
+
+--- Get spell texture
+---@param spellID number Spell ID
+---@return string texture Texture path
+function GetSpellTexture(spellID) end
 
 --- Get unit health
 ---@param unitID string Unit ID
@@ -200,6 +205,11 @@ function UnitExists(unitID) end
 ---@return boolean dead Unit is dead
 function UnitIsDead(unitID) end
 
+--- Check if unit is dead or ghost
+---@param unitID string Unit ID
+---@return boolean dead Unit is dead or ghost
+function UnitIsDeadOrGhost(unitID) end
+
 --- Get unit name
 ---@param unitID string Unit ID
 ---@return string name Unit name
@@ -216,6 +226,12 @@ function UnitGUID(unitID) end
 ---@return boolean isPlayer Is player
 function UnitIsPlayer(unitID) end
 
+--- Check if two unit IDs refer to the same unit
+---@param unit1 string First unit
+---@param unit2 string Second unit
+---@return boolean same Units are the same
+function UnitIsUnit(unit1, unit2) end
+
 --- Check if unit is enemy
 ---@param unit1 string First unit
 ---@param unit2 string Second unit
@@ -227,6 +243,12 @@ function UnitIsEnemy(unit1, unit2) end
 ---@param unit2 string Second unit
 ---@return boolean isFriend Units are friends
 function UnitIsFriend(unit1, unit2) end
+
+--- Check if unit1 can assist unit2
+---@param unit1 string First unit
+---@param unit2 string Second unit
+---@return boolean canAssist Can assist
+function UnitCanAssist(unit1, unit2) end
 
 --- Get unit class
 ---@param unitID string Unit ID
@@ -240,10 +262,72 @@ function UnitClass(unitID) end
 ---@return number level Unit level
 function UnitLevel(unitID) end
 
+--- Get unit classification (elite, worldboss, rare, etc.)
+---@param unitID string Unit ID
+---@return string classification Classification string
+function UnitClassification(unitID) end
+
+--- Get unit creature type
+---@param unitID string Unit ID
+---@return string creatureType Creature type (Beast, Demon, Humanoid, etc.)
+function UnitCreatureType(unitID) end
+
 --- Check if unit is in range
 ---@param unitID string Unit ID
 ---@return boolean inRange Unit is in range
 function UnitInRange(unitID) end
+
+--- Check if unit is visible
+---@param unitID string Unit ID
+---@return boolean visible Unit is visible
+function UnitIsVisible(unitID) end
+
+--- Check if unit is connected (online)
+---@param unitID string Unit ID
+---@return boolean connected Unit is connected
+function UnitIsConnected(unitID) end
+
+--- Check if unit is affecting combat
+---@param unitID string Unit ID
+---@return boolean inCombat Unit is in combat
+function UnitAffectingCombat(unitID) end
+
+--- Get unit faction group
+---@param unitID string Unit ID
+---@return string faction "Horde" or "Alliance"
+---@return string localizedFaction Localized faction name
+function UnitFactionGroup(unitID) end
+
+--- Get unit group role
+---@param unitID string Unit ID
+---@return string role "TANK", "HEALER", "DAMAGER", or "NONE"
+function UnitGroupRolesAssigned(unitID) end
+
+--- Get detailed threat situation
+---@param unit1 string Attacking unit
+---@param unit2 string Target unit
+---@return boolean isTanking Is tanking
+---@return number status Threat status (0-3)
+---@return number scaledPercent Threat percentage (scaled)
+---@return number rawPercent Raw threat percentage
+---@return number threatValue Threat value
+function UnitDetailedThreatSituation(unit1, unit2) end
+
+--- Get threat situation
+---@param unit1 string Unit
+---@param unit2? string Target
+---@return number status Threat status (0-3)
+function UnitThreatSituation(unit1, unit2) end
+
+--- Get unit ranged attack speed
+---@param unitID string Unit ID
+---@return number speed Attack speed in seconds
+---@return number minDamage Minimum damage
+---@return number maxDamage Maximum damage
+---@return number bonusPos Positive bonus
+---@return number bonusNeg Negative bonus
+---@return number percent Damage percentage
+function UnitRangedDamage(unitID) end
 
 --- Get unit casting info
 ---@param unitID string Unit ID
@@ -275,6 +359,17 @@ function UnitDebuff(unitID, index, filter) end
 ---@return boolean noMana Not enough resources
 function IsUsableSpell(spellID) end
 
+--- Check if spell is known
+---@param spellID number Spell ID
+---@return boolean known Spell is known
+function IsSpellKnown(spellID) end
+
+--- Check if spell is in range of unit
+---@param spell number|string Spell ID or name
+---@param unit string Target unit ID
+---@return number|nil inRange 1 if in range, 0 if not, nil if not applicable
+function IsSpellInRange(spell, unit) end
+
 --- Get spell cooldown
 ---@param spellID number Spell ID
 ---@return number start Start time
@@ -282,17 +377,170 @@ function IsUsableSpell(spellID) end
 ---@return number enabled Is enabled
 function GetSpellCooldown(spellID) end
 
---- Check if player is in combat
----@return boolean inCombat Player is in combat
+--- Check if player is in combat (secure)
+---@return boolean inCombat Player is in combat lockdown
 function InCombatLockdown() end
 
 --- Print message
 ---@param ... any Messages to print
 function print(...) end
 
+--- Get number of group members
+---@return number count Number of group members
+function GetNumGroupMembers() end
+
+--- Get number of raid members (Classic/TBC)
+---@return number count Number of raid members
+function GetNumRaidMembers() end
+
+--- Get number of party members (Classic/TBC)
+---@return number count Number of party members
+function GetNumPartyMembers() end
+
+--- Check if player is in a group
+---@param groupType? number Group type
+---@return boolean inGroup Player is in a group
+function IsInGroup(groupType) end
+
+--- Check if player is in a raid
+---@return boolean inRaid Player is in a raid
+function IsInRaid() end
+
+--- Get raid roster info
+---@param index number Raid member index
+---@return string name, number rank, number subgroup, number level, string class, string fileName, string zone, boolean online, boolean isDead, string role, boolean isML, string combatRole
+function GetRaidRosterInfo(index) end
+
+--- Get totem information
+---@param slot number Totem slot (1=Fire, 2=Earth, 3=Water, 4=Air)
+---@return boolean haveTotem Totem exists
+---@return string totemName Totem name
+---@return number startTime Start timestamp
+---@return number duration Duration in seconds
+---@return number icon Texture ID
+function GetTotemInfo(slot) end
+
+--- Get weapon enchant info (imbues)
+---@return boolean hasMainHandEnchant Has main hand enchant
+---@return number mainHandExpiration Main hand expiration time
+---@return number mainHandCharges Main hand charges
+---@return number mainHandEnchantID Main hand enchant ID
+---@return boolean hasOffHandEnchant Has off hand enchant
+---@return number offHandExpiration Off hand expiration time
+---@return number offHandCharges Off hand charges
+---@return number offHandEnchantID Off hand enchant ID
+function GetWeaponEnchantInfo() end
+
+--- Get inventory item ID
+---@param unit string Unit ID
+---@param slot number Inventory slot
+---@return number|nil itemID Item ID or nil
+function GetInventoryItemID(unit, slot) end
+
+--- Get inventory item texture
+---@param unit string Unit ID
+---@param slot number Inventory slot
+---@return string|nil texture Texture path or nil
+function GetInventoryItemTexture(unit, slot) end
+
+--- Get item count in bags
+---@param itemID number Item ID
+---@param includeBank? boolean Include bank
+---@param includeCharges? boolean Count charges instead
+---@return number count Item count
+function GetItemCount(itemID, includeBank, includeCharges) end
+
+--- Get combat log event info
+---@return number timestamp, string subevent, boolean hideCaster, string sourceGUID, string sourceName, number sourceFlags, number sourceRaidFlags, string destGUID, string destName, number destFlags, number destRaidFlags, ...
+function CombatLogGetCurrentEventInfo() end
+
+--- Clear a table (WoW global utility)
+---@param tbl table Table to clear
+---@return table tbl The cleared table
+function wipe(tbl) end
+
+--- Format date/time string
+---@param formatString? string Date format string
+---@param time? number Unix timestamp
+---@return string formatted Formatted date string
+function date(formatString, time) end
+
+-- ============================================================================
+-- WoW Frame API
+-- ============================================================================
+
+--- Create a UI frame
+---@param frameType string Frame type ("Frame", "Button", "EditBox", "ScrollFrame", etc.)
+---@param name? string Global frame name
+---@param parent? any Parent frame
+---@param template? string XML template name (e.g., "BackdropTemplate")
+---@return table frame The created frame
+function CreateFrame(frameType, name, parent, template) end
+
+--- Main UI parent frame
+---@type table
+UIParent = {}
+
+--- Game tooltip frame
+---@type table
+GameTooltip = {}
+
+--- Hide game tooltip
+function GameTooltip_Hide() end
+
+-- ============================================================================
+-- WoW Timer API
+-- ============================================================================
+
+---@class C_Timer_NS
+C_Timer = {}
+
+--- Schedule a callback after a delay
+---@param seconds number Delay in seconds
+---@param callback function Function to call
+function C_Timer.After(seconds, callback) end
+
+--- Create a new ticker
+---@param seconds number Interval in seconds
+---@param callback function Function to call each tick
+---@param iterations? number Max iterations (nil = infinite)
+---@return table ticker Ticker handle with :Cancel() method
+function C_Timer.NewTicker(seconds, callback, iterations) end
+
+--- Create a one-shot timer
+---@param seconds number Delay in seconds
+---@param callback function Function to call
+---@return table timer Timer handle with :Cancel() method
+function C_Timer.NewTimer(seconds, callback) end
+
+-- ============================================================================
+-- WoW Constants & Global Tables
+-- ============================================================================
+
+--- Slash command handler table
+---@type table<string, function>
+SlashCmdList = {}
+
+--- Class colors indexed by class token
+---@type table<string, {r: number, g: number, b: number}>
+RAID_CLASS_COLORS = {}
+
+--- Inventory slot constants
+---@type number
+INVSLOT_HEAD = 1
+
 -- ============================================================================
 -- TellMeWhen Globals (TMW addon)
 -- ============================================================================
 
 ---@class TMW
+---@field GetSpellTexture fun(spellID: number): string|nil
 TMW = {}
+
+-- ============================================================================
+-- Third-Party Addon Globals
+-- ============================================================================
+
+--- Toaster notification addon (optional)
+---@type table|nil
+Toaster = nil
