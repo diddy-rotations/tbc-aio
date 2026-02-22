@@ -92,8 +92,12 @@ do
       return Unit("targettarget"):IsHealer() == true
    end
 
-   -- Reliable aggro check: target is targeting us
+   -- Reliable aggro check: threat API OR targettarget confirmation
+   -- UnitThreatSituation: 3 = tanking + highest threat, 2 = tanking (not highest)
+   -- Either signal alone is sufficient to confirm we have aggro
    local function has_target_aggro()
+      local threat = _G.UnitThreatSituation(PLAYER_UNIT, TARGET_UNIT) or 0
+      if threat >= 2 then return true end
       return _G.UnitExists("targettarget") and _G.UnitIsUnit("targettarget", PLAYER_UNIT)
    end
 
@@ -160,17 +164,70 @@ do
       return false
    end
 
+   -- Forward declaration: populated below, needed by should_tab_target
+   local bear_state
+
+   -- Unit priority for tab-targeting: boss > elite > trash
+   local PRIO_BOSS = 3
+   local PRIO_ELITE = 2
+   local PRIO_TRASH = 1
+   local function get_unit_priority(unitID)
+      local class = _G.UnitClassification(unitID)
+      if class == "worldboss" then return PRIO_BOSS end
+      if class == "elite" or class == "rareelite" then return PRIO_ELITE end
+      return PRIO_TRASH
+   end
+
+   local TAB_MAX_ATTEMPTS = 10  -- safety: give up cycling after this many frames
+
    local function should_tab_target(ctx, state)
-      if not ctx.settings.enable_tab_targeting then return false end
+      if not ctx.settings.enable_tab_targeting then
+         bear_state.tab_target_desired = nil
+         return false
+      end
+
+      -- Mid-cycle: we're actively cycling toward a desired target
+      local desired = bear_state.tab_target_desired
+      if desired then
+         -- Landed on it → done
+         if _G.UnitExists(TARGET_UNIT) and _G.UnitIsUnit(TARGET_UNIT, desired) then
+            bear_state.tab_target_desired = nil
+            bear_state.tab_target_attempts = 0
+            return false
+         end
+         -- Desired target gone or out of melee → abort
+         if not _G.UnitExists(desired) or _G.UnitIsDead(desired)
+            or A.MangleBear:IsInRange(desired) ~= true then
+            bear_state.tab_target_desired = nil
+            bear_state.tab_target_attempts = 0
+            return false
+         end
+         -- Max attempts → give up (prevent infinite cycling)
+         bear_state.tab_target_attempts = bear_state.tab_target_attempts + 1
+         if bear_state.tab_target_attempts > TAB_MAX_ATTEMPTS then
+            bear_state.tab_target_desired = nil
+            bear_state.tab_target_attempts = 0
+            return false
+         end
+         return true  -- keep cycling
+      end
+
+      -- Normal evaluation: decide IF and WHERE to switch
       if ctx.enemy_count < 2 then return false end
       if _G.UnitIsPlayer(TARGET_UNIT) then return false end
+
+      -- Switch if current target is dead or doesn't exist
+      if not _G.UnitExists(TARGET_UNIT) or _G.UnitIsDead(TARGET_UNIT) then return true end
+
       if Unit(TARGET_UNIT):CombatTime() == 0 then return false end
 
-      -- Switch away from CC'd target to find a valid one
+      -- Switch away from CC'd target to find a valid one (no specific target, AUTOTARGET picks)
       if is_target_breakable_cc() then return true end
 
-      -- Only switch if current target is valid and in melee range
-      if _G.UnitExists(TARGET_UNIT) and not _G.UnitIsDead(TARGET_UNIT) and _G.UnitIsVisible(TARGET_UNIT) and ctx.in_melee_range then
+      -- Current target out of melee or not visible → fall through to scan for an in-range target
+      local current_out_of_range = not ctx.in_melee_range or not _G.UnitIsVisible(TARGET_UNIT)
+
+      if not current_out_of_range then
          -- Only switch if we have solid aggro (threat >= 2) on current target
          local threat = Unit(TARGET_UNIT):ThreatSituation() or 0
          local hasAggro = threat >= 2 or (_G.UnitExists("targettarget") and _G.UnitIsUnit("targettarget", PLAYER_UNIT))
@@ -179,83 +236,107 @@ do
             -- Don't have aggro yet, stay on this target
             return false
          end
+      end
 
-         -- Count mobs by aggro status, and find if there's a healthy target to switch to
-         local mobsWithAggro = 0
-         local mobsWithoutAggro = 0
-         local maxMobsToManage = 4
-         local mobsWithLowLacerate = 0
+      -- Scan nameplates: count aggro status + find best target by priority (boss > elite > trash)
+      local mobsWithAggro = 0
+      local mobsWithoutAggro = 0
+      local maxMobsToManage = 4
+      local mobsWithLowLacerate = 0
+      local bestLooseUnit, bestLoosePriority = nil, 0
+      local bestLacUnit, bestLacPriority = nil, 0
+      local bestInRangeUnit, bestInRangePriority = nil, 0  -- best target overall (for out-of-range swap)
 
-         local plates = A.MultiUnits:GetActiveUnitPlates()
-         for unitID in pairs(plates) do
-            if unitID
-               and _G.UnitExists(unitID)
-               and not _G.UnitIsDead(unitID)
-               and not _G.UnitIsPlayer(unitID)
-               and not _G.UnitIsUnit(unitID, TARGET_UNIT) -- Don't count current target
-               and Unit(unitID):CombatTime() > 0
-               and A.MangleBear:IsInRange(unitID) == true -- Only consider targets in melee range
-               and (Unit(unitID):InCC() or 0) == 0 -- Don't count CC'd targets
-            then
-               local unitTTD = Unit(unitID):TimeToDie()
-               local unitIsDying = unitTTD > 0 and unitTTD < 5
+      local plates = A.MultiUnits:GetActiveUnitPlates()
+      for unitID in pairs(plates) do
+         if unitID
+            and _G.UnitExists(unitID)
+            and not _G.UnitIsDead(unitID)
+            and not _G.UnitIsPlayer(unitID)
+            and not _G.UnitIsUnit(unitID, TARGET_UNIT) -- Don't count current target
+            and Unit(unitID):CombatTime() > 0
+            and A.MangleBear:IsInRange(unitID) == true -- Only consider targets in melee range
+            and (Unit(unitID):InCC() or 0) == 0 -- Don't count CC'd targets
+         then
+            local unitTTD = Unit(unitID):TimeToDie()
+            local unitIsDying = unitTTD > 0 and unitTTD < 5
 
-               -- Don't count dying mobs as needing pickup
-               if not unitIsDying then
-                  local unitThreat = _G.UnitThreatSituation(PLAYER_UNIT, unitID) or 0
-                  local unitTargetingPlayer = _G.UnitExists(unitID .. "target") and _G.UnitIsUnit(unitID .. "target", PLAYER_UNIT)
-                  local unitHasAggro = unitThreat >= 2 or unitTargetingPlayer
+            -- Don't count dying mobs as needing pickup
+            if not unitIsDying then
+               local unitThreat = _G.UnitThreatSituation(PLAYER_UNIT, unitID) or 0
+               local unitTargetingPlayer = _G.UnitExists(unitID .. "target") and _G.UnitIsUnit(unitID .. "target", PLAYER_UNIT)
+               local unitHasAggro = unitThreat >= 2 or unitTargetingPlayer
+               local unitPriority = get_unit_priority(unitID)
 
-                  if unitHasAggro then
-                     mobsWithAggro = mobsWithAggro + 1
-                  else
-                     mobsWithoutAggro = mobsWithoutAggro + 1
+               -- Track best in-range unit overall (for out-of-range swap)
+               if unitPriority > bestInRangePriority then
+                  bestInRangePriority = unitPriority
+                  bestInRangeUnit = unitID
+               end
+
+               if unitHasAggro then
+                  mobsWithAggro = mobsWithAggro + 1
+               else
+                  mobsWithoutAggro = mobsWithoutAggro + 1
+                  if unitPriority > bestLoosePriority then
+                     bestLoosePriority = unitPriority
+                     bestLooseUnit = unitID
                   end
+               end
 
-                  -- Count mobs with low lacerate stacks for DPS optimization
-                  if is_spell_available(A.Lacerate) then
-                     local unitLacerateStacks = Unit(unitID):HasDeBuffsStacks(A.Lacerate.ID, true)
-                     if unitLacerateStacks < 3 then
-                        mobsWithLowLacerate = mobsWithLowLacerate + 1
+               -- Count mobs with low lacerate stacks for DPS optimization
+               if is_spell_available(A.Lacerate) then
+                  local unitLacerateStacks = Unit(unitID):HasDeBuffsStacks(A.Lacerate.ID, true)
+                  if unitLacerateStacks < 3 then
+                     mobsWithLowLacerate = mobsWithLowLacerate + 1
+                     if unitPriority > bestLacPriority then
+                        bestLacPriority = unitPriority
+                        bestLacUnit = unitID
                      end
                   end
                end
             end
          end
-
-         -- Switch if there are uncontrolled mobs and we're not already managing too many
-         if mobsWithoutAggro > 0 and mobsWithAggro < maxMobsToManage then
-            return true
-         end
-
-         -- DPS optimization: Spread lacerate on multi-target (but below swipe threshold)
-         -- Only do this on non-boss fights to maximize DPS
-         if not ctx.is_boss and ctx.enemy_count >= 2 and ctx.enemy_count < 3 then
-            local currentLacerateStacks = state.lacerate_stacks
-            -- If current target has 3+ stacks and there are mobs with < 3 stacks, switch
-            if currentLacerateStacks >= 3 and mobsWithLowLacerate > 0 then
-               return true
-            end
-         end
-
-         -- Stay on current target if we have aggro and it's in range
-         return false
       end
 
-      -- Target is invalid (doesn't exist, is dead, or out of range)
-      -- Switch to find a valid in-range target
-      if not _G.UnitExists(TARGET_UNIT) or _G.UnitIsDead(TARGET_UNIT) or not ctx.in_melee_range then
+      -- Switch if there are uncontrolled mobs and we're not already managing too many
+      if mobsWithoutAggro > 0 and mobsWithAggro < maxMobsToManage then
+         if bestLooseUnit then
+            bear_state.tab_target_desired = bestLooseUnit
+            bear_state.tab_target_attempts = 0
+         end
          return true
       end
 
-      -- Should not reach here, but default to not switching
+      -- DPS optimization: Spread lacerate on multi-target (but below swipe threshold)
+      -- Only do this on non-boss fights to maximize DPS
+      if not ctx.is_boss and ctx.enemy_count >= 2 and ctx.enemy_count < 3 then
+         local currentLacerateStacks = state.lacerate_stacks
+         -- If current target has 3+ stacks and there are mobs with < 3 stacks, switch
+         if currentLacerateStacks >= 3 and mobsWithLowLacerate > 0 then
+            if bestLacUnit then
+               bear_state.tab_target_desired = bestLacUnit
+               bear_state.tab_target_attempts = 0
+            end
+            return true
+         end
+      end
+
+      -- Current target out of melee → switch to best in-range target
+      if current_out_of_range and bestInRangeUnit then
+         bear_state.tab_target_desired = bestInRangeUnit
+         bear_state.tab_target_attempts = 0
+         return true
+      end
+
+      -- Stay on current target if we have aggro and it's in range
       return false
    end
 
    -- =========================================================================
    -- SHARED BEAR STATE (computed once per frame, cached)
    -- =========================================================================
-   local bear_state = {
+   bear_state = {
       maul_queued = false,     -- true while we're trying to queue Maul (spamming TMW:Fire)
       maul_confirmed = false,  -- true once IsSpellCurrent() confirms game accepted the queue
       maul_dequeue_logged = false, -- throttle: only log dequeue once per cycle
@@ -263,6 +344,8 @@ do
       lacerate_duration = 0,
       nearby_elites = 0,
       nearby_bosses = 0,
+      tab_target_desired = nil,   -- nameplate unitID we're cycling toward
+      tab_target_attempts = 0,   -- safety counter to prevent infinite cycling
       nearby_trash = 0,
    }
 
@@ -480,6 +563,8 @@ do
          if context.settings.bear_no_taunt then return false end
          -- Only taunt NPCs, not players
          if _G.UnitIsPlayer(TARGET_UNIT) then return false end
+         -- Grace period: don't taunt immediately on pull (threat needs ~1.5s to register after charge/pull)
+         if context.combat_time < 1.5 then return false end
          -- Skip if target is CC'd (taunting wastes 10s CD, mob can't attack while CC'd)
          if is_target_cc_locked(Constants.BEAR.GROWL_CC_THRESHOLD) then return false end
          -- Skip if target is already attacking us (we have aggro)
@@ -496,7 +581,10 @@ do
       execute = function(icon, context)
          local targeting_healer = is_targettarget_healer()
          local reason = targeting_healer and "HEALER TARGETED" or "taunting"
-         return try_cast_fmt(A.Growl, icon, TARGET_UNIT, "[P3]", "Growl", "Lost aggro - %s (TTD: %.0fs)", reason, context.ttd)
+         local threatStatus = _G.UnitThreatSituation(PLAYER_UNIT, TARGET_UNIT) or -1
+         local tt = _G.UnitExists("targettarget") and (_G.UnitName("targettarget") or "?") or "none"
+         NS.debug_print(format("[GROWL] threat=%d, targettarget=%s, healer=%s, TTD=%.0f", threatStatus, tt, tostring(targeting_healer), context.ttd))
+         return try_cast_fmt(A.Growl, icon, TARGET_UNIT, "[P3]", "Growl", "Lost aggro - %s (threat=%d, tt=%s, TTD: %.0fs)", reason, threatStatus, tt, context.ttd)
       end,
    }
 
@@ -537,7 +625,13 @@ do
          return should_tab_target(context, state)
       end,
       execute = function(icon, context)
-         AddDebugLogLine(format("[%.3fs] [TAB TARGET] Switching to next target for threat management", GetTime()))
+         local desired = bear_state.tab_target_desired
+         if desired and _G.UnitExists(desired) then
+            AddDebugLogLine(format("[%.3fs] [TAB TARGET] Cycling toward %s (%s) [attempt %d]",
+               GetTime(), _G.UnitName(desired) or "?", _G.UnitClassification(desired) or "?", bear_state.tab_target_attempts))
+         else
+            AddDebugLogLine(format("[%.3fs] [TAB TARGET] Auto-targeting", GetTime()))
+         end
          return A:Show(icon, CONST.AUTOTARGET)
       end,
    }

@@ -157,7 +157,8 @@ local function create_context(icon)
    local gcd_remaining = Player:GCDRemains()
    local on_gcd = gcd_remaining > 0.1
 
-   local combat_status = Unit(PLAYER_UNIT):CombatTime() > 0
+   local combat_time = Unit(PLAYER_UNIT):CombatTime()
+   local combat_status = combat_time > 0
 
    local mana_pct = Player:ManaPercentage()
 
@@ -181,6 +182,7 @@ local function create_context(icon)
    ctx.in_melee_range = (min_range and min_range <= 5) or false
    ctx.target_phys_immune = has_phys_immunity(TARGET_UNIT)
    ctx.is_boss = ctx.has_valid_enemy_target and Unit(TARGET_UNIT):IsBoss()
+   ctx.combat_time = combat_time
    ctx.settings = cached_settings
    ctx.gcd_remaining = gcd_remaining
 
