@@ -143,6 +143,15 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         }},
         { header = "Threat Management", settings = {
             { type = "checkbox", key = "enable_tab_targeting", default = true, label = "Enable Tab Targeting", tooltip = "Automatically switch targets to spread threat across multiple mobs. Picks up loose mobs, switches off CC'd targets, and spreads Lacerate for DPS optimization." },
+            { type = "dropdown", key = "tab_min_priority", default = "all", label = "Min Priority to Tab",
+              tooltip = "Only tab-target mobs of this priority or higher. 'All' picks up everything, 'Elites+' ignores trash, 'Bosses Only' only picks up bosses.",
+              options = {
+                  { value = "all", text = "All" },
+                  { value = "elites", text = "Elites+" },
+                  { value = "bosses", text = "Bosses Only" },
+              }},
+            { type = "slider", key = "tab_max_mobs", default = 4, min = 2, max = 8, label = "Max Mobs to Manage", tooltip = "Stop picking up new mobs once you have aggro on this many. Higher = more threat spreading, lower = more focused tanking.", format = "%d" },
+            { type = "checkbox", key = "tab_spread_lacerate", default = true, label = "Spread Lacerate", tooltip = "Switch targets to spread Lacerate stacks on 2-3 target packs for DPS optimization." },
         }},
         { header = "Rage Management", settings = {
             { type = "slider", key = "maul_rage_threshold", default = 40, min = 15, max = 80, label = "Maul Rage Threshold", tooltip = "Queue Maul above this rage. Lower = more DPS but drains rage faster. 40 recommended.", format = "%d" },

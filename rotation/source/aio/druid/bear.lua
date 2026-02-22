@@ -179,6 +179,14 @@ do
    end
 
    local TAB_MAX_ATTEMPTS = 10  -- safety: give up cycling after this many frames
+   local MANUAL_TARGET_GRACE = 3  -- seconds: don't tab-target after manual target selection
+
+   -- Convert setting string to minimum priority threshold
+   local function get_min_priority_from_setting(setting)
+      if setting == "bosses" then return PRIO_BOSS end
+      if setting == "elites" then return PRIO_ELITE end
+      return PRIO_TRASH  -- "all" or nil
+   end
 
    local function should_tab_target(ctx, state)
       if not ctx.settings.enable_tab_targeting then
@@ -212,6 +220,10 @@ do
          return true  -- keep cycling
       end
 
+      -- Respect manual target selection: don't override player clicks for a few seconds
+      -- Covers: targeting out-of-range mob to Feral Charge, clicking teammate to Innervate, etc.
+      if (GetTime() - bear_state.manual_target_time) < MANUAL_TARGET_GRACE then return false end
+
       -- Normal evaluation: decide IF and WHERE to switch
       if ctx.enemy_count < 2 then return false end
       if _G.UnitIsPlayer(TARGET_UNIT) then return false end
@@ -241,7 +253,8 @@ do
       -- Scan nameplates: count aggro status + find best target by priority (boss > elite > trash)
       local mobsWithAggro = 0
       local mobsWithoutAggro = 0
-      local maxMobsToManage = 4
+      local maxMobsToManage = ctx.settings.tab_max_mobs or 4
+      local minPriority = get_min_priority_from_setting(ctx.settings.tab_min_priority)
       local mobsWithLowLacerate = 0
       local bestLooseUnit, bestLoosePriority = nil, 0
       local bestLacUnit, bestLacPriority = nil, 0
@@ -278,7 +291,8 @@ do
                   mobsWithAggro = mobsWithAggro + 1
                else
                   mobsWithoutAggro = mobsWithoutAggro + 1
-                  if unitPriority > bestLoosePriority then
+                  -- Only consider picking up mobs that meet min priority threshold
+                  if unitPriority >= minPriority and unitPriority > bestLoosePriority then
                      bestLoosePriority = unitPriority
                      bestLooseUnit = unitID
                   end
@@ -310,7 +324,7 @@ do
 
       -- DPS optimization: Spread lacerate on multi-target (but below swipe threshold)
       -- Only do this on non-boss fights to maximize DPS
-      if not ctx.is_boss and ctx.enemy_count >= 2 and ctx.enemy_count < 3 then
+      if ctx.settings.tab_spread_lacerate ~= false and not ctx.is_boss and ctx.enemy_count >= 2 and ctx.enemy_count < 3 then
          local currentLacerateStacks = state.lacerate_stacks
          -- If current target has 3+ stacks and there are mobs with < 3 stacks, switch
          if currentLacerateStacks >= 3 and mobsWithLowLacerate > 0 then
@@ -320,6 +334,12 @@ do
             end
             return true
          end
+      end
+
+      -- Don't swap off out-of-range target if Feral Charge is available (player may want to charge)
+      if current_out_of_range and is_spell_available(A.FeralChargeBear) then
+         local charge_cd = A.FeralChargeBear:GetCooldown()
+         if charge_cd <= 0 then return false end
       end
 
       -- Current target out of melee → switch to best in-range target
@@ -347,6 +367,8 @@ do
       tab_target_desired = nil,   -- nameplate unitID we're cycling toward
       tab_target_attempts = 0,   -- safety counter to prevent infinite cycling
       nearby_trash = 0,
+      last_target_guid = nil,    -- GUID of last-seen target (for manual target detection)
+      manual_target_time = 0,    -- GetTime() when player last manually changed targets
    }
 
    -- Rage costs (cached at load time, must be before CLEU handler)
@@ -416,6 +438,16 @@ do
    local function get_bear_state(context)
       if context._bear_valid then return bear_state end
       context._bear_valid = true
+
+      -- Manual target detection: if target GUID changed and we didn't cause it, it's manual
+      local current_guid = _G.UnitGUID(TARGET_UNIT)
+      if current_guid ~= bear_state.last_target_guid then
+         if bear_state.last_target_guid ~= nil and not bear_state.tab_target_desired then
+            -- Target changed outside of our tab cycle → manual selection
+            bear_state.manual_target_time = GetTime()
+         end
+         bear_state.last_target_guid = current_guid
+      end
 
       if bear_state.maul_queued then
          local isc = A.Maul:IsSpellCurrent()
