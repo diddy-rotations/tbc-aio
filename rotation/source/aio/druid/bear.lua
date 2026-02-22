@@ -722,6 +722,13 @@ do
       matches = function(context, state)
          local aoe_threshold = get_aoe_threshold(context, state)
          if context.enemy_count < aoe_threshold then return false end
+         -- Yield to Mangle: let it fire on CD even during AoE (maintains 30% bleed debuff)
+         if is_spell_available(A.MangleBear) and A.MangleBear:GetCooldown() <= 0
+            and (context.has_clearcasting or context.rage >= RAGE_COST_MANGLE) then
+            return false
+         end
+         -- Hold for Mangle: don't waste a 1.5s GCD when Mangle is almost ready
+         if should_hold_for_mangle() then return false end
          -- CC safety
          if context.settings.swipe_cc_check ~= false then
             if has_breakable_cc_nearby() then return false end
@@ -730,7 +737,7 @@ do
             local swipe_threshold = context.settings.swipe_rage_threshold or Constants.BEAR.DEFAULT_SWIPE_RAGE
             if context.rage < swipe_threshold then return false end
             if would_starve_maul(context, RAGE_COST_SWIPE) then return false end
-            -- No starve_mangle check: in AoE, Swipe > Mangle
+            if would_starve_mangle(context, RAGE_COST_SWIPE) then return false end
          end
          return true
       end,

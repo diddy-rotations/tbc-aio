@@ -364,6 +364,9 @@ do
 
       matches = function(context)
          if not context.in_combat then return false end
+         -- Barkskin drops shapeshift forms on this server; only use in caster/moonkin/tree
+         local stance = context.stance
+         if stance == Constants.STANCE.BEAR or stance == Constants.STANCE.CAT then return false end
          if not is_spell_available(A.SelfBarkskin) then return false end
          local threshold = context.settings.barkskin_hp or 40
          if context.hp > threshold then return false end
