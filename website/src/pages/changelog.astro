@@ -15,6 +15,29 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.6.7 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-minor">Minor</span>
+
+      <h3>Druid: Sapper Charge Powershift</h3>
+      <ul class="features">
+        <li><strong>Sapper Shifting</strong> &mdash; Cat powershifts now optionally use Goblin/Super Sapper Charges via DMH instant-cast macros when facing 3+ enemies or bosses</li>
+        <li><strong>Settings</strong> &mdash; Two new checkboxes under Cat &gt; Powershift: &ldquo;Use Super Sapper Charge&rdquo; and &ldquo;Use Goblin Sapper Charge&rdquo; (both off by default, requires DMH addon)</li>
+      </ul>
+
+      <h3>Paladin: Seal of Wisdom Mana Recovery</h3>
+      <ul class="features">
+        <li><strong>Low Mana Seal Swap</strong> &mdash; Protection automatically switches to Seal of Wisdom when mana drops below threshold (default 20%) for passive mana recovery</li>
+        <li><strong>Mana Conservation</strong> &mdash; During low mana mode, Exorcism and Hammer of Wrath are skipped, Consecration limited to 2+ targets</li>
+        <li><strong>Item Fix</strong> &mdash; Fixed Item Click definitions causing C_Item.IsEquippableItem errors on consumables</li>
+      </ul>
+
+      <h3>All Classes: Boss Detection</h3>
+      <ul class="features">
+        <li><strong>Shared context.is_boss</strong> &mdash; Added boss detection to the shared context object, available to all classes. Fixed bear lacerate spread using undefined is_boss_fight field</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.6.6 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-minor">Minor</span>
 

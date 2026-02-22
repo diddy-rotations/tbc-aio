@@ -230,7 +230,7 @@ do
 
          -- DPS optimization: Spread lacerate on multi-target (but below swipe threshold)
          -- Only do this on non-boss fights to maximize DPS
-         if not ctx.is_boss_fight and ctx.enemy_count >= 2 and ctx.enemy_count < 3 then
+         if not ctx.is_boss and ctx.enemy_count >= 2 and ctx.enemy_count < 3 then
             local currentLacerateStacks = state.lacerate_stacks
             -- If current target has 3+ stacks and there are mobs with < 3 stacks, switch
             if currentLacerateStacks >= 3 and mobsWithLowLacerate > 0 then
