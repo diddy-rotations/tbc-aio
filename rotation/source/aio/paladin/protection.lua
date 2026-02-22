@@ -109,6 +109,13 @@ end
 -- Returns true if the currently configured seal is active
 local function has_configured_seal(context)
     local choice = context.settings.prot_seal_choice or "righteousness"
+    
+    -- During mana recovery mode, Seal of Wisdom is acceptable even if not configured
+    local threshold = context.settings.seal_of_wisdom_mana_pct or 20
+    if context.mana_pct <= threshold and context.seal_wisdom_active then
+        return true
+    end
+    
     if choice == "vengeance" then return context.seal_vengeance_active end
     if choice == "wisdom" then return context.seal_wisdom_active end
     return context.seal_righteousness_active
@@ -223,6 +230,9 @@ local Prot_Consecration = {
     matches = function(context, state)
         if not context.settings.prot_use_consecration then return false end
         if context.mana_pct < Constants.MANA.PROT_CONSEC_PCT then return false end
+        -- During low mana mode, only use Consecration on 2+ targets
+        local threshold = context.settings.seal_of_wisdom_mana_pct or 20
+        if context.mana_pct <= threshold and context.enemy_count < 2 then return false end
         return true
     end,
 
@@ -260,6 +270,9 @@ local Prot_Exorcism = {
         if context.is_moving then return false end
         if not state.target_undead_or_demon then return false end
         if not state.can_exorcism then return false end
+        -- Skip during low mana mode (non-essential for threat)
+        local threshold = context.settings.seal_of_wisdom_mana_pct or 20
+        if context.mana_pct <= threshold then return false end
         return true
     end,
 
@@ -296,6 +309,9 @@ local Prot_HammerOfWrath = {
     matches = function(context, state)
         if not context.settings.prot_use_hammer_of_wrath then return false end
         if not state.target_below_20 then return false end
+        -- Skip during low mana mode (non-essential for threat)
+        local threshold = context.settings.seal_of_wisdom_mana_pct or 20
+        if context.mana_pct <= threshold then return false end
         return true
     end,
 
