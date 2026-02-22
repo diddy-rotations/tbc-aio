@@ -76,6 +76,8 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "Powershift", settings = {
             { type = "checkbox", key = "auto_powershift", default = true, label = "Auto Powershift", tooltip = "Shift out/in for energy. Wolfshead Helm auto-detected." },
             { type = "slider", key = "powershift_min_mana", default = 25, min = 10, max = 90, label = "Min Mana for Powershift (%)", tooltip = "Minimum mana % to powershift.", format = "%d%%" },
+            { type = "checkbox", key = "use_super_sapper", default = false, label = "Use Super Sapper Charge", tooltip = "Use Super Sapper when shifting vs 3+ enemies or bosses. Requires DMH addon installed." },
+            { type = "checkbox", key = "use_goblin_sapper", default = false, label = "Use Goblin Sapper Charge", tooltip = "Use Goblin Sapper when shifting vs 3+ enemies or bosses. Requires DMH addon installed." },
         }},
         { header = "Rip", settings = {
             { type = "checkbox", key = "maintain_rip", default = true, label = "Maintain Rip", tooltip = "Keep Rip bleed DoT active." },

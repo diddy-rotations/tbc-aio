@@ -187,9 +187,22 @@ end
 --- Note: GCD is already checked at main entry point (A[3])
 --- @param icon table The icon to show
 --- @return any|nil The cast result or nil
-local function safe_cat_form_shift(icon)
+local function safe_cat_form_shift(icon, context)
    -- Record shift time so energy tick tracker can ignore Furor energy
    energy_tick_last_shift = GetTime()
+
+   -- Use Sapper Charges when shifting vs 3+ enemies or bosses (requires DMH addon)
+   local use_sappers = (context.enemy_count >= 3) or context.is_boss
+   if use_sappers then
+      if context.settings.use_super_sapper and A.SuperSapperCharge:IsExists() and A.CatSuperSapperChargeAndShift:IsReady("player") then
+         return A.CatSuperSapperChargeAndShift:Show(icon)
+      end
+      if context.settings.use_goblin_sapper and A.GoblinSapperCharge:IsExists() and A.CatGoblinSapperChargeAndShift:IsReady("player") then
+         return A.CatGoblinSapperChargeAndShift:Show(icon)
+      end
+   end
+
+   -- Fallback to normal cat form shift
    return A.CatForm:Show(icon)
 end
 
@@ -459,7 +472,7 @@ local Cat_RipShift = {
    execute = function(icon, context, state)
       if will_reach_energy_soon(ENERGY_COST_RIP, 0.5, context) then return nil end
       if state.energy_tick_soon then return nil end
-      local result = safe_cat_form_shift(icon)
+      local result = safe_cat_form_shift(icon, context)
       if result then
          return result, format("[P2] Shift for Rip - Energy: %d -> ~%d (%d shifts left)", context.energy, state.energy_after_shift, state.shifts_remaining)
       end
@@ -591,7 +604,7 @@ local Cat_MangleShift = {
    execute = function(icon, context, state)
       if will_reach_energy_soon(ENERGY_COST_MANGLE, 0.5, context) then return nil end
       if state.energy_tick_soon then return nil end
-      local result = safe_cat_form_shift(icon)
+      local result = safe_cat_form_shift(icon, context)
       if result then
          return result, format("[P4] Shift for Mangle - Energy: %d -> ~%d (%d shifts left)", context.energy, state.energy_after_shift, state.shifts_remaining)
       end
@@ -840,7 +853,7 @@ local Cat_CriticalEnergyShift = {
       if will_reach_energy_soon(Constants.ENERGY.CRITICAL + 10, 0.5, context) then
          return nil
       end
-      local result = safe_cat_form_shift(icon)
+      local result = safe_cat_form_shift(icon, context)
       if result then
          return result, format("[P0] Critical Energy Shift - Energy: %d -> %d, Mana: %.0f%% (%d shifts left)", context.energy, state.energy_after_shift, context.mana_pct, state.shifts_remaining)
       end
@@ -870,7 +883,7 @@ local Cat_WolfsheadShred = {
    execute = function(icon, context, state)
       if will_reach_energy_soon(ENERGY_COST_SHRED, 0.5, context) then return nil end
       if state.energy_tick_soon then return nil end
-      local result = safe_cat_form_shift(icon)
+      local result = safe_cat_form_shift(icon, context)
       if result then
          return result, format("[WOLFSHEAD] Shift -> Shred, Energy: %d -> %d (%d shifts left)", context.energy, state.energy_after_shift, state.shifts_remaining)
       end
@@ -902,7 +915,7 @@ local Cat_EarlyShift = {
       local shift_threshold = state.has_wolfshead and Constants.ENERGY.EARLY_SHIFT_WOLFSHEAD or Constants.ENERGY.EARLY_SHIFT
       if will_reach_energy_soon(shift_threshold + 10, 0.5, context) then return nil end
       if state.energy_tick_soon then return nil end
-      local result = safe_cat_form_shift(icon)
+      local result = safe_cat_form_shift(icon, context)
       if result then
          local info = state.has_wolfshead and format(" -> %d", state.energy_after_shift) or ""
          return result, format("[SHIFT] Early shift - Energy: %d%s, Mana: %.0f%% (%d shifts left)", context.energy, info, context.mana_pct, state.shifts_remaining)
