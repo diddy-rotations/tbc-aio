@@ -1,10 +1,7 @@
 -- Priest Class Module
 -- Defines all Priest spells, constants, helper functions, and registers Priest as a class
 
-local _G, setmetatable, pairs, ipairs, tostring, select, type = _G, setmetatable, pairs, ipairs, tostring, select, type
-local tinsert = table.insert
-local format = string.format
-local GetTime = _G.GetTime
+local _G, setmetatable, pairs = _G, setmetatable, pairs
 local A = _G.Action
 
 if not A then return end
@@ -106,13 +103,9 @@ NS.A = A
 local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
-local is_spell_known = NS.is_spell_known
-local PLAYER_UNIT = NS.PLAYER_UNIT
-local TARGET_UNIT = NS.TARGET_UNIT
 
 -- Framework helpers
 local MultiUnits = A.MultiUnits
-local DetermineUsableObject = A.DetermineUsableObject
 
 -- ============================================================================
 -- CONSTANTS
@@ -161,7 +154,7 @@ NS.Constants = Constants
 -- ============================================================================
 rotation_registry:register_class({
     name = "Priest",
-    version = "v1.6.1",
+    version = "v1.7.0",
     playstyles = { "shadow", "smite", "holy", "discipline" },
     idle_playstyle_name = nil,
 

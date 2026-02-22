@@ -1,10 +1,8 @@
 -- Hunter Class Module
 -- Defines all Hunter spells, constants, helper functions, and registers Hunter as a class
 
-local _G, setmetatable, pairs, ipairs, tostring, select, type = _G, setmetatable, pairs, ipairs, tostring, select, type
-local tinsert = table.insert
+local _G, setmetatable, type = _G, setmetatable, type
 local format = string.format
-local GetTime = _G.GetTime
 local A = _G.Action
 
 if not A then return end
@@ -110,7 +108,6 @@ Action[A.PlayerClass] = {
 
     -- Items
     SuperHealingPotion = Create({ Type = "Potion", ID = 22829, QueueForbidden = true, Click = { unit = "player", type = "item", item = 22829 } }),
-    Healthstone        = Create({ Type = "Spell", ID = 19013, Click = { unit = "player", type = "spell", spell = 19013 } }),
     HSMaster1          = Create({ Type = "Spell", ID = 22105, Click = { unit = "player", type = "spell", spell = 22105 } }),
     HSMaster2          = Create({ Type = "Spell", ID = 22104, Click = { unit = "player", type = "spell", spell = 22104 } }),
     HSMaster3          = Create({ Type = "Spell", ID = 22103, Click = { unit = "player", type = "spell", spell = 22103 } }),
@@ -135,29 +132,11 @@ NS.A = A
 local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
-local is_spell_known = NS.is_spell_known
 local cached_settings = NS.cached_settings
-local PLAYER_UNIT = NS.PLAYER_UNIT
-local TARGET_UNIT = NS.TARGET_UNIT
-
--- Framework helpers
-local GetToggle = A.GetToggle
-local GetGCD = A.GetGCD
-local GetLatency = A.GetLatency
-local GetCurrentGCD = A.GetCurrentGCD
-local BurstIsON = A.BurstIsON
-local InterruptIsValid = A.InterruptIsValid
-local IsUnitEnemy = A.IsUnitEnemy
-local DetermineUsableObject = A.DetermineUsableObject
-local AuraIsValid = A.AuraIsValid
-local LoC = A.LossOfControl
-local MultiUnits = A.MultiUnits
 local Pet = LibStub("PetLibrary")
 local Toaster = _G.Toaster
 local GetSpellTexture = _G.TMW.GetSpellTexture
 
-local UnitGUID = _G.UnitGUID
-local UnitIsUnit = _G.UnitIsUnit
 local UnitIsDeadOrGhost = _G.UnitIsDeadOrGhost
 local UnitRangedDamage = _G.UnitRangedDamage
 local GetNumGroupMembers = _G.GetNumGroupMembers
@@ -373,7 +352,7 @@ A.ShouldUseViperSting = ShouldUseViperSting
 -- ============================================================================
 rotation_registry:register_class({
     name = "Hunter",
-    version = "v1.6.1",
+    version = "v1.7.0",
     playstyles = { "ranged" },
     idle_playstyle_name = nil,
 

@@ -22,11 +22,10 @@ if not NS.rotation_registry then
 end
 
 local A = NS.A
-local Constants = NS.Constants
-local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
+local is_spell_available = NS.is_spell_available
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
@@ -35,19 +34,11 @@ local format = string.format
 -- FROST STATE (context_builder)
 -- ============================================================================
 -- Pre-allocated state table — no inline {} in combat
-local frost_state = {
-    water_ele_active = false,
-    target_frozen = false,
-}
+local frost_state = {}
 
 local function get_frost_state(context)
     if context._frost_valid then return frost_state end
     context._frost_valid = true
-
-    frost_state.water_ele_active = Unit("pet"):IsExists() and not Unit("pet"):IsDead()
-    -- Track frozen state for Ice Lance 3x damage optimization
-    frost_state.target_frozen = (Unit(TARGET_UNIT):HasDeBuffs(122) or 0) > 0    -- Frost Nova
-                             or (Unit(TARGET_UNIT):HasDeBuffs(33395) or 0) > 0   -- Freeze (Water Ele)
 
     return frost_state
 end
@@ -66,6 +57,12 @@ local Frost_IcyVeins = {
     spell_target = PLAYER_UNIT,
     setting_key = "frost_use_icy_veins",
 
+    matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
+        return true
+    end,
+
     execute = function(icon, context, state)
         return try_cast(A.IcyVeins, icon, PLAYER_UNIT, "[FROST] Icy Veins")
     end,
@@ -78,6 +75,12 @@ local Frost_WaterElemental = {
     spell = A.SummonWaterElemental,
     spell_target = PLAYER_UNIT,
     setting_key = "frost_use_water_elemental",
+
+    matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
+        return true
+    end,
 
     execute = function(icon, context, state)
         return try_cast(A.SummonWaterElemental, icon, PLAYER_UNIT, "[FROST] Summon Water Elemental")
@@ -93,10 +96,18 @@ local Frost_ColdSnap = {
     setting_key = "frost_use_cold_snap",
 
     matches = function(context, state)
-        -- Use when BOTH major frost CDs are on long cooldown (maximize Cold Snap value)
+        -- Don't waste Cold Snap while Icy Veins is still active
+        if context.icy_veins_active then return false end
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
+        -- Use when major frost CDs are on long cooldown (maximize Cold Snap value)
         local iv_cd = A.IcyVeins:GetCooldown() or 0
-        local we_cd = A.SummonWaterElemental:GetCooldown() or 0
-        if iv_cd < 20 or we_cd < 20 then return false end
+        if iv_cd < 20 then return false end
+        -- Only check Water Elemental CD if the spell is actually talented
+        if is_spell_available(A.SummonWaterElemental) then
+            local we_cd = A.SummonWaterElemental:GetCooldown() or 0
+            if we_cd < 20 then return false end
+        end
         return true
     end,
 
@@ -113,6 +124,8 @@ local Frost_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if A.Berserking:IsReady(PLAYER_UNIT) then return true end
         if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
         return false
@@ -169,18 +182,18 @@ local Frost_MovementSpell = {
 
     execute = function(icon, context, state)
         local s = context.settings
-        local result
+        local result, msg
         if s.frost_move_fire_blast then
-            result = try_cast(A.FireBlast, icon, TARGET_UNIT, "[FROST] Fire Blast (moving)")
-            if result then return result end
+            result, msg = try_cast(A.FireBlast, icon, TARGET_UNIT, "[FROST] Fire Blast (moving)")
+            if result then return result, msg end
         end
         if s.frost_move_ice_lance then
-            result = try_cast(A.IceLance, icon, TARGET_UNIT, "[FROST] Ice Lance (moving)")
-            if result then return result end
+            result, msg = try_cast(A.IceLance, icon, TARGET_UNIT, "[FROST] Ice Lance (moving)")
+            if result then return result, msg end
         end
         if s.frost_move_cone_of_cold then
-            result = try_cast(A.ConeOfCold, icon, TARGET_UNIT, "[FROST] Cone of Cold (moving)")
-            if result then return result end
+            result, msg = try_cast(A.ConeOfCold, icon, TARGET_UNIT, "[FROST] Cone of Cold (moving)")
+            if result then return result, msg end
         end
         if s.frost_move_arcane_explosion and context.in_melee_range then
             return try_cast(A.ArcaneExplosion, icon, PLAYER_UNIT, "[FROST] Arcane Explosion (moving)")

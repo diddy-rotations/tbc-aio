@@ -38,7 +38,6 @@ local format = string.format
 local fire_state = {
     scorch_stacks = 0,
     scorch_duration = 0,
-    target_below_20 = false,
 }
 
 local function get_fire_state(context)
@@ -47,7 +46,6 @@ local function get_fire_state(context)
 
     fire_state.scorch_stacks = Unit(TARGET_UNIT):HasDeBuffsStacks(Constants.DEBUFF_ID.IMPROVED_SCORCH) or 0
     fire_state.scorch_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.IMPROVED_SCORCH) or 0
-    fire_state.target_below_20 = context.target_hp < 20
 
     return fire_state
 end
@@ -86,6 +84,8 @@ local Fire_Combustion = {
     setting_key = "fire_use_combustion",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         local hp_threshold = context.settings.fire_combustion_below_hp or 0
         if hp_threshold > 0 and context.target_hp > hp_threshold then return false end
         return true
@@ -105,6 +105,12 @@ local Fire_IcyVeins = {
     spell_target = PLAYER_UNIT,
     setting_key = "fire_use_icy_veins",
 
+    matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
+        return true
+    end,
+
     execute = function(icon, context, state)
         return try_cast(A.IcyVeins, icon, PLAYER_UNIT, "[FIRE] Icy Veins")
     end,
@@ -118,6 +124,8 @@ local Fire_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if A.Berserking:IsReady(PLAYER_UNIT) then return true end
         if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
         return false
@@ -218,18 +226,18 @@ local Fire_MovementSpell = {
 
     execute = function(icon, context, state)
         local s = context.settings
-        local result
+        local result, msg
         if s.fire_move_fire_blast then
-            result = try_cast(A.FireBlast, icon, TARGET_UNIT, "[FIRE] Fire Blast (moving)")
-            if result then return result end
+            result, msg = try_cast(A.FireBlast, icon, TARGET_UNIT, "[FIRE] Fire Blast (moving)")
+            if result then return result, msg end
         end
         if s.fire_move_ice_lance then
-            result = try_cast(A.IceLance, icon, TARGET_UNIT, "[FIRE] Ice Lance (moving)")
-            if result then return result end
+            result, msg = try_cast(A.IceLance, icon, TARGET_UNIT, "[FIRE] Ice Lance (moving)")
+            if result then return result, msg end
         end
         if s.fire_move_cone_of_cold then
-            result = try_cast(A.ConeOfCold, icon, TARGET_UNIT, "[FIRE] Cone of Cold (moving)")
-            if result then return result end
+            result, msg = try_cast(A.ConeOfCold, icon, TARGET_UNIT, "[FIRE] Cone of Cold (moving)")
+            if result then return result, msg end
         end
         if s.fire_move_arcane_explosion and context.in_melee_range then
             return try_cast(A.ArcaneExplosion, icon, PLAYER_UNIT, "[FIRE] Arcane Explosion (moving)")

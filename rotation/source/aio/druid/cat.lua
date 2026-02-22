@@ -653,7 +653,6 @@ local Cat_Rake = {
             if result then
                return result, format("[AoE] Rake - Primary target, Duration: %.1fs, TTD: %.1fs", rake_duration, ttd)
             end
-            return result
          end
 
          -- Spread to nearby targets missing Rake
@@ -963,4 +962,4 @@ rotation_registry:register("cat", {
 
 end  -- End Cat strategies scope block
 
-print("|cFF00FF00[Flux AIO Cat]|r 22 Cat strategies registered.")
+print("|cFF00FF00[Flux AIO Cat]|r 21 Cat strategies registered.")

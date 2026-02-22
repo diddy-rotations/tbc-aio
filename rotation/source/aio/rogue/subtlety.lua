@@ -73,11 +73,11 @@ do
 
 -- [1] Stealth Opener — Premeditation → Shadowstep → opener spell
 local Subtlety_StealthOpener = {
-    requires_combat = false,
     requires_enemy = true,
     requires_stealth = true,
 
     matches = function(context, state)
+        if context.in_combat and not context.is_stealthed then return false end
         local opener = context.settings.opener or "garrote"
         return opener ~= "none"
     end,
@@ -180,6 +180,8 @@ local Subtlety_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if A.BloodFury:IsReady(PLAYER_UNIT) then return true end
         if A.Berserking:IsReady(PLAYER_UNIT) then return true end
         if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end

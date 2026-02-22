@@ -15,11 +15,9 @@ if not NS then
 end
 
 local A = NS.A
-local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local Priority = NS.Priority
-local Constants = NS.Constants
 local DetermineUsableObject = A.DetermineUsableObject
 local MultiUnits = A.MultiUnits
 local CONST = A.Const
@@ -562,6 +560,7 @@ rotation_registry:register_middleware({
     setting_key = "use_auto_tremor",
 
     matches = function(context)
+        if not context.settings.use_auto_tremor then return false end
         if not context.in_combat then return false end
         if not context.has_valid_enemy_target then return false end
         -- Check target NPC ID against fear caster list

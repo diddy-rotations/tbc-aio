@@ -70,11 +70,11 @@ do
 
 -- [1] Stealth Opener — highest priority when stealthed with target
 local Combat_StealthOpener = {
-    requires_combat = false,
     requires_enemy = true,
     requires_stealth = true,
 
     matches = function(context, state)
+        if context.in_combat and not context.is_stealthed then return false end
         local opener = context.settings.opener or "garrote"
         return opener ~= "none"
     end,
@@ -132,6 +132,8 @@ local Combat_BladeFlurry = {
     setting_key = "combat_use_blade_flurry",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         return not state.blade_flurry_active
     end,
 
@@ -150,6 +152,8 @@ local Combat_AdrenalineRush = {
     setting_key = "combat_use_adrenaline_rush",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         return not state.adrenaline_rush_active
     end,
 
@@ -166,6 +170,8 @@ local Combat_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if A.BloodFury:IsReady(PLAYER_UNIT) then return true end
         if A.Berserking:IsReady(PLAYER_UNIT) then return true end
         if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
@@ -195,6 +201,7 @@ local Combat_ExposeArmor = {
     min_cp = 5,
 
     matches = function(context, state)
+        if state.pooling then return false end
         return not state.expose_armor_active
     end,
 

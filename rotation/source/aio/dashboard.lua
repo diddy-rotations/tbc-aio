@@ -835,8 +835,16 @@ local function update_dashboard()
     end
 
     -- Swing / shoot timer bar (driven by swing_label in class dashboard config)
+    -- Defaults to "Swing" when not configured so all classes get a swing timer
     local sl = dash_config.swing_label
-    local swing_label = type(sl) == "string" and sl or (type(sl) == "table" and sl[active_ps] or nil)
+    local swing_label
+    if sl == nil then
+        swing_label = "Swing"
+    elseif type(sl) == "string" then
+        swing_label = sl
+    elseif type(sl) == "table" then
+        swing_label = sl[active_ps]
+    end
     if swing_label and timer_idx <= MAX_TIMER_BARS then
         local shoot = Player:GetSwingShoot() or 0
         local remaining, duration

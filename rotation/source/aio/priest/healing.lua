@@ -3,7 +3,6 @@
 -- Load order 5 (same as druid healing.lua)
 
 local _G = _G
-local format = string.format
 local A = _G.Action
 
 if not A then return end
@@ -16,31 +15,11 @@ if not NS then
 end
 
 local A = NS.A
-local Player = NS.Player
 local Unit = NS.Unit
 local Constants = NS.Constants
-local get_spell_mana_cost = NS.get_spell_mana_cost
 
 local PLAYER_UNIT = "player"
 local GetNumGroupMembers = _G.GetNumGroupMembers
-
--- ============================================================================
--- MANA AFFORDABILITY
--- ============================================================================
-local function can_afford_spell(spell, mana_floor_pct)
-    local cost = get_spell_mana_cost(spell)
-    if cost <= 0 then return true end
-    local current_mana = Player:Mana()
-    if current_mana < cost then return false end
-    if mana_floor_pct then
-        local max_mana = Player:ManaMax()
-        local floor_mana = max_mana * (mana_floor_pct / 100)
-        if (current_mana - cost) < floor_mana then return false end
-    end
-    return true
-end
-
-NS.can_afford_spell = can_afford_spell
 
 -- ============================================================================
 -- HEALING TARGET SCANNING
@@ -145,7 +124,6 @@ local function scan_healing_targets(context)
 end
 
 NS.scan_healing_targets = scan_healing_targets
-NS.scan_results = scan_results
 
 -- ============================================================================
 -- WEAKENED SOUL CHECK

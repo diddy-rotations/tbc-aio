@@ -67,7 +67,24 @@ do
    })
    Balance_ForceOfNature.is_burst = true
 
-   -- [4] AoE (Hurricane with Barkskin protection) - skip if target has magic immunity
+   -- [4] Innervate (mana recovery — fires when low mana in Moonkin form)
+   local Balance_Innervate = {
+      setting_key = "balance_use_innervate",
+      matches = function(context)
+         if context.stance ~= Constants.STANCE.MOONKIN then return false end
+         if not context.in_combat then return false end
+         if (Unit(PLAYER_UNIT):HasBuffs(A.SelfInnervate.ID) or 0) > 0 then return false end
+         local threshold = context.settings.balance_innervate_mana or 20
+         if context.mana_pct > threshold then return false end
+         return A.SelfInnervate:IsReady(PLAYER_UNIT)
+      end,
+      execute = function(icon, context)
+         return try_cast_fmt(A.SelfInnervate, icon, PLAYER_UNIT, "[P3]", "Innervate",
+                             "Mana: %.0f%%", context.mana_pct)
+      end,
+   }
+
+   -- [5] AoE (Hurricane with Barkskin protection) - skip if target has magic immunity
    local Balance_AoE = {
       matches = function(context)
          if context.stance ~= Constants.STANCE.MOONKIN or not context.in_combat then return false end
@@ -136,18 +153,24 @@ do
          local tier2_mana = settings.balance_tier2_mana or Constants.BALANCE.MANA_TIER2
          local mana_tier = (mana_pct < tier2_mana) and 3 or (mana_pct < tier1_mana) and 2 or 1
 
-         -- Track Nature's Grace proc for logging
-         local ng_info = ""
-         if Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.NATURES_GRACE) > 0 then
-            ng_info = " [NG]"
+         -- Track Nature's Grace proc
+         local has_ng = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.NATURES_GRACE) or 0) > 0
+         local ng_info = has_ng and " [NG]" or ""
+
+         -- Clearcast optimization: Starfire is most expensive, cast it while free
+         -- Skips DoT refreshes to avoid wasting the proc on cheap spells
+         if context.has_clearcasting and settings.clearcast_starfire ~= false then
+            local result, msg = try_cast_fmt(A.Starfire, icon, TARGET_UNIT, "[P4]", "Starfire",
+                                             "FREE CAST (Clearcast)%s", ng_info)
+            if result then return result, msg end
          end
 
          -- DoT maintenance (priority over nukes)
-         -- Insect Swarm: Apply in Tier 1 and 2, or refresh in Tier 3 if about to expire
+         -- Insect Swarm: Apply fresh in Tier 1/2, refresh expiring in any tier
          local is_duration = Unit(TARGET_UNIT):HasDeBuffs(A.InsectSwarm.ID) or 0
          local is_expiring = is_duration > 0 and is_duration < 3  -- About to expire
          if settings.maintain_insect_swarm ~= false then
-            if (mana_tier <= 2 and is_duration == 0) or (mana_tier == 3 and is_expiring) then
+            if (mana_tier <= 2 and is_duration == 0) or is_expiring then
                local result, msg = try_cast_fmt(A.InsectSwarm, icon, TARGET_UNIT, "[P4]", "Insect Swarm",
                                                 is_expiring and "REFRESH (%.1fs)" or "DoT missing, Mana: %.0f%%",
                                                 is_expiring and is_duration or mana_pct)
@@ -155,11 +178,11 @@ do
             end
          end
 
-         -- Moonfire: Apply in Tier 1, or refresh in Tier 2/3 if about to expire
+         -- Moonfire: Apply fresh in Tier 1, refresh expiring in any tier
          local mf_duration = Unit(TARGET_UNIT):HasDeBuffs(A.Moonfire.ID) or 0
          local mf_expiring = mf_duration > 0 and mf_duration < 3  -- About to expire
          if settings.maintain_moonfire ~= false then
-            if (mana_tier == 1 and mf_duration == 0) or (mana_tier >= 2 and mf_expiring) then
+            if (mana_tier == 1 and mf_duration == 0) or mf_expiring then
                local result, msg = try_cast_fmt(A.Moonfire, icon, TARGET_UNIT, "[P5]", "Moonfire",
                                                 mf_expiring and "REFRESH (%.1fs)" or "DoT missing, Mana: %.0f%%",
                                                 mf_expiring and mf_duration or mana_pct)
@@ -169,6 +192,13 @@ do
 
          -- Nukes
          local tier_info = mana_tier == 1 and "Tier1" or (mana_tier == 2 and "Tier2" or "Tier3")
+
+         -- Nature's Grace optimization: Wrath becomes near-instant (~1.0s) during NG proc
+         if has_ng and settings.ng_wrath_priority then
+            local result, msg = try_cast_fmt(A.Wrath, icon, TARGET_UNIT, "[P6]", "Wrath",
+                                             "%s Mana: %.0f%% [NG PROC]", tier_info, mana_pct)
+            if result then return result, msg end
+         end
 
          -- Starfire: Primary nuke
          local result, msg = try_cast_fmt(A.Starfire, icon, TARGET_UNIT, "[P6]", "Starfire",
@@ -185,6 +215,7 @@ do
    rotation_registry:register("balance", {
       named("FaerieFire",      Balance_FaerieFire),
       named("ForceOfNature",   Balance_ForceOfNature),
+      named("Innervate",       Balance_Innervate),
       named("AoE",             Balance_AoE),
       named("Opener",          Balance_Opener),
       named("DPS",             Balance_DPS),
@@ -192,4 +223,4 @@ do
 
 end  -- End Balance strategies do...end block
 
-print("|cFF00FF00[Flux AIO Balance]|r 5 Balance strategies registered.")
+print("|cFF00FF00[Flux AIO Balance]|r 6 Balance strategies registered.")

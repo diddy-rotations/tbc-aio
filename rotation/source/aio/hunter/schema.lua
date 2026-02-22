@@ -90,6 +90,8 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Concussive Shot to slow mobs running at you." },
             { type = "checkbox", key = "intimidation_pve", default = true, label = "Intimidation (PvE)",
               tooltip = "Use Intimidation stun on aggro swap." },
+            { type = "checkbox", key = "use_feign_death", default = false, label = "Feign Death (Threat)",
+              tooltip = "Auto Feign Death when you have aggro on your target." },
         }},
     }},
 

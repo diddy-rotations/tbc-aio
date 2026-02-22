@@ -62,6 +62,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "dark_rune_mana", default = 30, min = 15, max = 60, label = "Dark Rune Mana (%)", tooltip = "Use Dark Rune below this mana %.", format = "%d%%" },
             { type = "slider", key = "dark_rune_min_hp", default = 50, min = 25, max = 75, label = "Dark Rune Min HP (%)", tooltip = "Only use Dark Rune if HP is above this (rune costs 600-1000 HP).", format = "%d%%" },
         }},
+        { header = "Defensive", settings = {
+            { type = "checkbox", key = "use_barkskin", default = true, label = "Use Barkskin", tooltip = "Use Barkskin when HP drops below threshold. Off-GCD, usable in all forms." },
+            { type = "slider", key = "barkskin_hp", default = 40, min = 15, max = 70, label = "Barkskin HP (%)", tooltip = "Use Barkskin below this HP.", format = "%d%%" },
+        }},
         { header = "Utility", settings = {
             { type = "checkbox", key = "use_innervate_self", default = true, label = "Innervate Self (Solo)", tooltip = "Use Innervate on yourself when low mana and solo." },
             { type = "slider", key = "innervate_mana", default = 30, min = 15, max = 50, label = "Innervate Mana (%)", tooltip = "Use Innervate below this mana %.", format = "%d%%" },
@@ -197,10 +201,18 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         }},
         { header = "Force of Nature", settings = {
             { type = "checkbox", key = "use_force_of_nature", default = true, label = "Use Force of Nature", tooltip = "Summon Treants (41pt Balance talent)." },
-            { type = "slider", key = "force_of_nature_min_ttd", default = 30, min = 15, max = 45, label = "Treants Min TTD (sec)", tooltip = "Only summon if target lives this long.", format = "%d sec" },
+            { type = "slider", key = "force_of_nature_min_ttd", default = 15, min = 5, max = 45, label = "Treants Min TTD (sec)", tooltip = "Only summon if target lives this long.", format = "%d sec" },
         }},
         { header = "AoE", settings = {
             { type = "slider", key = "hurricane_min_targets", default = 3, min = 2, max = 5, label = "Hurricane Min Targets", tooltip = "Min targets for Hurricane.", format = "%d" },
+        }},
+        { header = "Proc Optimization", settings = {
+            { type = "checkbox", key = "clearcast_starfire", default = true, label = "Clearcast: Starfire Priority", tooltip = "When Clearcast procs, immediately cast Starfire (most expensive spell) before refreshing DoTs." },
+            { type = "checkbox", key = "ng_wrath_priority", default = false, label = "Nature's Grace: Wrath Priority", tooltip = "When Nature's Grace procs, cast Wrath (~1.0s) instead of Starfire (~3.0s) for more casts per proc window. Off by default (Starfire is standard)." },
+        }},
+        { header = "Mana Recovery", settings = {
+            { type = "checkbox", key = "balance_use_innervate", default = true, label = "Use Innervate", tooltip = "Use Innervate on yourself when mana drops below threshold." },
+            { type = "slider", key = "balance_innervate_mana", default = 20, min = 10, max = 50, label = "Innervate Mana (%)", tooltip = "Use Innervate below this mana %.", format = "%d%%" },
         }},
         { header = "Mana Tiers", settings = {
             { type = "slider", key = "balance_tier1_mana", default = 40, min = 30, max = 60, label = "Full Rotation Mana (%)", tooltip = "Above this: full rotation (Starfire + Moonfire + IS).", format = "%d%%" },

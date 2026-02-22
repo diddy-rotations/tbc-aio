@@ -2,8 +2,6 @@
 -- Defines all Shaman spells, constants, totem utilities, and registers Shaman as a class
 
 local _G, setmetatable, pairs, ipairs, tostring, select, type = _G, setmetatable, pairs, ipairs, tostring, select, type
-local tinsert = table.insert
-local format = string.format
 local GetTime = _G.GetTime
 local GetTotemInfo = _G.GetTotemInfo
 local A = _G.Action
@@ -114,13 +112,9 @@ NS.A = A
 local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
-local is_spell_known = NS.is_spell_known
-local PLAYER_UNIT = NS.PLAYER_UNIT
-local TARGET_UNIT = NS.TARGET_UNIT
 
 -- Framework helpers
 local MultiUnits = A.MultiUnits
-local DetermineUsableObject = A.DetermineUsableObject
 
 -- ============================================================================
 -- CONSTANTS
@@ -245,7 +239,7 @@ NS.resolve_totem_spell = resolve_totem_spell
 -- ============================================================================
 rotation_registry:register_class({
     name = "Shaman",
-    version = "v1.6.6",
+    version = "v1.7.0",
     playstyles = { "elemental", "enhancement", "restoration" },
     idle_playstyle_name = nil,
 

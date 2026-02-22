@@ -93,7 +93,7 @@ local Aff_MaintainCurse = {
         -- CoA has accelerating ticks — last ticks deal most damage, never clip early
         local threshold = 1.5
         if context.settings.curse_type == "agony" then
-            threshold = 0
+            threshold = 0.1
         end
         return state.curse_duration < threshold
     end,
@@ -231,9 +231,12 @@ local Aff_AoE = {
 local Aff_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     setting_key = "use_racial",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if A.BloodFury:IsReady(PLAYER_UNIT) then return true end
         if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
         return false

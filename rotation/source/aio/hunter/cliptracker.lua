@@ -12,8 +12,8 @@
 --   clip_threshold_2      — yellow/orange severity boundary (ms)
 --   clip_threshold_3      — orange/red severity boundary (ms)
 
-local _G, pairs, ipairs, string, tostring, format, table, math, wipe, select =
-      _G, pairs, ipairs, string, tostring, string.format, table, math, _G.wipe, select
+local _G, pairs, ipairs, tostring, format, table, wipe =
+      _G, pairs, ipairs, tostring, string.format, table, _G.wipe
 
 local A = _G.Action
 
@@ -154,15 +154,6 @@ local ClipTracker = {
         YELLOW = { 1, 1, 0 },
         ORANGE = { 1, 0.54, 0 },
         RED    = { 1, 0, 0 },
-    },
-
-    -- Spells that are always worth clipping for (by spellID)
-    AlwaysWorthSpells = {
-        [34026] = true,  -- Kill Command
-        [19574] = true,  -- Bestial Wrath
-        [3045]  = true,  -- Rapid Fire
-        [19577] = true,  -- Intimidation
-        [136]   = true,  -- Mend Pet (base ID)
     },
 }
 

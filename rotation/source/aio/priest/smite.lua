@@ -3,7 +3,6 @@
 -- Holy Fire Weave optimization, Surge of Light procs
 
 local _G = _G
-local format = string.format
 local A = _G.Action
 
 if not A then return end
@@ -16,7 +15,6 @@ if not NS then
 end
 
 local A = NS.A
-local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local Constants = NS.Constants
@@ -106,6 +104,8 @@ rotation_registry:register("smite", {
             if not context.in_combat then return false end
             if not context.has_valid_enemy_target then return false end
             if not context.settings.smite_use_devouring_plague then return false end
+            -- Don't waste 3min CD on dying targets
+            if context.ttd and context.ttd > 0 and context.ttd < 8 then return false end
             local dp_remaining = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.DEVOURING_PLAGUE, "player", true) or 0
             if dp_remaining > 3 then return false end
             return is_spell_available(A.DevouringPlague) and A.DevouringPlague:IsReady(TARGET_UNIT)
@@ -182,6 +182,24 @@ rotation_registry:register("smite", {
         end,
         execute = function(icon, context, state)
             return try_cast(A.HolyFire, icon, TARGET_UNIT, "[SMITE] Holy Fire")
+        end,
+    }),
+
+    -- [8.5] Inner Focus (off-GCD, pair with Holy Fire or Mind Blast)
+    named("InnerFocus", {
+        is_gcd_gated = false,
+        is_burst = true,
+        matches = function(context, state)
+            if not context.in_combat then return false end
+            if not context.has_valid_enemy_target then return false end
+            if context.has_inner_focus then return false end
+            if not is_spell_available(A.InnerFocus) then return false end
+            if not A.InnerFocus:IsReady(PLAYER_UNIT) then return false end
+            -- Pair with HF or MB for max value
+            return state.hf_ready or state.mb_ready
+        end,
+        execute = function(icon, context, state)
+            return try_cast(A.InnerFocus, icon, PLAYER_UNIT, "[SMITE] Inner Focus")
         end,
     }),
 

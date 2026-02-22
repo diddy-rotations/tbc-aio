@@ -39,10 +39,6 @@ local REJUVENATION_BUFF_IDS = NS.REJUVENATION_BUFF_IDS
 local REGROWTH_BUFF_IDS = NS.REGROWTH_BUFF_IDS
 
 -- Lua optimizations
-local floor = math.floor
-local format = string.format
-local GetTime = GetTime
-local ipairs = ipairs
 local tsort = table.sort
 
 -- ============================================================================
@@ -101,11 +97,11 @@ end
 -- ============================================================================
 
 local function has_any_rejuv(target)
-   return Unit(target):HasBuffs(REJUVENATION_BUFF_IDS, nil, true) > 0
+   return (Unit(target):HasBuffs(REJUVENATION_BUFF_IDS, nil, true) or 0) > 0
 end
 
 local function has_any_regrowth(target)
-   return Unit(target):HasBuffs(REGROWTH_BUFF_IDS, nil, true) > 0
+   return (Unit(target):HasBuffs(REGROWTH_BUFF_IDS, nil, true) or 0) > 0
 end
 
 local function has_any_lifebloom(target)

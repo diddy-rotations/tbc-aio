@@ -28,7 +28,6 @@ local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
 local resolve_totem_spell = NS.resolve_totem_spell
-local totem_state = NS.totem_state
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
@@ -129,6 +128,7 @@ local Enh_ShamanisticRage = {
 local Enh_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
+    is_burst = true,
     setting_key = "use_racial",
 
     matches = function(context, state)
@@ -488,6 +488,7 @@ local Enh_Shock = {
 -- [9] Fire Elemental (long CD summon)
 local Enh_FireElemental = {
     requires_combat = true,
+    is_burst = true,
     spell = A.FireElementalTotem,
     spell_target = PLAYER_UNIT,
     setting_key = "enh_use_fire_elemental",

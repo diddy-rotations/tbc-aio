@@ -2,7 +2,6 @@
 -- DoT management, Shadow Weaving, Mind Flay filler
 
 local _G = _G
-local format = string.format
 local A = _G.Action
 
 if not A then
@@ -38,9 +37,7 @@ local CONST = A.Const
 local shadow_state = {
    vt_remaining = 0,
    swp_active = false,
-   swp_remaining = 0,
    ve_remaining = 0,
-   shadow_weaving_stacks = 0,
    mb_ready = false,
    swd_ready = false,
    swd_safe = false,
@@ -53,14 +50,10 @@ local function get_shadow_state(context)
    end
    context._shadow_valid = true
 
-   -- VT: use spell ID to detect correct rank (useMaxRank = true means ID changes per rank)
-   shadow_state.vt_remaining = Unit(TARGET_UNIT):HasDeBuffs(A.VampiricTouch.ID, "player", true) or 0
-   local swp_dur = Unit(TARGET_UNIT):HasDeBuffs(A.ShadowWordPain.ID, "player", true) or 0
-   shadow_state.swp_active = swp_dur > 0
-   shadow_state.swp_remaining = swp_dur
-   -- VE: use spell ID (15286) not party buff ID (15290) for target debuff check
-   shadow_state.ve_remaining = Unit(TARGET_UNIT):HasDeBuffs(A.VampiricEmbrace.ID, "player", true) or 0
-   shadow_state.shadow_weaving_stacks = Unit(TARGET_UNIT):HasDeBuffsStacks(Constants.DEBUFF_ID.SHADOW_WEAVING) or 0
+   -- Use max rank debuff IDs for reliable detection (consistent with smite.lua)
+   shadow_state.vt_remaining = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.VAMPIRIC_TOUCH, "player", true) or 0
+   shadow_state.swp_active = (Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.SHADOW_WORD_PAIN, "player", true) or 0) > 0
+   shadow_state.ve_remaining = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.VAMPIRIC_EMBRACE, "player", true) or 0
    shadow_state.mb_ready = is_spell_available(A.MindBlast) and A.MindBlast:IsReady(TARGET_UNIT)
    shadow_state.swd_ready = is_spell_available(A.ShadowWordDeath) and A.ShadowWordDeath:IsReady(TARGET_UNIT)
    shadow_state.swd_safe = context.hp > (context.settings.shadow_swd_hp or 40)
@@ -135,6 +128,10 @@ rotation_registry:register("shadow", {
          if not context.settings.shadow_ve_maintain then
             return false
          end
+         -- Don't apply on dying targets (wastes a GCD)
+         if context.ttd and context.ttd > 0 and context.ttd < 6 then
+            return false
+         end
          if state.ve_remaining >= 3 then
             return false
          end
@@ -159,6 +156,10 @@ rotation_registry:register("shadow", {
             return false
          end
          if context.is_moving then
+            return false
+         end
+         -- Don't apply on dying targets (1.5s cast + 15s DoT, poor value if TTD < 5)
+         if context.ttd and context.ttd > 0 and context.ttd < 5 then
             return false
          end
          -- Refresh when remaining <= 1.5s (cast time)
@@ -221,6 +222,10 @@ rotation_registry:register("shadow", {
             return false
          end
          if not context.settings.shadow_use_devouring_plague then
+            return false
+         end
+         -- Don't waste 3min CD on dying targets
+         if context.ttd and context.ttd > 0 and context.ttd < 8 then
             return false
          end
          -- Don't reapply if already active

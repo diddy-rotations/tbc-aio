@@ -24,7 +24,6 @@ end
 local A = NS.A
 local Constants = NS.Constants
 local Unit = NS.Unit
-local Player = NS.Player
 local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
@@ -129,6 +128,7 @@ do
 -- [1] Righteous Fury check (MUST always be active for tanking)
 local Prot_RighteousFuryCheck = {
     spell = A.RighteousFury,
+    spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
         if state.righteous_fury_active then return false end
@@ -150,6 +150,8 @@ local Prot_AvengingWrath = {
     setting_key = "use_avenging_wrath",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if context.forbearance_active then return false end
         return true
     end,
@@ -167,8 +169,11 @@ local Prot_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
         if A.Stoneform:IsReady(PLAYER_UNIT) then return true end
+        if context.hp < 60 and A.GiftOfTheNaaru and A.GiftOfTheNaaru:IsReady(PLAYER_UNIT) then return true end
         return false
     end,
 
@@ -178,6 +183,9 @@ local Prot_Racial = {
         end
         if A.Stoneform:IsReady(PLAYER_UNIT) then
             return A.Stoneform:Show(icon), "[PROT] Stoneform"
+        end
+        if context.hp < 60 and A.GiftOfTheNaaru and A.GiftOfTheNaaru:IsReady(PLAYER_UNIT) then
+            return A.GiftOfTheNaaru:Show(icon), "[PROT] Gift of the Naaru"
         end
         return nil
     end,
@@ -206,6 +214,7 @@ local Prot_EstablishSeal = {
 local Prot_HolyShield = {
     requires_combat = true,
     spell = A.HolyShield,
+    spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
         if not context.settings.prot_use_holy_shield then return false end
@@ -281,10 +290,29 @@ local Prot_Exorcism = {
     end,
 }
 
--- [10] Holy Shield — LOW priority (fallback if not prioritized above)
+-- [10] Holy Wrath (Undead/Demon AoE)
+local Prot_HolyWrath = {
+    requires_combat = true,
+    requires_enemy = true,
+    spell = A.HolyWrath,
+
+    matches = function(context, state)
+        if not state.target_undead_or_demon then return false end
+        if context.enemy_count < 3 then return false end
+        if context.mana_pct < 40 then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.HolyWrath, icon, PLAYER_UNIT, "[PROT] Holy Wrath")
+    end,
+}
+
+-- [11] Holy Shield — LOW priority (fallback if not prioritized above)
 local Prot_HolyShieldFallback = {
     requires_combat = true,
     spell = A.HolyShield,
+    spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
         if not context.settings.prot_use_holy_shield then return false end
@@ -344,7 +372,6 @@ local Prot_AvengersShield = {
 local Prot_RighteousDefense = {
     requires_combat = true,
     requires_enemy = true,
-    spell = A.RighteousDefense,
     setting_key = "prot_use_righteous_defense",
 
     matches = function(context, state)
@@ -393,6 +420,7 @@ rotation_registry:register("protection", {
     named("Judgement",           Prot_Judgement),             -- off-GCD
     named("RighteousDefense",    Prot_RighteousDefense),
     named("Exorcism",            Prot_Exorcism),
+    named("HolyWrath",           Prot_HolyWrath),
     named("HolyShieldFallback",  Prot_HolyShieldFallback),
     named("HammerOfWrath",       Prot_HammerOfWrath),
 }, {

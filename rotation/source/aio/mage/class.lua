@@ -2,9 +2,6 @@
 -- Defines all Mage spells, constants, helper functions, and registers Mage as a class
 
 local _G, setmetatable, pairs, ipairs, tostring, select, type = _G, setmetatable, pairs, ipairs, tostring, select, type
-local tinsert = table.insert
-local format = string.format
-local GetTime = _G.GetTime
 local A = _G.Action
 
 if not A then return end
@@ -25,8 +22,6 @@ Action[A.PlayerClass] = {
     -- Racials
     ArcaneTorrent      = Create({ Type = "Spell", ID = 28730, Click = { unit = "player", type = "spell", spell = 28730 } }),
     Berserking         = Create({ Type = "Spell", ID = 26297, Click = { unit = "player", type = "spell", spell = 26297 } }),
-    EscapeArtist       = Create({ Type = "Spell", ID = 20589, Click = { unit = "player", type = "spell", spell = 20589 } }),
-    WilloftheForsaken  = Create({ Type = "Spell", ID = 7744, Click = { unit = "player", type = "spell", spell = 7744 } }),
 
     -- Core Damage
     Fireball       = Create({ Type = "Spell", ID = 133, useMaxRank = true }),
@@ -35,7 +30,6 @@ Action[A.PlayerClass] = {
     ArcaneMissiles = Create({ Type = "Spell", ID = 5143, useMaxRank = true }),
     Scorch         = Create({ Type = "Spell", ID = 2948, useMaxRank = true }),
     FireBlast      = Create({ Type = "Spell", ID = 2136, useMaxRank = true }),
-    Pyroblast      = Create({ Type = "Spell", ID = 11366, useMaxRank = true }),
     IceLance       = Create({ Type = "Spell", ID = 30455 }),
 
     -- AoE
@@ -47,7 +41,6 @@ Action[A.PlayerClass] = {
     DragonsBreath   = Create({ Type = "Spell", ID = 31661, useMaxRank = true }),
 
     -- Defensive
-    FrostNova  = Create({ Type = "Spell", ID = 122, useMaxRank = true }),
     IceBarrier = Create({ Type = "Spell", ID = 11426, useMaxRank = true }),
     ManaShield = Create({ Type = "Spell", ID = 1463, useMaxRank = true, Click = { unit = "player", type = "spell" } }),
     IceBlock   = Create({ Type = "Spell", ID = 45438, Click = { unit = "player", type = "spell", spell = 45438 } }),
@@ -60,11 +53,9 @@ Action[A.PlayerClass] = {
     PresenceOfMind       = Create({ Type = "Spell", ID = 12043, Click = { unit = "player", type = "spell", spell = 12043 } }),
     ColdSnap             = Create({ Type = "Spell", ID = 11958, Click = { unit = "player", type = "spell", spell = 11958 } }),
     SummonWaterElemental = Create({ Type = "Spell", ID = 31687, Click = { unit = "player", type = "spell", spell = 31687 } }),
-    Freeze               = Create({ Type = "Spell", ID = 33395 }),  -- Water Elemental's Freeze (for debuff tracking)
 
     -- Utility
     Counterspell = Create({ Type = "Spell", ID = 2139 }),
-    Spellsteal   = Create({ Type = "Spell", ID = 30449 }),
     RemoveCurse  = Create({ Type = "Spell", ID = 475, Click = { unit = "player", type = "spell", spell = 475 } }),
     Evocation    = Create({ Type = "Spell", ID = 12051, Click = { unit = "player", type = "spell", spell = 12051 } }),
 
@@ -88,10 +79,6 @@ Action[A.PlayerClass] = {
     -- Healthstones
     HealthstoneMaster = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
     HealthstoneMajor  = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
-
-    -- Buff tracking (for HasBuffs checks)
-    Heroism   = Create({ Type = "Spell", ID = 32182 }),
-    Bloodlust = Create({ Type = "Spell", ID = 2825 }),
 }
 
 -- ============================================================================
@@ -103,13 +90,10 @@ NS.A = A
 local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
-local is_spell_known = NS.is_spell_known
 local PLAYER_UNIT = NS.PLAYER_UNIT
-local TARGET_UNIT = NS.TARGET_UNIT
 
 -- Framework helpers
 local MultiUnits = A.MultiUnits
-local DetermineUsableObject = A.DetermineUsableObject
 
 -- ============================================================================
 -- CONSTANTS
@@ -132,7 +116,6 @@ local Constants = {
 
     DEBUFF_ID = {
         IMPROVED_SCORCH = 22959,   -- Fire Vulnerability, stacks to 5
-        WINTERS_CHILL   = 12579,   -- Frost crit stacks, stacks to 5
         ARCANE_BLAST    = 36032,   -- Self-debuff, stacks to 3
         HYPOTHERMIA     = 41425,   -- 30s lockout after Ice Block
     },
@@ -154,6 +137,9 @@ local Constants = {
 
     -- All intellect buff IDs for checking if intellect buff is active
     INTELLECT_BUFF_IDS = { 27126, 27127, 23028, 1459, 1460, 1461, 10156, 10157 },
+
+    -- Bloodlust / Heroism buff IDs (Horde / Alliance)
+    BLOODLUST_IDS = { 2825, 32182 },
 }
 
 NS.Constants = Constants
@@ -163,7 +149,7 @@ NS.Constants = Constants
 -- ============================================================================
 rotation_registry:register_class({
     name = "Mage",
-    version = "v1.6.1",
+    version = "v1.7.0",
     playstyles = { "fire", "frost", "arcane" },
     idle_playstyle_name = nil,
 
@@ -209,16 +195,17 @@ rotation_registry:register_class({
         ctx.is_moving = moving ~= nil and moving ~= false and moving ~= 0
         ctx.is_mounted = Player:IsMounted()
         ctx.combat_time = Unit("player"):CombatTime() or 0
-        ctx.has_clearcasting = (Unit("player"):HasBuffs(Constants.BUFF_ID.CLEARCASTING) or 0) > 0
         ctx.ab_stacks = Unit("player"):HasDeBuffsStacks(Constants.DEBUFF_ID.ARCANE_BLAST, nil, true) or 0
         ctx.ab_duration = Unit("player"):HasDeBuffs(Constants.DEBUFF_ID.ARCANE_BLAST, nil, true) or 0
-        ctx.combustion_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.COMBUSTION) or 0) > 0
-        ctx.arcane_power_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.ARCANE_POWER) or 0) > 0
-        ctx.icy_veins_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.ICY_VEINS) or 0) > 0
-        ctx.pom_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.PRESENCE_OF_MIND) or 0) > 0
         ctx.hypothermia = (Unit("player"):HasDeBuffs(Constants.DEBUFF_ID.HYPOTHERMIA) or 0) > 0
         ctx.enemy_count_melee = MultiUnits:GetByRangeInCombat(10)
         ctx.enemy_count_ranged = MultiUnits:GetByRangeInCombat(40)
+        -- CD buff states
+        ctx.has_clearcasting = (Unit("player"):HasBuffs(Constants.BUFF_ID.CLEARCASTING) or 0) > 0
+        ctx.icy_veins_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.ICY_VEINS, true) or 0) > 0
+        ctx.arcane_power_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.ARCANE_POWER, true) or 0) > 0
+        ctx.combustion_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.COMBUSTION, true) or 0) > 0
+        ctx.pom_active = (Unit("player"):HasBuffs(Constants.BUFF_ID.PRESENCE_OF_MIND, true) or 0) > 0
         -- Cache invalidation flags for per-playstyle context_builders
         ctx._fire_valid = false
         ctx._frost_valid = false

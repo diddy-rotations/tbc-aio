@@ -1,8 +1,7 @@
 -- Rogue Class Module
 -- Defines all Rogue spells, constants, helper functions, and registers Rogue as a class
 
-local _G, setmetatable, pairs, ipairs, tostring, select, type = _G, setmetatable, pairs, ipairs, tostring, select, type
-local format = string.format
+local _G, setmetatable = _G, setmetatable
 local A = _G.Action
 
 if not A then return end
@@ -85,13 +84,11 @@ NS.A = A
 local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
-local is_spell_known = NS.is_spell_known
 local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
 -- Framework helpers
 local MultiUnits = A.MultiUnits
-local DetermineUsableObject = A.DetermineUsableObject
 
 -- ============================================================================
 -- CONSTANTS
@@ -153,7 +150,7 @@ NS.Constants = Constants
 -- ============================================================================
 rotation_registry:register_class({
     name = "Rogue",
-    version = "v1.6.3",
+    version = "v1.7.0",
     playstyles = { "combat", "assassination", "subtlety" },
     idle_playstyle_name = nil,
 

@@ -28,8 +28,6 @@ local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
 local resolve_totem_spell = NS.resolve_totem_spell
-local is_spell_available = NS.is_spell_available
-local totem_state = NS.totem_state
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
@@ -52,11 +50,6 @@ local healing_targets_count = 0
 
 local function is_in_raid()
     return _G.IsInRaid and _G.IsInRaid() or _G.GetNumRaidMembers and _G.GetNumRaidMembers() > 0
-end
-
-local function is_in_party()
-    if is_in_raid() then return false end
-    return _G.IsInGroup and _G.IsInGroup() or _G.GetNumPartyMembers and _G.GetNumPartyMembers() > 0
 end
 
 --- Scan party/raid for healing targets, sorted by HP ascending (most injured first)
@@ -201,7 +194,6 @@ local Resto_NaturesSwiftnessEmergency = {
 -- [1b] Nature's Swiftness Healing Wave — consume NS with a big instant HW
 local Resto_NSHealingWave = {
     requires_combat = true,
-    spell = A.HealingWave,
 
     matches = function(context, state)
         -- Only fire if NS buff is active (instant cast HW)
@@ -235,10 +227,10 @@ local Resto_NSHealingWave = {
 -- [2] Earth Shield Maintenance — keep on focus/tank (41-pt Restoration talent)
 local Resto_EarthShieldMaintain = {
     spell = A.EarthShield,
+    spell_target = FOCUS_UNIT,
     setting_key = "resto_maintain_earth_shield",
 
     matches = function(context, state)
-        if not is_spell_available(A.EarthShield) then return false end
         if not _G.UnitExists(FOCUS_UNIT) then return false end
         if _G.UnitIsDead(FOCUS_UNIT) then return false end
         local refresh_at = context.settings.resto_earth_shield_refresh or 2
@@ -260,6 +252,7 @@ local Resto_EarthShieldMaintain = {
 local Resto_ManaTide = {
     requires_combat = true,
     spell = A.ManaTideTotem,
+    spell_target = PLAYER_UNIT,
     setting_key = "resto_use_mana_tide",
 
     matches = function(context, state)
@@ -391,7 +384,6 @@ local Resto_Racial = {
 -- [6] Chain Heal — primary healing spell (bounces to 3 targets, smart targeting)
 local Resto_ChainHeal = {
     requires_combat = true,
-    spell = A.ChainHeal,
 
     matches = function(context, state)
         if context.is_moving then return false end
@@ -416,7 +408,6 @@ local Resto_ChainHeal = {
 -- [7] Lesser Healing Wave — fast emergency single-target
 local Resto_LesserHealingWave = {
     requires_combat = true,
-    spell = A.LesserHealingWave,
 
     matches = function(context, state)
         if context.is_moving then return false end
@@ -447,7 +438,6 @@ local Resto_LesserHealingWave = {
 -- [8] Healing Wave — big slow heal
 local Resto_HealingWave = {
     requires_combat = true,
-    spell = A.HealingWave,
 
     matches = function(context, state)
         if context.is_moving then return false end

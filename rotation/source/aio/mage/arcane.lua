@@ -57,6 +57,12 @@ local function get_arcane_state(context)
     local start_conserve = settings.arcane_start_conserve_pct or Constants.ARCANE.DEFAULT_START_CONSERVE
     local stop_conserve = settings.arcane_stop_conserve_pct or Constants.ARCANE.DEFAULT_STOP_CONSERVE
 
+    -- Lower conserve threshold during Bloodlust/Heroism (burn harder)
+    local has_bloodlust = (Unit("player"):HasBuffs(Constants.BLOODLUST_IDS, true) or 0) > 0
+    if has_bloodlust and start_conserve > 10 then
+        start_conserve = 10
+    end
+
     -- Phase transitions
     if arcane_phase == "burn" and context.mana_pct <= start_conserve then
         arcane_phase = "conserve"
@@ -94,8 +100,9 @@ local Arcane_IcyVeins = {
     setting_key = "arcane_use_icy_veins",
 
     matches = function(context, state)
-        -- Only use CDs during burn phase
         if not state.is_burning then return false end
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         return true
     end,
 
@@ -113,8 +120,11 @@ local Arcane_ColdSnap = {
     setting_key = "arcane_use_cold_snap",
 
     matches = function(context, state)
-        -- Only reset CDs during burn phase
         if not state.is_burning then return false end
+        -- Don't waste Cold Snap while Icy Veins is still active
+        if context.icy_veins_active then return false end
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         local iv_cd = A.IcyVeins:GetCooldown() or 0
         if iv_cd < 20 then return false end
         return true
@@ -136,6 +146,8 @@ local Arcane_ArcanePower = {
 
     matches = function(context, state)
         if not state.is_burning then return false end
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         return true
     end,
 
@@ -155,6 +167,8 @@ local Arcane_PresenceOfMind = {
 
     matches = function(context, state)
         if not state.is_burning then return false end
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         return true
     end,
 
@@ -172,6 +186,8 @@ local Arcane_Racial = {
 
     matches = function(context, state)
         if not state.is_burning then return false end
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if A.Berserking:IsReady(PLAYER_UNIT) then return true end
         if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
         return false
@@ -224,18 +240,18 @@ local Arcane_MovementSpell = {
 
     execute = function(icon, context, state)
         local s = context.settings
-        local result
+        local result, msg
         if s.arcane_move_fire_blast then
-            result = try_cast(A.FireBlast, icon, TARGET_UNIT, "[ARCANE] Fire Blast (moving)")
-            if result then return result end
+            result, msg = try_cast(A.FireBlast, icon, TARGET_UNIT, "[ARCANE] Fire Blast (moving)")
+            if result then return result, msg end
         end
         if s.arcane_move_ice_lance then
-            result = try_cast(A.IceLance, icon, TARGET_UNIT, "[ARCANE] Ice Lance (moving)")
-            if result then return result end
+            result, msg = try_cast(A.IceLance, icon, TARGET_UNIT, "[ARCANE] Ice Lance (moving)")
+            if result then return result, msg end
         end
         if s.arcane_move_cone_of_cold then
-            result = try_cast(A.ConeOfCold, icon, TARGET_UNIT, "[ARCANE] Cone of Cold (moving)")
-            if result then return result end
+            result, msg = try_cast(A.ConeOfCold, icon, TARGET_UNIT, "[ARCANE] Cone of Cold (moving)")
+            if result then return result, msg end
         end
         if s.arcane_move_arcane_explosion and context.in_melee_range then
             return try_cast(A.ArcaneExplosion, icon, PLAYER_UNIT, "[ARCANE] Arcane Explosion (moving)")
@@ -273,15 +289,17 @@ local Arcane_ConserveAB = {
         if not state.is_conserving then return false end
         -- Use ab_stacks as the reliable cast counter (0-3 stacks tracks AB casts)
         local max_casts = context.settings.arcane_blasts_between_fillers or Constants.ARCANE.DEFAULT_BLASTS_BEFORE_FILLER
-        if context.ab_stacks >= max_casts then return false end
+        -- Clearcasting: allow one extra AB since it's free (no mana cost)
+        if context.ab_stacks >= max_casts and not context.has_clearcasting then return false end
         return true
     end,
 
     execute = function(icon, context, state)
         return try_cast(A.ArcaneBlast, icon, TARGET_UNIT,
-            format("[ARCANE] Arcane Blast (CONSERVE %d/%d)",
+            format("[ARCANE] Arcane Blast (CONSERVE %d/%d)%s",
                 context.ab_stacks + 1,
-                context.settings.arcane_blasts_between_fillers or Constants.ARCANE.DEFAULT_BLASTS_BEFORE_FILLER))
+                context.settings.arcane_blasts_between_fillers or Constants.ARCANE.DEFAULT_BLASTS_BEFORE_FILLER,
+                context.has_clearcasting and " [CC]" or ""))
     end,
 }
 

@@ -5,8 +5,7 @@
 -- Toggle via schema setting "show_debug_panel" (Tab 5 "Pet & Diag")
 -- or /flux debug panel.
 
-local _G, string, tostring, math =
-      _G, string, tostring, math
+local _G, string = _G, string
 
 local A = _G.Action
 

@@ -15,7 +15,6 @@ if not NS then
 end
 
 local A = NS.A
-local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local Constants = NS.Constants
@@ -36,9 +35,7 @@ local disc_state = {
     lowest_unit = nil,
     lowest_hp = 100,
     tank_unit = nil,
-    emergency_count = 0,
     group_damaged_count = 0,
-    scan_count = 0,
     tank_has_weakened_soul = false,
     inner_focus_ready = false,
     pain_suppression_ready = false,
@@ -56,12 +53,10 @@ local function get_disc_state(context)
     disc_state.pom_ready = is_spell_available(A.PrayerOfMending) and A.PrayerOfMending:IsReady(PLAYER_UNIT)
 
     -- Scan healing targets
-    local count, lowest, lowest_hp, tank, emerg, group_dmg = scan_healing_targets(context)
-    disc_state.scan_count = count
+    local _, lowest, lowest_hp, tank, _, group_dmg = scan_healing_targets(context)
     disc_state.lowest_unit = lowest
     disc_state.lowest_hp = lowest_hp or 100
     disc_state.tank_unit = tank
-    disc_state.emergency_count = emerg
     disc_state.group_damaged_count = group_dmg
 
     -- Check Weakened Soul on tank
@@ -107,6 +102,26 @@ rotation_registry:register("discipline", {
         execute = function(icon, context, state)
             if A.FlashHeal:IsReady(state.lowest_unit) then
                 return A.FlashHeal:Show(icon), format("[DISC] Emergency FH -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
+            end
+            return nil
+        end,
+    }),
+
+    -- [2.5] Binding Heal (self + target both damaged)
+    named("BindingHeal", {
+        matches = function(context, state)
+            if not context.in_combat then return false end
+            if context.is_moving then return false end
+            -- Need self damage
+            if context.hp > 80 then return false end
+            -- Need a heal target that isn't self
+            if not state.lowest_unit then return false end
+            if state.lowest_unit == PLAYER_UNIT then return false end
+            return is_spell_available(A.BindingHeal)
+        end,
+        execute = function(icon, context, state)
+            if A.BindingHeal:IsReady(state.lowest_unit) then
+                return A.BindingHeal:Show(icon), format("[DISC] Binding Heal -> %s (self: %.0f%%)", state.lowest_unit, context.hp)
             end
             return nil
         end,

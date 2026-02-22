@@ -88,6 +88,12 @@ local function scan_healing_targets()
                 healing_targets_count = healing_targets_count + 1
                 local idx = healing_targets_count
                 local entry = healing_targets[idx]
+                if not entry then
+                    entry = { unit = nil, hp = 100, is_player = false, has_aggro = false,
+                              is_tank = false, has_poison = false, has_disease = false,
+                              has_magic = false, needs_cleanse = false }
+                    healing_targets[idx] = entry
+                end
                 entry.unit = unit
                 entry.hp = _G.UnitHealth(unit) / _G.UnitHealthMax(unit) * 100
                 entry.is_player = (unit == "player")
@@ -103,6 +109,11 @@ local function scan_healing_targets()
                 entry.needs_cleanse = entry.has_poison or entry.has_disease or entry.has_magic
             end
         end
+    end
+
+    -- Nil out stale entries beyond current count so sort only sees valid entries
+    for i = healing_targets_count + 1, #healing_targets do
+        healing_targets[i] = nil
     end
 
     -- Sort by HP ascending (lowest first)

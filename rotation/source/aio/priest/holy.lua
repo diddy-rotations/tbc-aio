@@ -15,7 +15,6 @@ if not NS then
 end
 
 local A = NS.A
-local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local Constants = NS.Constants
@@ -35,9 +34,7 @@ local holy_state = {
     lowest_unit = nil,
     lowest_hp = 100,
     tank_unit = nil,
-    emergency_count = 0,
     group_damaged_count = 0,
-    scan_count = 0,
     surge_of_light = false,
     clearcasting = false,
     pom_ready = false,
@@ -54,12 +51,10 @@ local function get_holy_state(context)
     holy_state.coh_ready = is_spell_available(A.CircleOfHealing) and A.CircleOfHealing:IsReady(PLAYER_UNIT)
 
     -- Scan healing targets
-    local count, lowest, lowest_hp, tank, emerg, group_dmg = scan_healing_targets(context)
-    holy_state.scan_count = count
+    local _, lowest, lowest_hp, tank, _, group_dmg = scan_healing_targets(context)
     holy_state.lowest_unit = lowest
     holy_state.lowest_hp = lowest_hp or 100
     holy_state.tank_unit = tank
-    holy_state.emergency_count = emerg
     holy_state.group_damaged_count = group_dmg
 
     return holy_state
@@ -165,7 +160,8 @@ rotation_registry:register("holy", {
             if context.is_moving then return false end
             if not state.clearcasting then return false end
             if not state.lowest_unit then return false end
-            return state.lowest_hp < (context.settings.holy_renew_hp or 90)
+            -- Relaxed threshold: free GH is always valuable (Inspiration proc + mana saved)
+            return state.lowest_hp < 95
         end,
         execute = function(icon, context, state)
             if A.GreaterHeal:IsReady(state.lowest_unit) then
@@ -223,9 +219,9 @@ rotation_registry:register("holy", {
             if context.has_inner_focus then return false end
             if not is_spell_available(A.InnerFocus) then return false end
             if not A.InnerFocus:IsReady(PLAYER_UNIT) then return false end
-            -- Only use if someone needs healing
+            -- Only use if someone needs a Greater Heal (align with GH threshold for proper pairing)
             if not state.lowest_unit then return false end
-            return state.lowest_hp < 80
+            return state.lowest_hp < (context.settings.holy_renew_hp or 90)
         end,
         execute = function(icon, context, state)
             return try_cast(A.InnerFocus, icon, PLAYER_UNIT, "[HOLY] Inner Focus (+ Greater Heal)")

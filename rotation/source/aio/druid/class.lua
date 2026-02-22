@@ -257,7 +257,7 @@ local Constants = {
       RAKE_MIN = 6,
       BITE_EXECUTE = 6,
       SHORT_FIGHT = 10,
-      FORCE_OF_NATURE_MIN = 20,
+      FORCE_OF_NATURE_MIN = 15,
    },
 
    ENERGY = {
@@ -552,7 +552,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.6.9",
+   version = "v1.7.0",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 
@@ -699,9 +699,9 @@ rotation_registry:register_class({
          { id = MOTW_BUFF_IDS, label = "MotW" },
          { id = THORNS_BUFF_IDS, label = "Thorns" },
          { id = 16864, label = "OoC" },
+         { id = Constants.BUFF_ID.NATURES_GRACE, label = "NG" },
       },
       combo_points = { "cat" },
-      swing_label = "Shoot",
       debuffs = {
          cat = {
             { id = MANGLE_DEBUFF_IDS, label = "Mangle", target = true },

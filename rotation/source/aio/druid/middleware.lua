@@ -348,6 +348,40 @@ do
    })
 end
 
+-- ============================================================================
+-- BARKSKIN DEFENSIVE MIDDLEWARE (off-GCD, usable in all forms)
+-- ============================================================================
+do
+   local is_spell_available = NS.is_spell_available
+   local is_buff_active = NS.is_buff_active
+
+   rotation_registry:register_middleware({
+      name = "Barkskin",
+      priority = 310,
+      is_defensive = true,
+      is_gcd_gated = false,
+      setting_key = "use_barkskin",
+
+      matches = function(context)
+         if not context.in_combat then return false end
+         if not is_spell_available(A.SelfBarkskin) then return false end
+         local threshold = context.settings.barkskin_hp or 40
+         if context.hp > threshold then return false end
+         if is_buff_active(A.SelfBarkskin, PLAYER_UNIT) then return false end
+         if not A.SelfBarkskin:IsReady(PLAYER_UNIT) then return false end
+         return true
+      end,
+
+      execute = function(icon, context)
+         local result = A.SelfBarkskin:Show(icon)
+         if result then
+            return result, format("[MW] Barkskin - HP: %.0f%%", context.hp)
+         end
+         return nil
+      end,
+   })
+end
+
 -- Shared trinket middleware (burst + defensive, schema-driven)
 NS.register_trinket_middleware()
 

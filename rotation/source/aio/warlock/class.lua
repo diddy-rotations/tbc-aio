@@ -2,9 +2,6 @@
 -- Defines all Warlock spells, constants, helper functions, and registers Warlock as a class
 
 local _G, setmetatable, pairs, ipairs, tostring, select, type = _G, setmetatable, pairs, ipairs, tostring, select, type
-local tinsert = table.insert
-local format = string.format
-local GetTime = _G.GetTime
 local A = _G.Action
 
 if not A then return end
@@ -111,13 +108,10 @@ NS.A = A
 local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
-local is_spell_known = NS.is_spell_known
-local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
 -- Framework helpers
 local MultiUnits = A.MultiUnits
-local DetermineUsableObject = A.DetermineUsableObject
 
 -- ============================================================================
 -- CONSTANTS
@@ -179,18 +173,15 @@ local function get_curse_duration(context)
     return Unit(TARGET_UNIT):HasDeBuffs(debuff_id) or 0
 end
 
-local CURSE_SPELLS -- forward declaration, filled after A is set up
+local CURSE_SPELLS = {
+    elements = A.CurseOfElements,
+    agony = A.CurseOfAgony,
+    doom = A.CurseOfDoom,
+    recklessness = A.CurseOfRecklessness,
+    tongues = A.CurseOfTongues,
+}
 
 local function get_curse_spell(context)
-    if not CURSE_SPELLS then
-        CURSE_SPELLS = {
-            elements = A.CurseOfElements,
-            agony = A.CurseOfAgony,
-            doom = A.CurseOfDoom,
-            recklessness = A.CurseOfRecklessness,
-            tongues = A.CurseOfTongues,
-        }
-    end
     local curse_type = context.settings.curse_type
     -- CoD does zero damage if target dies before 60s tick — fall back to CoA
     if curse_type == "doom" and context.ttd > 0 and context.ttd < 60 then
@@ -208,7 +199,7 @@ NS.get_curse_spell = get_curse_spell
 -- ============================================================================
 rotation_registry:register_class({
     name = "Warlock",
-    version = "v1.6.1",
+    version = "v1.7.0",
     playstyles = { "affliction", "demonology", "destruction" },
     idle_playstyle_name = nil,
 

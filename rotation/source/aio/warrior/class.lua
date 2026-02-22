@@ -1,10 +1,7 @@
 -- Warrior Class Module
 -- Defines all Warrior spells, constants, helper functions, and registers Warrior as a class
 
-local _G, setmetatable, pairs, ipairs, tostring, select, type = _G, setmetatable, pairs, ipairs, tostring, select, type
-local tinsert = table.insert
-local format = string.format
-local GetTime = _G.GetTime
+local _G, setmetatable = _G, setmetatable
 local A = _G.Action
 
 if not A then return end
@@ -25,11 +22,6 @@ Action[A.PlayerClass] = {
     -- Racials
     BloodFury          = Create({ Type = "Spell", ID = 20572, Click = { unit = "player", type = "spell", spell = 20572 } }),
     Berserking         = Create({ Type = "Spell", ID = 26296, Click = { unit = "player", type = "spell", spell = 26296 } }),
-    WarStomp           = Create({ Type = "Spell", ID = 20549, Click = { unit = "player", type = "spell", spell = 20549 } }),
-    WilloftheForsaken  = Create({ Type = "Spell", ID = 7744, Click = { unit = "player", type = "spell", spell = 7744 } }),
-    EscapeArtist       = Create({ Type = "Spell", ID = 20589, Click = { unit = "player", type = "spell", spell = 20589 } }),
-    Stoneform          = Create({ Type = "Spell", ID = 20594, Click = { unit = "player", type = "spell", spell = 20594 } }),
-    GiftOfTheNaaru     = Create({ Type = "Spell", ID = 28880, Click = { unit = "player", type = "spell", spell = 28880 } }),
 
     -- Core Damage (useMaxRank with base IDs)
     HeroicStrike       = Create({ Type = "Spell", ID = 78, useMaxRank = true }),
@@ -79,17 +71,9 @@ Action[A.PlayerClass] = {
     Pummel             = Create({ Type = "Spell", ID = 6552 }),
     ShieldBash         = Create({ Type = "Spell", ID = 72, useMaxRank = true }),
 
-    -- Stances (for suggesting stance swaps)
-    BattleStance       = Create({ Type = "Spell", ID = 2457, Click = { unit = "player", type = "spell", spell = 2457 } }),
-    DefensiveStance    = Create({ Type = "Spell", ID = 71, Click = { unit = "player", type = "spell", spell = 71 } }),
-    BerserkerStance    = Create({ Type = "Spell", ID = 2458, Click = { unit = "player", type = "spell", spell = 2458 } }),
-
     -- Items
     SuperHealingPotion = Create({ Type = "Item", ID = 22829, Click = { unit = "player", type = "item", item = 22829 } }),
     MajorHealingPotion = Create({ Type = "Item", ID = 13446, Click = { unit = "player", type = "item", item = 13446 } }),
-    HastePotion        = Create({ Type = "Item", ID = 22838, Click = { unit = "player", type = "item", item = 22838 } }),
-    IronshieldPotion   = Create({ Type = "Item", ID = 22849, Click = { unit = "player", type = "item", item = 22849 } }),
-
     -- Healthstones
     HealthstoneMaster  = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
     HealthstoneMajor   = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
@@ -104,13 +88,10 @@ NS.A = A
 local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
-local is_spell_known = NS.is_spell_known
-local PLAYER_UNIT = NS.PLAYER_UNIT
 local TARGET_UNIT = NS.TARGET_UNIT
 
 -- Framework helpers
 local MultiUnits = A.MultiUnits
-local DetermineUsableObject = A.DetermineUsableObject
 
 -- ============================================================================
 -- CONSTANTS
@@ -135,7 +116,6 @@ local Constants = {
         SHIELD_BLOCK      = 2565,
         LAST_STAND        = 12975,
         SPELL_REFLECTION  = 23920,
-        BLOODRAGE         = 29131,
     },
 
     DEBUFF_ID = {
@@ -143,18 +123,12 @@ local Constants = {
         SUNDER_ARMOR      = 25225,
         THUNDER_CLAP      = 25264,
         DEMO_SHOUT        = 25203,
-        HAMSTRING         = 25212,
-        MORTAL_STRIKE     = 12294,
-        DEEP_WOUNDS       = 12867,
     },
 
     SUNDER_MAX_STACKS        = 5,
     SUNDER_REFRESH_WINDOW    = 3,
     TC_REFRESH_WINDOW        = 2,
     RAMPAGE_MAX_STACKS       = 5,
-
-    -- All shout buff IDs for checking if any shout is active
-    SHOUT_BUFF_IDS = { 2048, 469 },
 
     -- Taunt thresholds (matching Druid Growl/Challenging Roar pattern)
     TAUNT = {
@@ -176,7 +150,7 @@ local STANCE_NAMES = { "Battle", "Defensive", "Berserker" }
 
 rotation_registry:register_class({
     name = "Warrior",
-    version = "v1.6.1",
+    version = "v1.7.0",
     playstyles = { "arms", "fury", "protection" },
     idle_playstyle_name = nil,
 
@@ -295,7 +269,6 @@ rotation_registry:register_class({
                 { id = Constants.DEBUFF_ID.DEMO_SHOUT, label = "Demo", target = true, owned = false },
             },
         },
-        swing_label = "Shoot",
         custom_lines = {
             function(context) return "Stance", STANCE_NAMES[context.stance] or "?" end,
         },

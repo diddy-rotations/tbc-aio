@@ -74,11 +74,11 @@ do
 
 -- [1] Stealth Opener — highest priority when stealthed with target
 local Assassination_StealthOpener = {
-    requires_combat = false,
     requires_enemy = true,
     requires_stealth = true,
 
     matches = function(context, state)
+        if context.in_combat and not context.is_stealthed then return false end
         local opener = context.settings.opener or "garrote"
         return opener ~= "none"
     end,
@@ -136,6 +136,8 @@ local Assassination_ColdBlood = {
     setting_key = "assassination_use_cold_blood",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         -- Only use when we have CP for a finisher soon
         local min_cp = context.settings.assassination_min_cp_finisher or 4
         return context.cp >= min_cp
@@ -154,6 +156,8 @@ local Assassination_Racial = {
     setting_key = "use_racial",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if A.BloodFury:IsReady(PLAYER_UNIT) then return true end
         if A.Berserking:IsReady(PLAYER_UNIT) then return true end
         if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end

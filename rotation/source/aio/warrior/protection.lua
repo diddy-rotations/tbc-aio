@@ -238,11 +238,11 @@ local Prot_DemoShout = {
     matches = function(context, state)
         -- Only refresh when debuff is missing or about to expire
         if state.demo_shout_debuff > 3 then return false end
-        return A.DemoralizingShout:IsReady(TARGET_UNIT)
+        return A.DemoralizingShout:IsReady(PLAYER_UNIT)
     end,
 
     execute = function(icon, context, state)
-        return try_cast(A.DemoralizingShout, icon, TARGET_UNIT,
+        return try_cast(A.DemoralizingShout, icon, PLAYER_UNIT,
             format("[PROT] Demoralizing Shout - Debuff: %.1fs", state.demo_shout_debuff))
     end,
 }
@@ -314,7 +314,6 @@ local Prot_ChallengingShout = {
 local Prot_MockingBlow = {
     requires_combat = true,
     requires_enemy = true,
-    is_gcd_gated = false,
     spell = A.MockingBlow,
     setting_key = "prot_use_taunt",  -- reuse the taunt toggle (Mocking Blow is also a taunt)
 
@@ -338,7 +337,24 @@ local Prot_MockingBlow = {
     end,
 }
 
--- [11] Heroic Strike / Cleave (off-GCD rage dump)
+-- [11] Execute (target <20% HP — rage-efficient finisher)
+local Prot_Execute = {
+    requires_combat = true,
+    requires_enemy = true,
+    spell = A.Execute,
+    setting_key = "prot_use_execute",
+
+    matches = function(context, state)
+        if context.target_hp > 20 then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.Execute, icon, TARGET_UNIT, format("[PROT] Execute (%.0f%%)", context.target_hp))
+    end,
+}
+
+-- [12] Heroic Strike / Cleave (off-GCD rage dump)
 local Prot_HeroicStrike = {
     requires_combat = true,
     requires_enemy = true,
@@ -380,6 +396,7 @@ rotation_registry:register("protection", {
     named("Taunt",             Prot_Taunt),
     named("ChallengingShout",  Prot_ChallengingShout),
     named("MockingBlow",       Prot_MockingBlow),
+    named("Execute",           Prot_Execute),
     named("HeroicStrike",      Prot_HeroicStrike),
 }, {
     context_builder = get_prot_state,

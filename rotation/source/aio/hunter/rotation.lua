@@ -19,7 +19,6 @@ local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local named = NS.named
-local cached_settings = NS.cached_settings
 local Constants = NS.Constants
 local Pet = NS.Pet
 local AtRange = NS.AtRange
@@ -39,13 +38,11 @@ local GetLatency = A.GetLatency
 local BurstIsON = A.BurstIsON
 local IsUnitEnemy = A.IsUnitEnemy
 local AuraIsValid = A.AuraIsValid
-local LoC = A.LossOfControl
 local MultiUnits = A.MultiUnits
 
 local UnitIsUnit = _G.UnitIsUnit
 local UnitIsDeadOrGhost = _G.UnitIsDeadOrGhost
 local GetNumGroupMembers = _G.GetNumGroupMembers
-local UnitRangedDamage = _G.UnitRangedDamage
 
 local PLAYER_UNIT = "player"
 local TARGET_UNIT = "target"
@@ -127,6 +124,21 @@ strategies[#strategies + 1] = named("OOC_AspectCheetah", {
 })
 
 -- ============================================================================
+-- 3b. OOC: TRUESHOT AURA (maintain buff)
+-- ============================================================================
+strategies[#strategies + 1] = named("OOC_TrueshotAura", {
+    matches = function(context)
+        if context.is_mounted then return false end
+        if (Unit(PLAYER_UNIT):HasBuffs(A.TrueshotAura.ID, true) or 0) > 0 then return false end
+        return A.TrueshotAura:IsReady(PLAYER_UNIT)
+    end,
+
+    execute = function(icon, context)
+        return A.TrueshotAura:Show(icon), "[OOC] Trueshot Aura"
+    end,
+})
+
+-- ============================================================================
 -- 4. OOC: CALL PET
 -- ============================================================================
 strategies[#strategies + 1] = named("OOC_CallPet", {
@@ -180,6 +192,10 @@ strategies[#strategies + 1] = named("CombatRotation", {
                 return A.PoolResource:Show(icon)
             end
 
+            -- TTD gate for burst CDs (cd_min_ttd setting)
+            local min_ttd = s.cd_min_ttd or 0
+            local ttd_ok = min_ttd == 0 or not context.ttd or context.ttd <= 0 or context.ttd >= min_ttd
+
             -- [R-2] Tranquilizing Shot (enrage dispel)
             if A.TranquilizingShot:IsReady(unit) and AuraIsValid(unit, nil, "Enrage") then
                 return A.TranquilizingShot:Show(icon), "[RANGED] Tranq Shot"
@@ -206,8 +222,8 @@ strategies[#strategies + 1] = named("CombatRotation", {
             end
 
             -- [R-5] Readiness controller (outside burst)
-            if A.Readiness:IsReady(PLAYER_UNIT) then
-                if s.readiness_rapid_fire then
+            if s.use_readiness and A.Readiness:IsReady(PLAYER_UNIT) then
+                if s.readiness_rapid_fire and ttd_ok then
                     if A.RapidFire:GetCooldown() >= 120 - (30 * num(A.RapidKilling1:IsTalentLearned())) - (30 * num(A.RapidKilling2:IsTalentLearned())) then
                         return A.Readiness:Show(icon), "[RANGED] Readiness (Rapid Fire)"
                     end
@@ -252,14 +268,14 @@ strategies[#strategies + 1] = named("CombatRotation", {
             end
 
             -- [R-11] Kill Command (off-GCD, 5s CD — highest DPS priority)
-            if A.KillCommand:IsReady(unit) then
+            if ttd_ok and A.KillCommand:IsReady(unit) then
                 return A.KillCommand:Show(icon), "[RANGED] Kill Command"
             end
 
             -- ============================================
             -- RANGED ROTATION (at range)
             -- ============================================
-            if AtRange() then
+            if AtRange(unit) then
                 -- [R-12] Auto Shoot
                 if not Player:IsShooting() then
                     return A:Show(icon, CONST.AUTOSHOOT)
@@ -306,15 +322,15 @@ strategies[#strategies + 1] = named("CombatRotation", {
 
                 if BurstIsON(unit) or (not BurstIsON(unit) and autoSyncCDs) then
                     if (autoSyncCDs and BurnPhase) or not autoSyncCDs then
-                        if A.BestialWrath:IsReady(PLAYER_UNIT) and s.use_bestial_wrath and context.pet_active and (Unit(unit):TimeToDie() > 5 or Unit(unit):IsBoss()) then
+                        if ttd_ok and A.BestialWrath:IsReady(PLAYER_UNIT) and s.use_bestial_wrath and context.pet_active and (Unit(unit):TimeToDie() > 5 or Unit(unit):IsBoss()) then
                             return A.BestialWrath:Show(icon), "[BURST] Bestial Wrath"
                         end
 
-                        if A.RapidFire:IsReady(PLAYER_UNIT) and s.use_rapid_fire and Unit(PLAYER_UNIT):HasBuffs(A.RapidFire.ID, true) == 0 and (Unit(unit):TimeToDie() > 5 or Unit(unit):IsBoss()) then
+                        if ttd_ok and A.RapidFire:IsReady(PLAYER_UNIT) and s.use_rapid_fire and Unit(PLAYER_UNIT):HasBuffs(A.RapidFire.ID, true) == 0 and (Unit(unit):TimeToDie() > 5 or Unit(unit):IsBoss()) then
                             return A.RapidFire:Show(icon), "[BURST] Rapid Fire"
                         end
 
-                        if A.Readiness:IsReady(PLAYER_UNIT) and s.use_readiness then
+                        if ttd_ok and A.Readiness:IsReady(PLAYER_UNIT) and s.use_readiness then
                             if s.readiness_rapid_fire then
                                 if A.RapidFire:GetCooldown() >= 60 then
                                     return A.Readiness:Show(icon), "[BURST] Readiness (Rapid Fire)"
@@ -327,11 +343,11 @@ strategies[#strategies + 1] = named("CombatRotation", {
                             end
                         end
 
-                        if A.BloodFury:IsReady(PLAYER_UNIT) and s.use_racial and (Unit(unit):TimeToDie() > 5 or Unit(unit):IsBoss()) then
+                        if ttd_ok and A.BloodFury:IsReady(PLAYER_UNIT) and s.use_racial and (Unit(unit):TimeToDie() > 5 or Unit(unit):IsBoss()) then
                             return A.BloodFury:Show(icon), "[BURST] Blood Fury"
                         end
 
-                        if A.Berserking:IsReady(PLAYER_UNIT) and s.use_racial and (Unit(unit):TimeToDie() > 5 or Unit(unit):IsBoss()) then
+                        if ttd_ok and A.Berserking:IsReady(PLAYER_UNIT) and s.use_racial and (Unit(unit):TimeToDie() > 5 or Unit(unit):IsBoss()) then
                             return A.Berserking:Show(icon), "[BURST] Berserking"
                         end
 
@@ -463,7 +479,7 @@ strategies[#strategies + 1] = named("CombatRotation", {
             -- ============================================
             -- MELEE ROTATION (in melee range)
             -- ============================================
-            if InMelee() then
+            if InMelee(unit) then
                 -- [R-19] Disengage (PvE, when mob is on us)
                 if not A.IsInPvP and A.Disengage:IsReady(unit) and UnitIsUnit("targettarget", PLAYER_UNIT)
                    and (not A.Intimidation:IsReady(unit) or Unit("pet"):HasBuffs(A.Intimidation.ID) == 0 or not s.intimidation_pve) then

@@ -30,7 +30,6 @@ end
 local A = NS.A
 local Constants = NS.Constants
 local Unit = NS.Unit
-local Player = NS.Player
 local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
@@ -149,6 +148,7 @@ local Holy_Racial = {
     matches = function(context, state)
         if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
         if A.Stoneform:IsReady(PLAYER_UNIT) then return true end
+        if A.GiftOfTheNaaru and state.lowest and state.lowest.hp < 60 then return true end
         return false
     end,
 
@@ -159,6 +159,11 @@ local Holy_Racial = {
         if A.Stoneform:IsReady(PLAYER_UNIT) then
             return A.Stoneform:Show(icon), "[HOLY] Stoneform"
         end
+        if A.GiftOfTheNaaru and state.lowest and state.lowest.hp < 60
+            and A.GiftOfTheNaaru:IsReady(state.lowest.unit) then
+            return A.GiftOfTheNaaru:Show(icon),
+                format("[HOLY] Gift of the Naaru -> %s (%.0f%%)", state.lowest.unit, state.lowest.hp)
+        end
         return nil
     end,
 }
@@ -167,6 +172,7 @@ local Holy_Racial = {
 local Holy_HolyShockHeal = {
     requires_combat = true,
     spell = A.HolyShock,
+    spell_target = PLAYER_UNIT,
     setting_key = "holy_use_holy_shock",
 
     matches = function(context, state)
@@ -190,6 +196,7 @@ local Holy_HolyShockHeal = {
 local Holy_LayOnHands = {
     requires_combat = true,
     spell = A.LayOnHands,
+    spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
         if not state.lowest then return false end
@@ -212,6 +219,7 @@ local Holy_LayOnHands = {
 local Holy_HolyLight = {
     requires_combat = true,
     spell = A.HolyLight,
+    spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
         if not state.lowest then return false end
@@ -235,6 +243,7 @@ local Holy_HolyLight = {
 local Holy_FlashOfLight = {
     requires_combat = true,
     spell = A.FlashOfLight,
+    spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
         if not state.lowest then return false end
@@ -318,6 +327,7 @@ local Holy_SealMaintain = {
 local Holy_Cleanse = {
     requires_combat = true,
     spell = A.Cleanse,
+    spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
         if not context.settings.holy_use_cleanse then return false end

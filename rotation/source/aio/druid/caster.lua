@@ -228,9 +228,9 @@ do
    local function create_self_buff_strategy(spell, name, buff_ids, settings_key)
       local function missing_buff()
          if buff_ids then
-            return Unit(PLAYER_UNIT):HasBuffs(buff_ids, nil, true) == 0
+            return (Unit(PLAYER_UNIT):HasBuffs(buff_ids, nil, true) or 0) == 0
          end
-         return Unit(PLAYER_UNIT):HasBuffs(spell.ID) == 0
+         return (Unit(PLAYER_UNIT):HasBuffs(spell.ID) or 0) == 0
       end
 
       return {

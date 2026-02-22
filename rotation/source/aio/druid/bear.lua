@@ -509,6 +509,7 @@ do
       requires_combat = true,
       setting_key = "use_frenzied_regen",
       spell = A.FrenziedRegeneration,
+      spell_target = PLAYER_UNIT,
       matches = function(context)
          -- FR drains rage for healing; need rage as fuel (not a cast cost, OoC doesn't help)
          if context.rage < 10 then return false end
@@ -525,7 +526,7 @@ do
       execute = function(icon, context)
          local proactive = context.hp > context.settings.emergency_heal_hp
          local mode = proactive and "Proactive (grouped)" or "Emergency"
-         return try_cast_fmt(A.FrenziedRegeneration, icon, TARGET_UNIT, "[P2]", "Frenzied Regeneration", "%s - HP: %.0f%%, Rage: %d", mode, context.hp, context.rage)
+         return try_cast_fmt(A.FrenziedRegeneration, icon, PLAYER_UNIT, "[P2]", "Frenzied Regeneration", "%s - HP: %.0f%%, Rage: %d", mode, context.hp, context.rage)
       end,
    }
 

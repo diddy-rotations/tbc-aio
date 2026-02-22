@@ -23,12 +23,10 @@ end
 
 local A = NS.A
 local Constants = NS.Constants
-local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
 local resolve_totem_spell = NS.resolve_totem_spell
-local totem_state = NS.totem_state
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
@@ -46,16 +44,17 @@ local ele_state = {
 }
 
 -- Module-level LB counter for fixed_ratio mode (persists across frames, reset on CL cast)
-local lb_casts_since_cl = 0
+-- Starts at 99 so Chain Lightning is available on first cast (opening CL)
+local lb_casts_since_cl = 99
 local last_combat_state = false
 
 local function get_ele_state(context)
     if context._ele_valid then return ele_state end
     context._ele_valid = true
 
-    -- Reset LB counter on combat exit (prevent stale state between fights)
+    -- Reset LB counter on combat exit so CL is available on first cast of next fight
     if last_combat_state and not context.in_combat then
-        lb_casts_since_cl = 0
+        lb_casts_since_cl = 99
     end
     last_combat_state = context.in_combat
 
@@ -288,8 +287,11 @@ local Ele_ChainLightning = {
     end,
 
     execute = function(icon, context, state)
-        lb_casts_since_cl = 0  -- Reset counter on CL cast
-        return try_cast(A.ChainLightning, icon, TARGET_UNIT, "[ELE] Chain Lightning")
+        local result = try_cast(A.ChainLightning, icon, TARGET_UNIT, "[ELE] Chain Lightning")
+        if result then
+            lb_casts_since_cl = 0  -- Reset counter on CL cast
+        end
+        return result
     end,
 }
 
@@ -329,8 +331,11 @@ local Ele_AoE = {
     execute = function(icon, context, state)
         -- CL is our primary AoE (3 targets)
         if state.chain_lightning_cd <= 0 then
-            lb_casts_since_cl = 0
-            return try_cast(A.ChainLightning, icon, TARGET_UNIT, "[ELE] Chain Lightning (AoE)")
+            local result = try_cast(A.ChainLightning, icon, TARGET_UNIT, "[ELE] Chain Lightning (AoE)")
+            if result then
+                lb_casts_since_cl = 0
+                return result
+            end
         end
         -- Fire totems for AoE: only if fire slot is empty/expiring and no Fire Elemental
         local min_ttd = context.settings.cd_min_ttd or 0
@@ -391,8 +396,11 @@ local Ele_LightningBolt = {
     end,
 
     execute = function(icon, context, state)
-        lb_casts_since_cl = lb_casts_since_cl + 1
-        return try_cast(A.LightningBolt, icon, TARGET_UNIT, "[ELE] Lightning Bolt")
+        local result = try_cast(A.LightningBolt, icon, TARGET_UNIT, "[ELE] Lightning Bolt")
+        if result then
+            lb_casts_since_cl = lb_casts_since_cl + 1
+        end
+        return result
     end,
 }
 

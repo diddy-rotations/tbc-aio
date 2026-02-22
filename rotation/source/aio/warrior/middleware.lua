@@ -194,7 +194,6 @@ rotation_registry:register_middleware({
 rotation_registry:register_middleware({
     name = "Warrior_Bloodrage",
     priority = 200,
-    is_burst = true,
     is_gcd_gated = false,
 
     matches = function(context)
@@ -296,6 +295,8 @@ rotation_registry:register_middleware({
         if not context.in_combat then return false end
         if not context.has_valid_enemy_target then return false end
         if context.death_wish_active then return false end
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
 
         local ps = context.settings.playstyle or "fury"
         if ps == "arms" and not context.settings.arms_use_death_wish then return false end
@@ -324,6 +325,8 @@ rotation_registry:register_middleware({
         if not context.in_combat then return false end
         if not context.has_valid_enemy_target then return false end
         if context.recklessness_active then return false end
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         local ps = context.settings.playstyle or "fury"
         if ps ~= "fury" then return false end
         if not context.settings.fury_use_recklessness then return false end
@@ -353,6 +356,8 @@ rotation_registry:register_middleware({
         if not context.in_combat then return false end
         if not context.has_valid_enemy_target then return false end
         if not context.settings.use_racial then return false end
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         return true
     end,
 

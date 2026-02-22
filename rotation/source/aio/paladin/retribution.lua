@@ -24,7 +24,6 @@ end
 local A = NS.A
 local Constants = NS.Constants
 local Unit = NS.Unit
-local Player = NS.Player
 local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
@@ -97,6 +96,8 @@ local Ret_AvengingWrath = {
     setting_key = "use_avenging_wrath",
 
     matches = function(context, state)
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if context.forbearance_active then return false end
         return true
     end,
@@ -114,6 +115,8 @@ local Ret_Racial = {
 
     matches = function(context, state)
         if not context.settings.use_racial then return false end
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         return true
     end,
 
@@ -123,6 +126,9 @@ local Ret_Racial = {
         end
         if A.Stoneform:IsReady(PLAYER_UNIT) then
             return A.Stoneform:Show(icon), "[RET] Stoneform"
+        end
+        if context.hp < 60 and A.GiftOfTheNaaru and A.GiftOfTheNaaru:IsReady(PLAYER_UNIT) then
+            return A.GiftOfTheNaaru:Show(icon), "[RET] Gift of the Naaru"
         end
         return nil
     end,
@@ -158,6 +164,8 @@ local Ret_JudgeSeal = {
 
     matches = function(context, state)
         if not context.settings.ret_use_judgement then return false end
+        -- Gate judging when critically low mana: preserve active seal (re-seal costs ~210 mana)
+        if state.low_mana and context.mana < 300 then return false end
         -- Check if the seal we want to judge is active
         local judge = context.settings.ret_judge_seal or "blood"
         if judge == "blood" then
@@ -188,6 +196,8 @@ local Ret_CrusaderStrike = {
 
     matches = function(context, state)
         if not context.settings.ret_use_crusader_strike then return false end
+        -- Don't waste GCD on CS without a seal active — let MaintainSealFallback re-seal first
+        if not context.has_any_seal then return false end
         -- When twisting: don't CS if in twist window or swing imminent
         if state.should_twist and state.seal_command_active then
             if state.in_twist_window then return false end
@@ -291,7 +301,27 @@ local Ret_Consecration = {
     end,
 }
 
--- [12] Maintain Seal fallback (no seal active — catch-all)
+-- [12] Holy Wrath (Undead/Demon AoE, low priority filler)
+local Ret_HolyWrath = {
+    requires_combat = true,
+    requires_enemy = true,
+    spell = A.HolyWrath,
+
+    matches = function(context, state)
+        if not state.target_undead_or_demon then return false end
+        if context.enemy_count < 3 then return false end
+        if context.mana_pct < 40 then return false end
+        -- Don't clip twist window
+        if state.should_twist and state.in_twist_window then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        return try_cast(A.HolyWrath, icon, PLAYER_UNIT, "[RET] Holy Wrath")
+    end,
+}
+
+-- [13] Maintain Seal fallback (no seal active — catch-all)
 local Ret_MaintainSealFallback = {
     requires_combat = true,
 
@@ -321,6 +351,7 @@ rotation_registry:register("retribution", {
     named("HammerOfWrath",       Ret_HammerOfWrath),
     named("Exorcism",            Ret_Exorcism),
     named("Consecration",        Ret_Consecration),
+    named("HolyWrath",           Ret_HolyWrath),
     named("MaintainSealFallback", Ret_MaintainSealFallback),
 }, {
     context_builder = get_ret_state,

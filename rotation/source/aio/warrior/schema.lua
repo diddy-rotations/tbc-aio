@@ -185,6 +185,8 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Revenge when available (highest threat/rage)." },
             { type = "checkbox", key = "prot_use_devastate", default = true, label = "Use Devastate",
               tooltip = "Use Devastate (requires Prot 41-point talent)." },
+            { type = "checkbox", key = "prot_use_execute", default = true, label = "Use Execute",
+              tooltip = "Use Execute on targets below 20% HP (rage-efficient finisher)." },
         }},
         { header = "Debuffs", settings = {
             { type = "checkbox", key = "prot_use_thunder_clap", default = true, label = "Use Thunder Clap",
