@@ -1,0 +1,14 @@
+# Normalize all text files to LF in the repo, native line endings on checkout
+* text=auto eol=lf
+
+# Ensure these are always LF
+*.lua text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.astro text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
