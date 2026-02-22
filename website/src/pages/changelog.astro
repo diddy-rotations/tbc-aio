@@ -15,6 +15,24 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.6.8 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-minor">Minor</span>
+
+      <h3>Druid: Bear Threat Management</h3>
+      <ul class="features">
+        <li><strong>Growl Fix</strong> &mdash; Uses UnitThreatSituation API for reliable aggro detection instead of relying solely on targettarget. Added 1.5s grace period on pull to prevent taunting immediately after Feral Charge opener</li>
+        <li><strong>Smart Tab Targeting</strong> &mdash; Tab targeting now prioritizes boss &gt; elite &gt; trash when picking up loose mobs. Cycles AUTOTARGET until landing on the desired target (max 10 attempts)</li>
+        <li><strong>Dead Target Swap</strong> &mdash; Automatically switches off dead targets to find a new one</li>
+        <li><strong>Out-of-Range Swap</strong> &mdash; When current target moves out of melee, scans for the best in-range target by priority instead of blind tab targeting. Aborts mid-cycle if desired target leaves melee</li>
+      </ul>
+
+      <h3>All Classes: Combat Time Context</h3>
+      <ul class="features">
+        <li><strong>context.combat_time</strong> &mdash; Added raw combat time (seconds) to the shared context, available to all classes</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.6.7 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-minor">Minor</span>
 
