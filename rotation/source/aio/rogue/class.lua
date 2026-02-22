@@ -153,7 +153,7 @@ NS.Constants = Constants
 -- ============================================================================
 rotation_registry:register_class({
     name = "Rogue",
-    version = "v1.6.1",
+    version = "v1.6.3",
     playstyles = { "combat", "assassination", "subtlety" },
     idle_playstyle_name = nil,
 
@@ -262,10 +262,8 @@ rotation_registry:register_class({
                 { id = Constants.DEBUFF_ID.HEMORRHAGE, label = "Hemo", target = true },
             },
         },
+        combo_points = { "combat", "assassination", "subtlety" },
         swing_label = "Shoot",
-        custom_lines = {
-            function(context) return "CP", tostring(context.cp or 0) end,
-        },
     },
 })
 

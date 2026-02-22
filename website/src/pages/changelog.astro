@@ -15,6 +15,28 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.6.3 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3>Dashboard Polish (All Classes)</h3>
+      <ul class="features">
+        <li><strong>Section Separators</strong> &mdash; Subtle divider lines between Cooldowns, Buffs, and Debuffs sections for clearer visual grouping</li>
+        <li><strong>Buff Active Borders</strong> &mdash; Active buffs now show a gold border; inactive buffs use a dim border</li>
+        <li><strong>Threat Bar</strong> &mdash; Threat percentage is now a color-coded progress bar (green/orange/red) below the target info instead of inline text</li>
+        <li><strong>Combo Point Pips</strong> &mdash; Visual combo point indicators for Druid (Cat) and Rogue, replacing the old text display</li>
+        <li><strong>Icon Text Shadow</strong> &mdash; Drop shadow on icon overlay text for improved readability</li>
+        <li><strong>Collapsible Debuffs</strong> &mdash; Debuff section hides automatically when no target exists and all tracked debuffs are target-based</li>
+        <li><strong>Dimmer Idle States</strong> &mdash; &ldquo;Idle&rdquo; and &ldquo;N/A&rdquo; text uses a subtler color to reduce visual noise</li>
+      </ul>
+
+      <h3>Bug Fixes</h3>
+      <ul class="features">
+        <li><strong>Timer Bar Overflow</strong> &mdash; Fixed GCD and Swing timer bars extending outside the dashboard frame when resetting</li>
+        <li><strong>Range Infinity Crash</strong> &mdash; Fixed integer overflow when <code>GetRange()</code> returns infinity</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.6.2 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 

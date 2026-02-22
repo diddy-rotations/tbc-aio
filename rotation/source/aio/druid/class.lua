@@ -544,7 +544,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.6.1",
+   version = "v1.6.3",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 
@@ -692,6 +692,7 @@ rotation_registry:register_class({
          { id = THORNS_BUFF_IDS, label = "Thorns" },
          { id = 16864, label = "OoC" },
       },
+      combo_points = { "cat" },
       swing_label = "Shoot",
       debuffs = {
          cat = {
