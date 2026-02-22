@@ -9,7 +9,10 @@
 
   // --- Per-Language Indentation ---
   "[lua]": {
-    "editor.tabSize": 3
+    "editor.tabSize": 3,
+    "editor.formatOnSave": false,
+    "editor.formatOnPaste": false,
+    "editor.formatOnType": false
   },
   "[javascript]": {
     "editor.tabSize": 2
