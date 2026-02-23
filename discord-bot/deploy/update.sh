@@ -31,6 +31,7 @@ header "Flux AIO Discord Bot — Update"
 # ─── 1. Pull latest ───
 header "[1/4] Pulling latest code"
 cd "$REPO_DIR"
+git checkout -- .
 git pull
 ok "Code updated"
 
