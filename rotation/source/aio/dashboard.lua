@@ -16,6 +16,7 @@ local GameTooltip_Hide = _G.GameTooltip_Hide
 local GetSpellTexture = _G.GetSpellTexture
 local GetSpellInfo = _G.GetSpellInfo
 local GetInventoryItemTexture = _G.GetInventoryItemTexture
+local GetTime = _G.GetTime
 local UnitName = _G.UnitName
 local UnitGUID = _G.UnitGUID
 local UnitDetailedThreatSituation = _G.UnitDetailedThreatSituation
@@ -137,6 +138,16 @@ local RESOURCE_COLORS = {
     rage   = { 0.90, 0.15, 0.15 },
     energy = { 1.00, 0.86, 0.00 },
     mana   = { 0.15, 0.35, 0.90 },
+}
+
+-- Energy tick tracker (detects 2s server-side energy regen ticks for sweep dot)
+local ENERGY_TICK_INTERVAL = 2.0
+local energy_tick_tracker = {
+    last_energy = 0,
+    last_tick_time = 0,
+    confident = false,
+    last_stance = -1,
+    stance_change_at = 0,
 }
 
 local CLASS_HEX = {
@@ -282,6 +293,8 @@ local ui = {
     target_info_fs = nil,
     tick_marker = nil,
     tick_marker2 = nil,
+    sweep_dot = nil,
+    sweep_dot2 = nil,
     accent_stripe = nil,
     section_seps = {},
     combo_pips = {},
@@ -417,11 +430,17 @@ local function create_dashboard()
     ui.resource_text:SetPoint("CENTER", bar_bg)
     ui.resource_text:SetTextColor(1, 1, 1)
 
-    -- Energy tick marker (thin vertical line on bar)
+    -- Energy tick marker (thin vertical line showing where +20 lands)
     ui.tick_marker = bar_bg:CreateTexture(nil, "OVERLAY")
     ui.tick_marker:SetSize(1, RES_BAR_H - 2)
     ui.tick_marker:SetColorTexture(1, 1, 1, 0.6)
     ui.tick_marker:Hide()
+
+    -- Energy tick sweep dot (animated left-to-right over 2s tick cycle)
+    ui.sweep_dot = bar_bg:CreateTexture(nil, "OVERLAY")
+    ui.sweep_dot:SetSize(2, RES_BAR_H - 2)
+    ui.sweep_dot:SetColorTexture(1, 1, 1, 0.8)
+    ui.sweep_dot:Hide()
 
     y = y - (RES_BAR_H + 3)
 
@@ -448,6 +467,12 @@ local function create_dashboard()
     ui.tick_marker2:SetSize(1, RES_BAR_H - 2)
     ui.tick_marker2:SetColorTexture(1, 1, 1, 0.6)
     ui.tick_marker2:Hide()
+
+    -- Energy tick sweep dot for secondary bar
+    ui.sweep_dot2 = ui.resource_bg2:CreateTexture(nil, "OVERLAY")
+    ui.sweep_dot2:SetSize(2, RES_BAR_H - 2)
+    ui.sweep_dot2:SetColorTexture(1, 1, 1, 0.8)
+    ui.sweep_dot2:Hide()
 
     -- Don't advance y — positioned dynamically in update
 
@@ -671,6 +696,27 @@ local function update_dashboard()
     local f = dashboard_frame
     local bar_max = FRAME_WIDTH - 18
 
+    -- Energy tick tracker: prefer class-provided frame-level tracker (e.g. cat.lua),
+    -- fall back to dashboard's own 10Hz tracker for classes without one (e.g. future Rogue)
+    local now = GetTime()
+    local ett = NS.energy_tick_tracker or energy_tick_tracker
+    if not NS.energy_tick_tracker then
+        -- Dashboard-local fallback: update our own tracker
+        local cur_stance = dash_context.stance or -1
+        if cur_stance ~= ett.last_stance then
+            ett.last_stance = cur_stance
+            ett.stance_change_at = now
+            ett.confident = false
+        end
+        local cur_energy = Player:Energy() or 0
+        local delta_e = cur_energy - ett.last_energy
+        if delta_e > 0 and delta_e <= 25 and (now - ett.stance_change_at) > 1.0 then
+            ett.last_tick_time = now
+            ett.confident = true
+        end
+        ett.last_energy = cur_energy
+    end
+
     -- Primary resource bar
     local res = resolve_config(dash_config.resource, active_ps)
     if res then
@@ -708,8 +754,16 @@ local function update_dashboard()
         else
             ui.tick_marker:Hide()
         end
+
+        -- Energy tick sweep dot visibility (positioning runs at frame rate)
+        if res.type == "energy" and ett.confident and value < max_value then
+            ui.sweep_dot:Show()
+        else
+            ui.sweep_dot:Hide()
+        end
     else
         ui.tick_marker:Hide()
+        ui.sweep_dot:Hide()
     end
 
     -- Secondary resource bar (e.g., energy/rage when primary is mana)
@@ -752,11 +806,19 @@ local function update_dashboard()
             ui.tick_marker2:Hide()
         end
 
+        -- Energy tick sweep dot visibility (positioning runs at frame rate)
+        if res2.type == "energy" and ett.confident and value < max_value then
+            ui.sweep_dot2:Show()
+        else
+            ui.sweep_dot2:Hide()
+        end
+
         ui.resource_bg2:Show()
         content_y = content_y - 15
     else
         ui.resource_bg2:Hide()
         ui.tick_marker2:Hide()
+        ui.sweep_dot2:Hide()
     end
 
     -- Combo point pips (shown for playstyles that register combo_points)
@@ -802,33 +864,14 @@ local function update_dashboard()
     local timer_idx = 1
     local class_A = NS.A
 
-    -- GCD bar (always present when framework available)
+    -- GCD bar (layout only — fill + value updated at frame rate)
     if class_A then
         local tb = ui.timer_bars[1]
-        local gcd_total = class_A.GetGCD and class_A.GetGCD() or 1.5
-        local gcd_remaining = class_A.GetCurrentGCD and class_A.GetCurrentGCD() or 0
-
         tb.bg:ClearAllPoints()
         tb.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
         tb.label:SetText("GCD")
-
-        local gcd_pct = (gcd_total > 0 and gcd_remaining > 0) and (gcd_remaining / gcd_total) or 0
-        if gcd_pct > 1 then gcd_pct = 1 end
-        if gcd_pct > 0 then
-            local gcd_bw = bar_max * gcd_pct
-            if gcd_bw < 1 then gcd_bw = 1 end
-            tb.bar:SetWidth(gcd_bw)
-            tb.bar:SetVertexColor(THEME.accent[1], THEME.accent[2], THEME.accent[3])
-            tb.bar:Show()
-            tb.value:SetText(format("%.1f", gcd_remaining))
-            tb.value:Show()
-            tb.label:SetTextColor(1, 1, 1, 0.9)
-        else
-            tb.bar:Hide()
-            tb.value:SetText("")
-            tb.value:Hide()
-            tb.label:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3], 0.4)
-        end
+        tb.bar:SetVertexColor(THEME.accent[1], THEME.accent[2], THEME.accent[3])
+        tb.bar_role = "gcd"
         tb.bg:Show()
         timer_idx = 2
         content_y = content_y - (TIMER_BAR_HEIGHT + 2)
@@ -846,46 +889,15 @@ local function update_dashboard()
         swing_label = sl[active_ps]
     end
     if swing_label and timer_idx <= MAX_TIMER_BARS then
+        -- Layout only — fill + value updated at frame rate
         local shoot = Player:GetSwingShoot() or 0
-        local remaining, duration
-        if shoot > 0 then
-            remaining = shoot
-            duration = _G.UnitRangedDamage("player") or 1.5
-        else
-            local s = Player:GetSwingStart(1) or 0
-            local d = Player:GetSwing(1) or 0
-            if s > 0 and d > 0 then
-                local r = (s + d) - GetTime()
-                remaining = r > 0 and r or 0
-            else
-                remaining = 0
-            end
-            duration = d > 0 and d or 2.0
-        end
-
         local lbl = shoot > 0 and swing_label or "Swing"
         local ctb = ui.timer_bars[timer_idx]
         ctb.bg:ClearAllPoints()
         ctb.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 8, content_y)
         ctb.label:SetText(lbl)
-
-        local tpct = (duration > 0 and remaining > 0) and (remaining / duration) or 0
-        if tpct > 1 then tpct = 1 end
-        if tpct > 0 then
-            local tbw = bar_max * tpct
-            if tbw < 1 then tbw = 1 end
-            ctb.bar:SetWidth(tbw)
-            ctb.bar:SetVertexColor(1.00, 0.49, 0.04)
-            ctb.bar:Show()
-            ctb.value:SetText(format("%.1f", remaining))
-            ctb.value:Show()
-            ctb.label:SetTextColor(1, 1, 1, 0.9)
-        else
-            ctb.bar:Hide()
-            ctb.value:SetText("")
-            ctb.value:Hide()
-            ctb.label:SetTextColor(THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3], 0.4)
-        end
+        ctb.bar:SetVertexColor(1.00, 0.49, 0.04)
+        ctb.bar_role = "swing"
         ctb.bg:Show()
         content_y = content_y - (TIMER_BAR_HEIGHT + 2)
         timer_idx = timer_idx + 1
@@ -894,6 +906,7 @@ local function update_dashboard()
     -- Hide unused timer bars
     for i = timer_idx, MAX_TIMER_BARS do
         ui.timer_bars[i].bg:Hide()
+        ui.timer_bars[i].bar_role = nil
     end
 
     content_y = content_y - 4
@@ -1294,6 +1307,92 @@ update_frame:SetScript("OnUpdate", function(self, elapsed)
     if self.elapsed >= UPDATE_INTERVAL then
         self.elapsed = 0
         update_dashboard()
+    end
+end)
+
+-- ============================================================================
+-- FRAME-RATE UPDATER (smooth animation for sweep dots + timer bars)
+-- ============================================================================
+local fr_bar_max = FRAME_WIDTH - 18
+local fr_sweep_max = FRAME_WIDTH - 19  -- bar_max minus 1px left padding
+local fr_dim = { THEME.text_dim[1], THEME.text_dim[2], THEME.text_dim[3] }
+local fr_frame = CreateFrame("Frame")
+fr_frame:SetScript("OnUpdate", function()
+    if not dashboard_frame or not dashboard_frame:IsShown() then return end
+
+    -- Sweep dots
+    local ett = NS.energy_tick_tracker or energy_tick_tracker
+    if ett.confident then
+        local elapsed = GetTime() - ett.last_tick_time
+        local frac = (elapsed % ENERGY_TICK_INTERVAL) / ENERGY_TICK_INTERVAL
+        local dot_x = 1 + fr_sweep_max * frac
+        if ui.sweep_dot and ui.sweep_dot:IsShown() then
+            ui.sweep_dot:ClearAllPoints()
+            ui.sweep_dot:SetPoint("TOPLEFT", ui.sweep_dot:GetParent(), "TOPLEFT", dot_x, -1)
+        end
+        if ui.sweep_dot2 and ui.sweep_dot2:IsShown() then
+            ui.sweep_dot2:ClearAllPoints()
+            ui.sweep_dot2:SetPoint("TOPLEFT", ui.sweep_dot2:GetParent(), "TOPLEFT", dot_x, -1)
+        end
+    end
+
+    -- Timer bars (GCD + Swing fill + value text)
+    for i = 1, MAX_TIMER_BARS do
+        local tb = ui.timer_bars[i]
+        if not tb.bar_role or not tb.bg:IsShown() then
+            -- skip
+        elseif tb.bar_role == "gcd" then
+            local a = NS.A
+            local gcd_total = a and a.GetGCD and a.GetGCD() or 1.5
+            local gcd_rem = a and a.GetCurrentGCD and a.GetCurrentGCD() or 0
+            local pct = (gcd_total > 0 and gcd_rem > 0) and (gcd_rem / gcd_total) or 0
+            if pct > 1 then pct = 1 end
+            if pct > 0 then
+                local bw = fr_bar_max * pct
+                if bw < 1 then bw = 1 end
+                tb.bar:SetWidth(bw)
+                tb.bar:Show()
+                tb.value:SetText(format("%.1f", gcd_rem))
+                tb.value:Show()
+                tb.label:SetTextColor(1, 1, 1, 0.9)
+            else
+                tb.bar:Hide()
+                tb.value:Hide()
+                tb.label:SetTextColor(fr_dim[1], fr_dim[2], fr_dim[3], 0.4)
+            end
+        elseif tb.bar_role == "swing" then
+            local shoot = Player:GetSwingShoot() or 0
+            local rem, dur
+            if shoot > 0 then
+                rem = shoot
+                dur = _G.UnitRangedDamage("player") or 1.5
+            else
+                local s = Player:GetSwingStart(1) or 0
+                local d = Player:GetSwing(1) or 0
+                if s > 0 and d > 0 then
+                    local r = (s + d) - GetTime()
+                    rem = r > 0 and r or 0
+                else
+                    rem = 0
+                end
+                dur = d > 0 and d or 2.0
+            end
+            local pct = (dur > 0 and rem > 0) and (rem / dur) or 0
+            if pct > 1 then pct = 1 end
+            if pct > 0 then
+                local bw = fr_bar_max * pct
+                if bw < 1 then bw = 1 end
+                tb.bar:SetWidth(bw)
+                tb.bar:Show()
+                tb.value:SetText(format("%.1f", rem))
+                tb.value:Show()
+                tb.label:SetTextColor(1, 1, 1, 0.9)
+            else
+                tb.bar:Hide()
+                tb.value:Hide()
+                tb.label:SetTextColor(fr_dim[1], fr_dim[2], fr_dim[3], 0.4)
+            end
+        end
     end
 end)
 

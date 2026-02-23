@@ -124,6 +124,9 @@ local energy_tick = {
    confident = false,  -- True once we've detected at least one tick
 }
 
+-- Expose to NS so the dashboard can prefer this frame-level tracker over its own 10Hz one
+NS.energy_tick_tracker = energy_tick
+
 --- Update tick tracker each frame
 --- @param current_energy number Current player energy
 --- @param stance number Current stance ID

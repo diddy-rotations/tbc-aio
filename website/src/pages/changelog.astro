@@ -15,6 +15,22 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.7.2 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3>Dashboard</h3>
+      <ul class="features">
+        <li><strong>Energy Tick Sweep Dot</strong> &mdash; A small dot sweeps across the energy bar left-to-right over the 2-second tick cycle, showing exactly when the next energy tick will arrive</li>
+        <li><strong>Frame-Rate Timer Bars</strong> &mdash; GCD, Swing, and energy tick animations now update at full frame rate instead of 10Hz for smooth, responsive visuals</li>
+      </ul>
+
+      <h3>Druid</h3>
+      <ul class="features">
+        <li><strong>Cat: Exposed Tick Tracker</strong> &mdash; Cat&rsquo;s frame-level energy tick tracker is now shared with the dashboard for higher-precision sweep dot positioning (filters Furor/Wolfshead energy)</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.7.1 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 
