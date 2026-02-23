@@ -694,10 +694,18 @@ async function handleEditMessage(guild, input) {
   if (!msg) throw new Error('Message not found.');
   if (msg.author.id !== guild.client.user.id) throw new Error('Can only edit messages sent by the bot.');
   const payload = {};
-  if (input.content != null) payload.content = input.content;
+  if (input.content != null) payload.content = unescapeContent(input.content);
   if (input.embed) {
     const existing = msg.embeds[0]?.data || {};
-    payload.embeds = [{ ...existing, ...input.embed }];
+    const merged = { ...existing, ...input.embed };
+    if (merged.title) merged.title = unescapeContent(merged.title);
+    if (merged.description) merged.description = unescapeContent(merged.description);
+    if (merged.fields) merged.fields = merged.fields.map(f => ({
+      ...f,
+      name: unescapeContent(f.name),
+      value: unescapeContent(f.value),
+    }));
+    payload.embeds = [merged];
   }
   await msg.edit(payload);
   return `Edited message ${input.message_id} in #${channel.name}`;
@@ -732,17 +740,40 @@ async function handleCreateChannel(guild, input) {
   const type = input.type === 'voice' ? ChannelType.GuildVoice : ChannelType.GuildText;
   const opts = { name: input.name, type };
   if (input.parent_id) opts.parent = input.parent_id;
-  if (input.topic && type === ChannelType.GuildText) opts.topic = input.topic;
+  if (input.topic && type === ChannelType.GuildText) opts.topic = unescapeContent(input.topic);
   const channel = await guild.channels.create(opts);
   return JSON.stringify({ id: channel.id, name: channel.name, parentId: channel.parentId });
+}
+
+// Unescape literal \uXXXX sequences and \n that the model sometimes emits in tool inputs
+function unescapeContent(str) {
+  if (!str || typeof str !== 'string') return str;
+  return str
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\u([dD][89abAB][0-9a-fA-F]{2})\\u([dD][c-fC-F][0-9a-fA-F]{2})/g,
+      (_, hi, lo) => String.fromCodePoint(
+        ((parseInt(hi, 16) - 0xD800) << 10) + (parseInt(lo, 16) - 0xDC00) + 0x10000
+      ))
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
 }
 
 async function handleSendMessage(guild, input) {
   const channel = guild.channels.cache.get(input.channel_id);
   if (!channel || !channel.isTextBased()) throw new Error('Channel not found or not text-based.');
   const payload = {};
-  if (input.content) payload.content = input.content;
-  if (input.embed) payload.embeds = [input.embed];
+  if (input.content) payload.content = unescapeContent(input.content);
+  if (input.embed) {
+    const embed = { ...input.embed };
+    if (embed.title) embed.title = unescapeContent(embed.title);
+    if (embed.description) embed.description = unescapeContent(embed.description);
+    if (embed.fields) embed.fields = embed.fields.map(f => ({
+      ...f,
+      name: unescapeContent(f.name),
+      value: unescapeContent(f.value),
+    }));
+    payload.embeds = [embed];
+  }
   if (!payload.content && !payload.embeds) throw new Error('Must provide content or embed.');
   const msg = await channel.send(payload);
   return JSON.stringify({ id: msg.id, channelId: msg.channelId });
