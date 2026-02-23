@@ -184,6 +184,14 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Cycle Windfury + Grace of Air totems to benefit from both buffs. Advanced technique." },
             { type = "checkbox", key = "enh_twist_fire_nova", default = false, label = "Twist Fire Nova",
               tooltip = "Cycle Fire Nova Totem with default fire totem for extra AoE damage." },
+            { type = "dropdown", key = "enh_fnt_single_target", default = "boss", label = "FNT Single-Target",
+              tooltip = "When below AoE threshold, still twist FNT on these targets.",
+              options = {
+                  { value = "off", text = "Off" },
+                  { value = "boss", text = "Boss Only" },
+                  { value = "elite", text = "Elite+" },
+                  { value = "all", text = "Always" },
+              }},
         }},
         { header = "Weapon Imbues", settings = {
             { type = "dropdown", key = "enh_mh_imbue", default = "windfury", label = "Main Hand",

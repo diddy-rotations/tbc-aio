@@ -239,7 +239,7 @@ NS.resolve_totem_spell = resolve_totem_spell
 -- ============================================================================
 rotation_registry:register_class({
     name = "Shaman",
-    version = "v1.7.0",
+    version = "v1.7.4",
     playstyles = { "elemental", "enhancement", "restoration" },
     idle_playstyle_name = nil,
 

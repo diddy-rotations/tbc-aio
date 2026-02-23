@@ -356,6 +356,22 @@ local Enh_FireNovaTotemTwist = {
         local now = GetTime()
 
         if fnt_twist.phase == "idle" then
+            -- Don't start a new FNT cycle on a dead target
+            if context.target_dead then return false end
+            -- Respect AoE threshold — allow single-target bypass based on setting
+            local threshold = context.settings.aoe_threshold or 0
+            if threshold > 0 and (context.enemy_count or 1) < threshold then
+                local bypass = context.settings.enh_fnt_single_target or "boss"
+                if bypass == "off" then return false end
+                if bypass ~= "all" then
+                    local classification = UnitClassification("target") or ""
+                    if bypass == "boss" then
+                        if classification ~= "worldboss" then return false end
+                    elseif bypass == "elite" then
+                        if classification ~= "worldboss" and classification ~= "rareelite" and classification ~= "elite" then return false end
+                    end
+                end
+            end
             -- Ready to drop FNT
             return true
         elseif fnt_twist.phase == "waiting" then

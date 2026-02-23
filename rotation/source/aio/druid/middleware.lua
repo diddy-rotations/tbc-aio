@@ -364,7 +364,7 @@ do
 
       matches = function(context)
          if not context.in_combat then return false end
-         -- Barkskin drops shapeshift forms on this server; only use in caster/moonkin/tree
+         -- Barkskin drops bear/cat forms on this server; moonkin/tree/caster are safe
          local stance = context.stance
          if stance == Constants.STANCE.BEAR or stance == Constants.STANCE.CAT then return false end
          if not is_spell_available(A.SelfBarkskin) then return false end

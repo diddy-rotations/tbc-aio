@@ -63,7 +63,7 @@ cleu_frame:SetScript("OnEvent", function()
     if sourceGUID ~= player_guid then return end
     if subevent ~= "SPELL_CAST_SUCCESS" then return end
 
-    local texture = GetSpellTexture(spellId)
+    local texture = select(3, GetSpellInfo(spellId)) or GetSpellTexture(spellId)
     if not texture then return end
 
     -- Push to history (every real cast, no dedup — shows actual sequence)

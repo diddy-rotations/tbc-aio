@@ -15,6 +15,32 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.7.4 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3>Druid</h3>
+      <ul class="features">
+        <li><strong>Balance: WoWSims DoT Alignment</strong> &mdash; DoT refresh logic now defaults to reapply-only-when-absent (matching WoWSims behavior), with a configurable &ldquo;DoT Refresh&rdquo; slider (0&ndash;5s) for early refresh</li>
+        <li><strong>Balance: Mana Tier Tuning</strong> &mdash; Default mana tier thresholds lowered (Tier 1: 20%, Tier 2: 10%) to keep full rotation active longer before conserving</li>
+        <li><strong>Balance: Caster Faerie Fire</strong> &mdash; Moonkin now uses caster-rank Faerie Fire and only tracks its own application, preventing conflicts with feral FF</li>
+        <li><strong>Caster: MotW Form Safety</strong> &mdash; Mark of the Wild self-buff now only fires in caster form, preventing form-drops when buffing in Moonkin</li>
+        <li><strong>Moonkin Idle Playstyle</strong> &mdash; Moonkin form now falls through to caster idle playstyle for OOC self-buff suggestions</li>
+        <li><strong>Dashboard: DoT Tracking</strong> &mdash; Moonfire and Insect Swarm dashboard debuffs now use full rank ID arrays for reliable detection across all spell ranks</li>
+      </ul>
+
+      <h3>Shaman</h3>
+      <ul class="features">
+        <li><strong>Enhancement: FNT Single-Target Bypass</strong> &mdash; Fire Nova Totem twisting now respects AoE threshold with a configurable single-target bypass (Off / Boss Only / Elite+ / Always)</li>
+        <li><strong>Enhancement: FNT Dead Target Guard</strong> &mdash; FNT twist no longer starts new cycles on dead targets</li>
+      </ul>
+
+      <h3>Shared</h3>
+      <ul class="features">
+        <li><strong>Dashboard: Spell Texture Fix</strong> &mdash; Cast history now uses GetSpellInfo for more reliable icon lookup with GetSpellTexture fallback</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.7.3 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 

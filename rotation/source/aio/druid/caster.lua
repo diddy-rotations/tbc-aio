@@ -225,7 +225,7 @@ do
    -- Self-buff helpers
    local MOTW_GOTW_BUFF_IDS = {1126, 5232, 6756, 5234, 8907, 9884, 9885, 26990, 21849, 21850, 26991}
 
-   local function create_self_buff_strategy(spell, name, buff_ids, settings_key)
+   local function create_self_buff_strategy(spell, name, buff_ids, settings_key, caster_only)
       local function missing_buff()
          if buff_ids then
             return (Unit(PLAYER_UNIT):HasBuffs(buff_ids, nil, true) or 0) == 0
@@ -238,12 +238,14 @@ do
          matches = function(context)
             if settings_key and not context.settings[settings_key] then return false end
             if context.in_combat then return false end
+            if caster_only and context.stance ~= Constants.STANCE.CASTER then return false end
             if not spell:IsReady(PLAYER_UNIT) then return false end
             return missing_buff()
          end,
          should_suggest = function(context)
             if settings_key and not context.settings[settings_key] then return false end
             if context.in_combat then return false end
+            if caster_only and context.stance ~= Constants.STANCE.CASTER then return false end
             if not spell:IsReady(PLAYER_UNIT) then return false end
             return missing_buff()
          end,
@@ -256,7 +258,7 @@ do
    end
 
    -- [6-8] Self-buffs (OOC only)
-   local Caster_MotW = create_self_buff_strategy(A.SelfMarkOfTheWild, "Mark of the Wild", MOTW_GOTW_BUFF_IDS, "use_motw")
+   local Caster_MotW = create_self_buff_strategy(A.SelfMarkOfTheWild, "Mark of the Wild", MOTW_GOTW_BUFF_IDS, "use_motw", true)
    local Caster_Thorns = create_self_buff_strategy(A.SelfThorns, "Thorns", nil, "use_thorns")
    local Caster_OoC = create_self_buff_strategy(A.SelfOmenOfClarity, "Omen of Clarity", nil, "use_ooc")
 

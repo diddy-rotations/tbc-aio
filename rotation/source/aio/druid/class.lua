@@ -65,6 +65,7 @@ Action[A.PlayerClass] = {
    ChallengingRoar = Create({ Type = "Spell", ID = 5209 }),
 
    -- Balance Abilities
+   FaerieFireCaster = Create({ Type = "Spell", ID = 770, useMaxRank = true }),
    Moonfire = Create({ Type = "Spell", ID = 8921, useMaxRank = true }),
    Starfire = Create({ Type = "Spell", ID = 2912, useMaxRank = true }),
    Wrath = Create({ Type = "Spell", ID = 5176, useMaxRank = true }),
@@ -291,8 +292,8 @@ local Constants = {
 
    BALANCE = {
       FAERIE_FIRE_REFRESH = 3,
-      MANA_TIER1 = 40,
-      MANA_TIER2 = 20,
+      MANA_TIER1 = 20,
+      MANA_TIER2 = 10,
       MANA_LOW = 20,
    },
 
@@ -451,6 +452,8 @@ local DEMO_ROAR_DEBUFF_IDS = { 99, 1735, 9490, 9747, 9898, 26998 }
 local MANGLE_DEBUFF_IDS = { 33876, 33982, 33983, 33878, 33986, 33987 }
 local RIP_DEBUFF_IDS = { 1079, 9492, 9493, 9752, 9894, 9896, 27008 }
 local RAKE_DEBUFF_IDS = { 1822, 1823, 1824, 9904, 27003 }
+local MOONFIRE_DEBUFF_IDS = { 8921, 8924, 8925, 8926, 8927, 8928, 8929, 9833, 9834, 9835, 26987, 26988 }
+local INSECT_SWARM_DEBUFF_IDS = { 5570, 24974, 24975, 24976, 24977, 27013 }
 
 -- Self-buff ID arrays (all ranks + Gift variants for dashboard tracking)
 local MOTW_BUFF_IDS = { 1126, 5232, 6756, 5234, 8907, 9884, 9885, 26990, 21849, 21850, 26991 }
@@ -516,26 +519,28 @@ NS.get_form_cost = get_form_cost
 -- ============================================================================
 -- FAERIE FIRE STRATEGY FACTORY (Druid-specific)
 -- ============================================================================
-local function create_faerie_fire_strategy(refresh_window)
+local function create_faerie_fire_strategy(refresh_window, spell_override, only_mine)
+   local ff_spell = spell_override or A.FaerieFire
+   local ff_caster = only_mine and "player" or nil
    return {
       requires_combat = true,
       requires_enemy = true,
       requires_stealth = false,
       requires_phys_immune = false,
       setting_key = "maintain_faerie_fire",
-      spell = A.FaerieFire,
+      spell = ff_spell,
       matches = function(context)
-         if A.FaerieFire:IsInRange(TARGET_UNIT) ~= true then return false end
-         local ff_duration = Unit(TARGET_UNIT):HasDeBuffs(FAERIE_FIRE_DEBUFF_IDS, nil, true) or 0
+         if ff_spell:IsInRange(TARGET_UNIT) ~= true then return false end
+         local ff_duration = Unit(TARGET_UNIT):HasDeBuffs(FAERIE_FIRE_DEBUFF_IDS, ff_caster, true) or 0
          if ff_duration > 0 and (not refresh_window or ff_duration > refresh_window) then return false end
          return true
       end,
       execute = function(icon, context)
-         local ff_duration = Unit(TARGET_UNIT):HasDeBuffs(FAERIE_FIRE_DEBUFF_IDS, nil, true) or 0
+         local ff_duration = Unit(TARGET_UNIT):HasDeBuffs(FAERIE_FIRE_DEBUFF_IDS, ff_caster, true) or 0
          if ff_duration == 0 then
-            return try_cast(A.FaerieFire, icon, TARGET_UNIT, "[FF] Faerie Fire - Debuff missing")
+            return try_cast(ff_spell, icon, TARGET_UNIT, "[FF] Faerie Fire - Debuff missing")
          end
-         return try_cast_fmt(A.FaerieFire, icon, TARGET_UNIT, "[FF]", "Faerie Fire", "Refreshing at %.1fs", ff_duration)
+         return try_cast_fmt(ff_spell, icon, TARGET_UNIT, "[FF]", "Faerie Fire", "Refreshing at %.1fs", ff_duration)
       end,
    }
 end
@@ -552,7 +557,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.7.3",
+   version = "v1.7.4",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 
@@ -568,7 +573,8 @@ rotation_registry:register_class({
    end,
 
    get_idle_playstyle = function(context)
-      if context.stance == Constants.STANCE.CASTER then
+      local stance = context.stance
+      if stance == Constants.STANCE.CASTER or stance == Constants.STANCE.MOONKIN then
          return "caster"
       end
       return nil
@@ -608,7 +614,7 @@ rotation_registry:register_class({
          { spell = A.InsectSwarm, name = "Insect Swarm", required = false, note = "Balance talent" },
          { spell = A.Hurricane, name = "Hurricane", required = false },
          { spell = A.ForceOfNature, name = "Force of Nature", required = false, note = "41pt Balance talent" },
-         { spell = A.FaerieFire, name = "Faerie Fire", required = false },
+         { spell = A.FaerieFireCaster, name = "Faerie Fire", required = false },
          { spell = A.Barkskin, name = "Barkskin", required = false },
       },
       resto = {
@@ -716,8 +722,8 @@ rotation_registry:register_class({
             { id = FAERIE_FIRE_DEBUFF_IDS, label = "FF", target = true },
          },
          balance = {
-            { id = 8921, label = "Moonfire", target = true },
-            { id = 5570, label = "Insect Swarm", target = true },
+            { id = MOONFIRE_DEBUFF_IDS, label = "Moonfire", target = true },
+            { id = INSECT_SWARM_DEBUFF_IDS, label = "IS", target = true },
             { id = FAERIE_FIRE_DEBUFF_IDS, label = "FF", target = true },
          },
       },

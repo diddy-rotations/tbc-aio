@@ -49,7 +49,7 @@ local format = string.format
 -- ============================================================================
 do
    -- [1] Faerie Fire debuff maintenance (with refresh window)
-   local Balance_FaerieFire = create_faerie_fire_strategy(Constants.BALANCE.FAERIE_FIRE_REFRESH)
+   local Balance_FaerieFire = create_faerie_fire_strategy(Constants.BALANCE.FAERIE_FIRE_REFRESH, A.FaerieFireCaster, true)
 
    -- [3] Force of Nature (Treants cooldown)
    local Balance_ForceOfNature = create_combat_strategy({
@@ -166,26 +166,27 @@ do
          end
 
          -- DoT maintenance (priority over nukes)
-         -- Insect Swarm: Apply fresh in Tier 1/2, refresh expiring in any tier
+         -- Default 0 = only reapply when absent (WoWsims behavior)
+         local dot_refresh = settings.balance_dot_refresh or 0
+
+         -- Insect Swarm: Apply when missing (or expiring if refresh > 0) in Tier 1/2
          local is_duration = Unit(TARGET_UNIT):HasDeBuffs(A.InsectSwarm.ID) or 0
-         local is_expiring = is_duration > 0 and is_duration < 3  -- About to expire
-         if settings.maintain_insect_swarm ~= false then
-            if (mana_tier <= 2 and is_duration == 0) or is_expiring then
+         if settings.maintain_insect_swarm ~= false and mana_tier <= 2 then
+            if is_duration <= dot_refresh then
                local result, msg = try_cast_fmt(A.InsectSwarm, icon, TARGET_UNIT, "[P4]", "Insect Swarm",
-                                                is_expiring and "REFRESH (%.1fs)" or "DoT missing, Mana: %.0f%%",
-                                                is_expiring and is_duration or mana_pct)
+                                                is_duration > 0 and "REFRESH (%.1fs)" or "DoT missing, Mana: %.0f%%",
+                                                is_duration > 0 and is_duration or mana_pct)
                if result then return result, msg end
             end
          end
 
-         -- Moonfire: Apply fresh in Tier 1, refresh expiring in any tier
+         -- Moonfire: Apply when missing (or expiring if refresh > 0) in Tier 1
          local mf_duration = Unit(TARGET_UNIT):HasDeBuffs(A.Moonfire.ID) or 0
-         local mf_expiring = mf_duration > 0 and mf_duration < 3  -- About to expire
-         if settings.maintain_moonfire ~= false then
-            if (mana_tier == 1 and mf_duration == 0) or mf_expiring then
+         if settings.maintain_moonfire ~= false and mana_tier == 1 then
+            if mf_duration <= dot_refresh then
                local result, msg = try_cast_fmt(A.Moonfire, icon, TARGET_UNIT, "[P5]", "Moonfire",
-                                                mf_expiring and "REFRESH (%.1fs)" or "DoT missing, Mana: %.0f%%",
-                                                mf_expiring and mf_duration or mana_pct)
+                                                mf_duration > 0 and "REFRESH (%.1fs)" or "DoT missing, Mana: %.0f%%",
+                                                mf_duration > 0 and mf_duration or mana_pct)
                if result then return result, msg end
             end
          end

@@ -198,6 +198,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "DoT Maintenance", settings = {
             { type = "checkbox", key = "maintain_moonfire", default = true, label = "Maintain Moonfire", tooltip = "Keep Moonfire DoT active." },
             { type = "checkbox", key = "maintain_insect_swarm", default = true, label = "Maintain Insect Swarm", tooltip = "Keep Insect Swarm active." },
+            { type = "slider", key = "balance_dot_refresh", default = 0, min = 0, max = 5, label = "DoT Refresh (sec)", tooltip = "Refresh DoTs with this many seconds remaining. 0 = only reapply when fallen off (WoWsims default).", format = "%d sec" },
         }},
         { header = "Force of Nature", settings = {
             { type = "checkbox", key = "use_force_of_nature", default = true, label = "Use Force of Nature", tooltip = "Summon Treants (41pt Balance talent)." },
@@ -215,8 +216,8 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "balance_innervate_mana", default = 20, min = 10, max = 50, label = "Innervate Mana (%)", tooltip = "Use Innervate below this mana %.", format = "%d%%" },
         }},
         { header = "Mana Tiers", settings = {
-            { type = "slider", key = "balance_tier1_mana", default = 40, min = 30, max = 60, label = "Full Rotation Mana (%)", tooltip = "Above this: full rotation (Starfire + Moonfire + IS).", format = "%d%%" },
-            { type = "slider", key = "balance_tier2_mana", default = 20, min = 10, max = 35, label = "Conserve Mana (%)", tooltip = "Below this: drop Moonfire, only IS + Starfire.", format = "%d%%" },
+            { type = "slider", key = "balance_tier1_mana", default = 20, min = 10, max = 60, label = "Full Rotation Mana (%)", tooltip = "Above this: full rotation (Starfire + Moonfire + IS).", format = "%d%%" },
+            { type = "slider", key = "balance_tier2_mana", default = 10, min = 5, max = 35, label = "Conserve Mana (%)", tooltip = "Below this: drop Moonfire, only IS + Starfire.", format = "%d%%" },
         }},
     }},
 
