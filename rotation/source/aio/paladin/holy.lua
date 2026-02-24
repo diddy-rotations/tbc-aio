@@ -32,6 +32,7 @@ local Constants = NS.Constants
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
+local safe_heal_cast = NS.safe_heal_cast
 local named = NS.named
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
@@ -49,10 +50,12 @@ local holy_state = {
     lights_grace_active = false,
     divine_favor_active = false,
     divine_illumination_active = false,
-    lowest = nil,           -- lowest HP target entry from scan
+    lowest = nil,           -- lowest HP target (unit string + hp number)
     emergency_count = 0,    -- targets below critical threshold
     cleanse_target = nil,   -- first target needing dispel
 }
+-- Pre-allocated lowest entry — reused each frame, no table creation in combat
+local holy_lowest_entry = { unit = nil, hp = 100 }
 
 local function get_holy_state(context)
     if context._holy_valid then return holy_state end
@@ -63,33 +66,32 @@ local function get_holy_state(context)
     holy_state.divine_favor_active = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.DIVINE_FAVOR) or 0) > 0
     holy_state.divine_illumination_active = (Unit(PLAYER_UNIT):HasBuffs(Constants.BUFF_ID.DIVINE_ILLUMINATION) or 0) > 0
 
-    -- Scan party/raid
-    local targets, count = scan_healing_targets()
-
     -- Reset
     holy_state.lowest = nil
     holy_state.emergency_count = 0
     holy_state.cleanse_target = nil
 
+    -- Scan party/raid for healing targets.
+    -- scan_healing_targets() uses PARTY_UNITS in a party, RAID_UNITS (up to 40) in a raid.
+    -- safe_heal_cast() calls HE.SetTarget(unit) before Show() so TMW injects [@unit,help]
+    -- into the icon macro. Our job here is to decide WHICH spell and WHICH unit.
+    local targets, count = scan_healing_targets()
     for i = 1, count do
         local entry = targets[i]
         if entry then
-            -- Lowest HP (targets sorted ascending, first = lowest)
             if not holy_state.lowest then
-                holy_state.lowest = entry
+                holy_lowest_entry.unit = entry.unit
+                holy_lowest_entry.hp   = entry.hp
+                holy_state.lowest = holy_lowest_entry
             end
-
-            -- Emergency count (below 40% HP)
             if entry.hp < 40 then
                 holy_state.emergency_count = holy_state.emergency_count + 1
             end
-
-            -- Cleanse target (first needing dispel)
-            if not holy_state.cleanse_target and entry.needs_cleanse then
-                holy_state.cleanse_target = entry
-            end
         end
     end
+
+    -- Cleanse: our scan checks actual debuffs across up to 40 raid members
+    holy_state.cleanse_target = get_cleanse_target()
 
     return holy_state
 end
@@ -101,7 +103,6 @@ do
 
 -- [1] Divine Illumination (off-GCD, -50% mana cost 15s)
 local Holy_DivineIllumination = {
-    requires_combat = true,
     is_gcd_gated = false,
     spell = A.DivineIllumination,
     spell_target = PLAYER_UNIT,
@@ -122,7 +123,6 @@ local Holy_DivineIllumination = {
 
 -- [2] Divine Favor (off-GCD, next heal guaranteed crit)
 local Holy_DivineFavor = {
-    requires_combat = true,
     is_gcd_gated = false,
     spell = A.DivineFavor,
     spell_target = PLAYER_UNIT,
@@ -139,30 +139,24 @@ local Holy_DivineFavor = {
     end,
 }
 
--- [3] Racial (off-GCD — Arcane Torrent restores mana, Stoneform defensive)
+-- [3] Racial (off-GCD — Stoneform defensive, Gift of the Naaru heal)
 local Holy_Racial = {
-    requires_combat = true,
     is_gcd_gated = false,
     setting_key = "use_racial",
 
     matches = function(context, state)
-        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
         if A.Stoneform:IsReady(PLAYER_UNIT) then return true end
         if A.GiftOfTheNaaru and state.lowest and state.lowest.hp < 60 then return true end
         return false
     end,
 
     execute = function(icon, context, state)
-        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then
-            return A.ArcaneTorrent:Show(icon), "[HOLY] Arcane Torrent"
-        end
         if A.Stoneform:IsReady(PLAYER_UNIT) then
             return A.Stoneform:Show(icon), "[HOLY] Stoneform"
         end
-        if A.GiftOfTheNaaru and state.lowest and state.lowest.hp < 60
-            and A.GiftOfTheNaaru:IsReady(state.lowest.unit) then
-            return A.GiftOfTheNaaru:Show(icon),
-                format("[HOLY] Gift of the Naaru -> %s (%.0f%%)", state.lowest.unit, state.lowest.hp)
+        if A.GiftOfTheNaaru and state.lowest and state.lowest.hp < 60 then
+            return safe_heal_cast(A.GiftOfTheNaaru, icon, state.lowest.unit,
+                format("[HOLY] Gift of the Naaru -> %s (%.0f%%)", state.lowest.unit, state.lowest.hp))
         end
         return nil
     end,
@@ -170,7 +164,7 @@ local Holy_Racial = {
 
 -- [4] Holy Shock heal (instant, 15s CD)
 local Holy_HolyShockHeal = {
-    requires_combat = true,
+
     spell = A.HolyShock,
     spell_target = PLAYER_UNIT,
     setting_key = "holy_use_holy_shock",
@@ -184,17 +178,14 @@ local Holy_HolyShockHeal = {
 
     execute = function(icon, context, state)
         local target = state.lowest
-        if A.HolyShock:IsReady(target.unit) then
-            return A.HolyShock:Show(icon),
-                format("[HOLY] Holy Shock -> %s (%.0f%%)", target.unit, target.hp)
-        end
-        return nil
+        return safe_heal_cast(A.HolyShock, icon, target.unit,
+            format("[HOLY] Holy Shock -> %s (%.0f%%)", target.unit, target.hp))
     end,
 }
 
 -- [4] Lay on Hands (emergency, full heal, drains all mana)
 local Holy_LayOnHands = {
-    requires_combat = true,
+
     spell = A.LayOnHands,
     spell_target = PLAYER_UNIT,
 
@@ -207,17 +198,14 @@ local Holy_LayOnHands = {
 
     execute = function(icon, context, state)
         local target = state.lowest
-        if A.LayOnHands:IsReady(target.unit) then
-            return A.LayOnHands:Show(icon),
-                format("[HOLY] Lay on Hands -> %s (%.0f%%)", target.unit, target.hp)
-        end
-        return nil
+        return safe_heal_cast(A.LayOnHands, icon, target.unit,
+            format("[HOLY] Lay on Hands -> %s (%.0f%%)", target.unit, target.hp))
     end,
 }
 
 -- [5] Holy Light (big heal, 2.5s cast / 2.0s with Light's Grace)
 local Holy_HolyLight = {
-    requires_combat = true,
+
     spell = A.HolyLight,
     spell_target = PLAYER_UNIT,
 
@@ -231,17 +219,14 @@ local Holy_HolyLight = {
 
     execute = function(icon, context, state)
         local target = state.lowest
-        if A.HolyLight:IsReady(target.unit) then
-            return A.HolyLight:Show(icon),
-                format("[HOLY] Holy Light -> %s (%.0f%%)", target.unit, target.hp)
-        end
-        return nil
+        return safe_heal_cast(A.HolyLight, icon, target.unit,
+            format("[HOLY] Holy Light -> %s (%.0f%%)", target.unit, target.hp))
     end,
 }
 
 -- [6] Flash of Light (efficient heal, 1.5s cast)
 local Holy_FlashOfLight = {
-    requires_combat = true,
+
     spell = A.FlashOfLight,
     spell_target = PLAYER_UNIT,
 
@@ -255,17 +240,14 @@ local Holy_FlashOfLight = {
 
     execute = function(icon, context, state)
         local target = state.lowest
-        if A.FlashOfLight:IsReady(target.unit) then
-            return A.FlashOfLight:Show(icon),
-                format("[HOLY] Flash of Light -> %s (%.0f%%)", target.unit, target.hp)
-        end
-        return nil
+        return safe_heal_cast(A.FlashOfLight, icon, target.unit,
+            format("[HOLY] Flash of Light -> %s (%.0f%%)", target.unit, target.hp))
     end,
 }
 
 -- [7] Judgement maintain (off-GCD, keep JoL/JoW on boss when safe)
 local Holy_JudgementMaintain = {
-    requires_combat = true,
+
     requires_enemy = true,
     is_gcd_gated = false,
     spell = A.Judgement,
@@ -308,7 +290,7 @@ local Holy_JudgementMaintain = {
 
 -- [8] Seal maintain (keep Seal of Wisdom active for mana)
 local Holy_SealMaintain = {
-    requires_combat = true,
+
 
     matches = function(context, state)
         if context.seal_wisdom_active then return false end
@@ -325,7 +307,7 @@ local Holy_SealMaintain = {
 
 -- [9] Cleanse party members
 local Holy_Cleanse = {
-    requires_combat = true,
+
     spell = A.Cleanse,
     spell_target = PLAYER_UNIT,
 
@@ -337,11 +319,8 @@ local Holy_Cleanse = {
 
     execute = function(icon, context, state)
         local target = state.cleanse_target
-        if A.Cleanse:IsReady(target.unit) then
-            return A.Cleanse:Show(icon),
-                format("[HOLY] Cleanse -> %s", target.unit)
-        end
-        return nil
+        return safe_heal_cast(A.Cleanse, icon, target.unit,
+            format("[HOLY] Cleanse -> %s", target.unit))
     end,
 }
 
