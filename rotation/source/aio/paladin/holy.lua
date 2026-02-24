@@ -38,9 +38,7 @@ local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
 
--- Import from Healing module
 local scan_healing_targets = NS.scan_healing_targets
-local get_cleanse_target = NS.get_cleanse_target
 
 -- ============================================================================
 -- HOLY STATE (context_builder)
@@ -87,11 +85,11 @@ local function get_holy_state(context)
             if entry.hp < 40 then
                 holy_state.emergency_count = holy_state.emergency_count + 1
             end
+            if not holy_state.cleanse_target and entry.needs_cleanse then
+                holy_state.cleanse_target = entry
+            end
         end
     end
-
-    -- Cleanse: our scan checks actual debuffs across up to 40 raid members
-    holy_state.cleanse_target = get_cleanse_target()
 
     return holy_state
 end
@@ -164,7 +162,6 @@ local Holy_Racial = {
 
 -- [4] Holy Shock heal (instant, 15s CD)
 local Holy_HolyShockHeal = {
-
     spell = A.HolyShock,
     spell_target = PLAYER_UNIT,
     setting_key = "holy_use_holy_shock",
@@ -185,7 +182,6 @@ local Holy_HolyShockHeal = {
 
 -- [4] Lay on Hands (emergency, full heal, drains all mana)
 local Holy_LayOnHands = {
-
     spell = A.LayOnHands,
     spell_target = PLAYER_UNIT,
 
@@ -205,7 +201,6 @@ local Holy_LayOnHands = {
 
 -- [5] Holy Light (big heal, 2.5s cast / 2.0s with Light's Grace)
 local Holy_HolyLight = {
-
     spell = A.HolyLight,
     spell_target = PLAYER_UNIT,
 
@@ -226,7 +221,6 @@ local Holy_HolyLight = {
 
 -- [6] Flash of Light (efficient heal, 1.5s cast)
 local Holy_FlashOfLight = {
-
     spell = A.FlashOfLight,
     spell_target = PLAYER_UNIT,
 
@@ -247,7 +241,6 @@ local Holy_FlashOfLight = {
 
 -- [7] Judgement maintain (off-GCD, keep JoL/JoW on boss when safe)
 local Holy_JudgementMaintain = {
-
     requires_enemy = true,
     is_gcd_gated = false,
     spell = A.Judgement,
@@ -290,8 +283,6 @@ local Holy_JudgementMaintain = {
 
 -- [8] Seal maintain (keep Seal of Wisdom active for mana)
 local Holy_SealMaintain = {
-
-
     matches = function(context, state)
         if context.seal_wisdom_active then return false end
         return true
@@ -307,7 +298,6 @@ local Holy_SealMaintain = {
 
 -- [9] Cleanse party members
 local Holy_Cleanse = {
-
     spell = A.Cleanse,
     spell_target = PLAYER_UNIT,
 

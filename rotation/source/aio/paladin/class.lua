@@ -205,7 +205,7 @@ NS.SEAL_BLOOD_BUFF_ID = SEAL_BLOOD_BUFF_ID
 -- ============================================================================
 rotation_registry:register_class({
     name = "Paladin",
-    version = "v1.7.0",
+    version = "v1.7.6",
     playstyles = { "retribution", "protection", "holy" },
     idle_playstyle_name = nil,
 
