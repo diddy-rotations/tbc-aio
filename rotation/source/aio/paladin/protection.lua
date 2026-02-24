@@ -161,7 +161,7 @@ local Prot_AvengingWrath = {
     end,
 }
 
--- [3] Racial (off-GCD — Arcane Torrent restores mana, Stoneform defensive)
+-- [3] Racial (off-GCD — Stoneform defensive, Gift of the Naaru heal)
 local Prot_Racial = {
     requires_combat = true,
     is_gcd_gated = false,
@@ -171,16 +171,12 @@ local Prot_Racial = {
     matches = function(context, state)
         local min_ttd = context.settings.cd_min_ttd or 0
         if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
-        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then return true end
         if A.Stoneform:IsReady(PLAYER_UNIT) then return true end
         if context.hp < 60 and A.GiftOfTheNaaru and A.GiftOfTheNaaru:IsReady(PLAYER_UNIT) then return true end
         return false
     end,
 
     execute = function(icon, context, state)
-        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then
-            return A.ArcaneTorrent:Show(icon), "[PROT] Arcane Torrent"
-        end
         if A.Stoneform:IsReady(PLAYER_UNIT) then
             return A.Stoneform:Show(icon), "[PROT] Stoneform"
         end

@@ -33,8 +33,10 @@ local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
 
--- WoW API for creature type check (Exorcism: Undead/Demon only)
+-- WoW API
 local UnitCreatureType = _G.UnitCreatureType
+local GetSpellCooldown = _G.GetSpellCooldown
+local GetTime = _G.GetTime
 
 -- ============================================================================
 -- RETRIBUTION STATE (context_builder)
@@ -51,6 +53,8 @@ local ret_state = {
     time_to_swing = 0,
     should_twist = false,
     target_undead_or_demon = false,
+    judgement_cd_remaining = 0,
+    spell_gcd = 1.5,
 }
 
 local function get_ret_state(context)
@@ -77,6 +81,16 @@ local function get_ret_state(context)
     -- Creature type check for Exorcism
     local ctype = UnitCreatureType(TARGET_UNIT)
     ret_state.target_undead_or_demon = (ctype == "Undead" or ctype == "Demon")
+
+    -- Judgement CD remaining + haste-adjusted spell GCD (wowsims twist timing guard)
+    local j_start, j_dur = GetSpellCooldown(A.Judgement.ID)
+    if j_start and j_start > 0 and j_dur and j_dur > 0 then
+        local j_rem = (j_start + j_dur) - GetTime()
+        ret_state.judgement_cd_remaining = j_rem > 0 and j_rem or 0
+    else
+        ret_state.judgement_cd_remaining = 0
+    end
+    ret_state.spell_gcd = (A.GetGCD and A.GetGCD()) or 1.5
 
     return ret_state
 end
@@ -121,9 +135,6 @@ local Ret_Racial = {
     end,
 
     execute = function(icon, context, state)
-        if A.ArcaneTorrent:IsReady(PLAYER_UNIT) then
-            return A.ArcaneTorrent:Show(icon), "[RET] Arcane Torrent"
-        end
         if A.Stoneform:IsReady(PLAYER_UNIT) then
             return A.Stoneform:Show(icon), "[RET] Stoneform"
         end
@@ -223,6 +234,23 @@ local Ret_PrepSealTwist = {
         if state.in_twist_window then return false end
         -- Don't prep if swing is very imminent
         if state.time_to_swing > 0 and state.time_to_swing < 0.5 then return false end
+        -- Mirror wowsims: don't replace the judgeable seal with SoC if Judgement
+        -- comes off CD before latestTwistStart (time_to_swing - spellGCD).
+        -- Let JudgeSeal fire first, then prep SoC on the next frame.
+        -- Condition from wowsims: nextJudgementCD > latestTwistStart
+        if state.time_to_swing > 0 then
+            local judge = context.settings.ret_judge_seal or "blood"
+            local judge_seal_active =
+                (judge == "blood"    and state.seal_blood_active)       or
+                (judge == "crusader" and context.seal_crusader_active)  or
+                (judge == "wisdom"   and context.seal_wisdom_active)    or
+                (judge == "light"    and context.seal_light_active)
+            if judge_seal_active then
+                if state.judgement_cd_remaining <= (state.time_to_swing - state.spell_gcd) then
+                    return false
+                end
+            end
+        end
         return true
     end,
 

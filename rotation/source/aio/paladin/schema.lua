@@ -174,7 +174,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "use_avenging_wrath", default = true, label = "Avenging Wrath",
               tooltip = "Use Avenging Wrath on cooldown (+30% damage, 20s). Note: causes Forbearance." },
         }},
-        S.trinkets("Use racial ability (Arcane Torrent, Stoneform, etc.) during combat."),
+        S.trinkets("Use racial ability (Stoneform, Gift of the Naaru, etc.) during combat."),
         { header = "Mana Recovery", settings = {
             { type = "checkbox", key = "use_mana_potion", default = true, label = "Use Mana Potion",
               tooltip = "Auto-use Super Mana Potion for mana recovery." },

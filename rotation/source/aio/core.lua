@@ -673,9 +673,23 @@ local function safe_self_cast(ability, icon, _target)
    return ability:Show(icon)
 end
 
+local function safe_heal_cast(ability, icon, target_unit, log_message)
+   if unavailable_spells[ability] then return nil end
+   -- IsReady(target_unit) fails for party/raid unit IDs — check on "player" instead.
+   if not ability:IsReady("player") then return nil end
+   -- Tell HE which unit to target. TMW reads HE.GetTarget() when Show() is called
+   -- to inject [@unit,help] into the icon macro.
+   local HE = A.HealingEngine
+   if HE and HE.SetTarget then HE.SetTarget(target_unit) end
+   local result = ability:Show(icon)
+   if result then return result, log_message end
+   return nil
+end
+
 NS.round_half = round_half
 NS.safe_ability_cast = safe_ability_cast
 NS.safe_self_cast = safe_self_cast
+NS.safe_heal_cast = safe_heal_cast
 
 -- ============================================================================
 -- CASTING HELPERS

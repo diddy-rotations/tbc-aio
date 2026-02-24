@@ -51,7 +51,8 @@ Action[A.PlayerClass] = {
     AvengersShield  = Create({ Type = "Spell", ID = 31935, useMaxRank = true }),         -- 41-pt Prot talent
     HolyShield      = Create({ Type = "Spell", ID = 20925, useMaxRank = true }),         -- Prot talent
 
-    -- Healing
+    -- Healing (no explicit Click — framework sets autounit="help" automatically,
+    -- enabling [@mouseover,help][@focus,help][@target,help][@player] targeting via meta3 macro)
     FlashOfLight    = Create({ Type = "Spell", ID = 19750, useMaxRank = true }),
     HolyLight       = Create({ Type = "Spell", ID = 635, useMaxRank = true }),
     HolyShock       = Create({ Type = "Spell", ID = 20473, useMaxRank = true }),         -- 31-pt Holy talent
