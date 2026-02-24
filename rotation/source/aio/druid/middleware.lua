@@ -47,11 +47,10 @@ local GetTime = GetTime
 -- ============================================================================
 
 -- Stances where consumable use is allowed
--- Caster(0), Bear(1), Cat(3) always; stance 5 only if moonkin/tree (not flight)
--- Blocked: Aquatic(2), Travel(4), Flight(5 without talent), Swift Flight(6)
+-- Caster(0), Cat(3) always; stance 5 only if moonkin/tree (not flight)
+-- Blocked: Bear(1), Aquatic(2), Travel(4), Flight(5 without talent), Swift Flight(6)
 local ITEM_ALLOWED_STANCE = {
    [0] = true,
-   [1] = true,
    [3] = true,
 }
 
@@ -364,7 +363,8 @@ do
 
       matches = function(context)
          if not context.in_combat then return false end
-         -- Barkskin drops bear/cat forms on this server; moonkin/tree/caster are safe
+         -- Barkskin drops bear/cat forms on this server; block during reshift window
+         if pending_reshift then return false end
          local stance = context.stance
          if stance == Constants.STANCE.BEAR or stance == Constants.STANCE.CAT then return false end
          if not is_spell_available(A.SelfBarkskin) then return false end

@@ -27,8 +27,14 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
     -- Tab 1: General
     [1] = { name = "General", sections = {
         { header = "Shared Combat", settings = {
-            { type = "checkbox", key = "maintain_faerie_fire", default = true, label = "Maintain Faerie Fire",
-              tooltip = "Keep Faerie Fire debuff active (armor reduction + 3% hit)." },
+            { type = "dropdown", key = "maintain_faerie_fire", default = "all", label = "Faerie Fire Targets",
+              tooltip = "Which targets to maintain Faerie Fire on. All = everything, Elites+ = elites and bosses, Bosses = bosses only, Off = disabled.",
+              options = {
+                  { value = "all", text = "All" },
+                  { value = "elites", text = "Elites+" },
+                  { value = "bosses", text = "Bosses Only" },
+                  { value = "off", text = "Off" },
+              }},
         }},
         { header = "Cooldowns", settings = {
             { type = "dropdown", key = "trinket1_mode", default = "off", label = "Trinket 1",

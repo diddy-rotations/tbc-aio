@@ -527,9 +527,19 @@ local function create_faerie_fire_strategy(refresh_window, spell_override, only_
       requires_enemy = true,
       requires_stealth = false,
       requires_phys_immune = false,
-      setting_key = "maintain_faerie_fire",
       spell = ff_spell,
       matches = function(context)
+         -- Dropdown: "all", "elites", "bosses", "off" (backward compat: true → all)
+         local ff_mode = context.settings.maintain_faerie_fire
+         if ff_mode == "off" or ff_mode == false or ff_mode == nil then return false end
+         if ff_mode == "bosses" or ff_mode == "elites" then
+            local classification = _G.UnitClassification(TARGET_UNIT)
+            if ff_mode == "bosses" then
+               if classification ~= "worldboss" then return false end
+            else -- "elites"
+               if classification ~= "worldboss" and classification ~= "elite" and classification ~= "rareelite" then return false end
+            end
+         end
          if ff_spell:IsInRange(TARGET_UNIT) ~= true then return false end
          local ff_duration = Unit(TARGET_UNIT):HasDeBuffs(FAERIE_FIRE_DEBUFF_IDS, ff_caster, true) or 0
          if ff_duration > 0 and (not refresh_window or ff_duration > refresh_window) then return false end
@@ -557,7 +567,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.7.4",
+   version = "v1.7.5",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 

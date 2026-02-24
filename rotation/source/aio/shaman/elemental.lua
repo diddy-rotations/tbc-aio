@@ -131,12 +131,13 @@ local Ele_TotemManagement = {
         if context.is_moving then return false end
         local s = context.settings
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
-        -- Check each totem slot for missing or expiring (skip if "none" or Fire Elemental active)
-        if not context.fire_elemental_active and (s.ele_fire_totem or "totem_of_wrath") ~= "none" then
+        local totem_ok = NS.totem_allowed
+        -- Check each totem slot for missing or expiring (skip if "none", Fire Elemental active, or group-only while solo)
+        if not context.fire_elemental_active and (s.ele_fire_totem or "totem_of_wrath") ~= "none" and totem_ok(s.totem_fire_condition, context.in_group) then
             if not context.totem_fire_active or context.totem_fire_remaining < threshold then return true end
         end
         local earth_setting = s.ele_earth_totem or "strength_of_earth"
-        if earth_setting ~= "none" then
+        if earth_setting ~= "none" and totem_ok(s.totem_earth_condition, context.in_group) then
             local skip_earth = false
             if s.use_auto_tremor and context.totem_earth_active then
                 local have, name = GetTotemInfo(2)
@@ -146,10 +147,10 @@ local Ele_TotemManagement = {
                 if not context.totem_earth_active or context.totem_earth_remaining < threshold then return true end
             end
         end
-        if (s.ele_water_totem or "mana_spring") ~= "none" then
+        if (s.ele_water_totem or "mana_spring") ~= "none" and totem_ok(s.totem_water_condition, context.in_group) then
             if not context.totem_water_active or context.totem_water_remaining < threshold then return true end
         end
-        if (s.ele_air_totem or "wrath_of_air") ~= "none" then
+        if (s.ele_air_totem or "wrath_of_air") ~= "none" and totem_ok(s.totem_air_condition, context.in_group) then
             if not context.totem_air_active or context.totem_air_remaining < threshold then return true end
         end
         return false
@@ -158,9 +159,10 @@ local Ele_TotemManagement = {
     execute = function(icon, context, state)
         local s = context.settings
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
+        local totem_ok = NS.totem_allowed
 
-        -- Fire totem (skip if "none" or Fire Elemental active)
-        if not context.fire_elemental_active and (s.ele_fire_totem or "totem_of_wrath") ~= "none" then
+        -- Fire totem (skip if "none", Fire Elemental active, or group-only while solo)
+        if not context.fire_elemental_active and (s.ele_fire_totem or "totem_of_wrath") ~= "none" and totem_ok(s.totem_fire_condition, context.in_group) then
             if not context.totem_fire_active or context.totem_fire_remaining < threshold then
                 local spell = resolve_totem_spell(s.ele_fire_totem or "totem_of_wrath", NS.FIRE_TOTEM_SPELLS)
                 if spell and spell:IsReady(PLAYER_UNIT) then
@@ -169,9 +171,9 @@ local Ele_TotemManagement = {
             end
         end
 
-        -- Earth totem (skip if "none" or Tremor active)
+        -- Earth totem (skip if "none", Tremor active, or group-only while solo)
         local earth_setting = s.ele_earth_totem or "strength_of_earth"
-        if earth_setting ~= "none" then
+        if earth_setting ~= "none" and totem_ok(s.totem_earth_condition, context.in_group) then
             local skip_earth = false
             if s.use_auto_tremor and context.totem_earth_active then
                 local have, name = GetTotemInfo(2)
@@ -187,8 +189,8 @@ local Ele_TotemManagement = {
             end
         end
 
-        -- Water totem (skip if "none")
-        if (s.ele_water_totem or "mana_spring") ~= "none" then
+        -- Water totem (skip if "none" or group-only while solo)
+        if (s.ele_water_totem or "mana_spring") ~= "none" and totem_ok(s.totem_water_condition, context.in_group) then
             if not context.totem_water_active or context.totem_water_remaining < threshold then
                 local spell = resolve_totem_spell(s.ele_water_totem or "mana_spring", NS.WATER_TOTEM_SPELLS)
                 if spell and spell:IsReady(PLAYER_UNIT) then
@@ -197,8 +199,8 @@ local Ele_TotemManagement = {
             end
         end
 
-        -- Air totem (skip if "none")
-        if (s.ele_air_totem or "wrath_of_air") ~= "none" then
+        -- Air totem (skip if "none" or group-only while solo)
+        if (s.ele_air_totem or "wrath_of_air") ~= "none" and totem_ok(s.totem_air_condition, context.in_group) then
             if not context.totem_air_active or context.totem_air_remaining < threshold then
                 local spell = resolve_totem_spell(s.ele_air_totem or "wrath_of_air", NS.AIR_TOTEM_SPELLS)
                 if spell and spell:IsReady(PLAYER_UNIT) then

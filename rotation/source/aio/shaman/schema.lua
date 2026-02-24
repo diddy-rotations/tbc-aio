@@ -48,6 +48,32 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "aoe_threshold", default = 0, min = 0, max = 8, label = "AoE Threshold",
               tooltip = "Minimum enemies to switch to AoE rotation. Set to 0 to disable.", format = "%d" },
         }},
+        { header = "Totem Conditions", settings = {
+            { type = "dropdown", key = "totem_fire_condition", default = "always", label = "Fire Totem",
+              tooltip = "When to auto-drop fire totems. 'Only in Group' skips fire totems when solo questing.",
+              options = {
+                  { value = "always", text = "Always Cast" },
+                  { value = "group_only", text = "Only in Group" },
+              }},
+            { type = "dropdown", key = "totem_earth_condition", default = "always", label = "Earth Totem",
+              tooltip = "When to auto-drop earth totems. 'Only in Group' skips earth totems when solo questing.",
+              options = {
+                  { value = "always", text = "Always Cast" },
+                  { value = "group_only", text = "Only in Group" },
+              }},
+            { type = "dropdown", key = "totem_water_condition", default = "always", label = "Water Totem",
+              tooltip = "When to auto-drop water totems. 'Only in Group' skips water totems when solo questing.",
+              options = {
+                  { value = "always", text = "Always Cast" },
+                  { value = "group_only", text = "Only in Group" },
+              }},
+            { type = "dropdown", key = "totem_air_condition", default = "always", label = "Air Totem",
+              tooltip = "When to auto-drop air totems. 'Only in Group' skips air totems when solo questing.",
+              options = {
+                  { value = "always", text = "Always Cast" },
+                  { value = "group_only", text = "Only in Group" },
+              }},
+        }},
         { header = "Cooldown Management", settings = {
             { type = "slider", key = "cd_min_ttd", default = 0, min = 0, max = 60, label = "CD Min TTD (sec)",
               tooltip = "Don't use major CDs (trinkets, SR, Fire Ele, racial, totems) if target dies sooner than this. Set to 0 to disable.", format = "%d sec" },

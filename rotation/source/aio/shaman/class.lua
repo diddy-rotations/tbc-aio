@@ -4,6 +4,8 @@
 local _G, setmetatable, pairs, ipairs, tostring, select, type = _G, setmetatable, pairs, ipairs, tostring, select, type
 local GetTime = _G.GetTime
 local GetTotemInfo = _G.GetTotemInfo
+local GetNumPartyMembers = _G.GetNumPartyMembers
+local GetNumRaidMembers = _G.GetNumRaidMembers
 local A = _G.Action
 
 if not A then return end
@@ -234,12 +236,21 @@ end
 
 NS.resolve_totem_spell = resolve_totem_spell
 
+--- Check if a totem element is allowed based on group condition setting
+--- @param condition string "always" or "group_only"
+--- @param in_group boolean Whether player is in a party/raid
+--- @return boolean
+local function totem_allowed(condition, in_group)
+    return (condition or "always") ~= "group_only" or in_group
+end
+NS.totem_allowed = totem_allowed
+
 -- ============================================================================
 -- CLASS REGISTRATION
 -- ============================================================================
 rotation_registry:register_class({
     name = "Shaman",
-    version = "v1.7.4",
+    version = "v1.7.5",
     playstyles = { "elemental", "enhancement", "restoration" },
     idle_playstyle_name = nil,
 
@@ -281,6 +292,7 @@ rotation_registry:register_class({
         ctx.is_moving = moving ~= nil and moving ~= false and moving ~= 0
         ctx.is_mounted = Player:IsMounted()
         ctx.combat_time = Unit("player"):CombatTime() or 0
+        ctx.in_group = (GetNumPartyMembers() or 0) > 0 or (GetNumRaidMembers() or 0) > 0
 
         -- Shield state
         ctx.has_water_shield = (Unit("player"):HasBuffs(Constants.BUFF_ID.WATER_SHIELD) or 0) > 0

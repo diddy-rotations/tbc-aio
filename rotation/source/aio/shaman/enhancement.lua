@@ -159,16 +159,17 @@ local Enh_TotemManagement = {
     matches = function(context, state)
         local s = context.settings
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
+        local totem_ok = NS.totem_allowed
 
-        -- Fire totem (skip if fire nova twist, Fire Elemental active, or set to "none")
+        -- Fire totem (skip if fire nova twist, Fire Elemental active, "none", or group-only while solo)
         local skip_fire = s.enh_twist_fire_nova or context.fire_elemental_active
-        if not skip_fire and (s.enh_fire_totem or "searing") ~= "none" then
+        if not skip_fire and (s.enh_fire_totem or "searing") ~= "none" and totem_ok(s.totem_fire_condition, context.in_group) then
             if not context.totem_fire_active or context.totem_fire_remaining < threshold then return true end
         end
 
-        -- Earth totem (skip if "none", or if Tremor is active)
+        -- Earth totem (skip if "none", Tremor active, or group-only while solo)
         local earth_setting = s.enh_earth_totem or "strength_of_earth"
-        if earth_setting ~= "none" then
+        if earth_setting ~= "none" and totem_ok(s.totem_earth_condition, context.in_group) then
             local skip_earth = false
             if s.use_auto_tremor and context.totem_earth_active then
                 local have, name = GetTotemInfo(2)
@@ -179,13 +180,13 @@ local Enh_TotemManagement = {
             end
         end
 
-        -- Water totem (skip if "none")
-        if (s.enh_water_totem or "mana_spring") ~= "none" then
+        -- Water totem (skip if "none" or group-only while solo)
+        if (s.enh_water_totem or "mana_spring") ~= "none" and totem_ok(s.totem_water_condition, context.in_group) then
             if not context.totem_water_active or context.totem_water_remaining < threshold then return true end
         end
 
-        -- Air totem (only if NOT twisting WF and not "none")
-        if not s.enh_twist_windfury and (s.enh_air_totem or "windfury") ~= "none" then
+        -- Air totem (only if NOT twisting WF, not "none", and not group-only while solo)
+        if not s.enh_twist_windfury and (s.enh_air_totem or "windfury") ~= "none" and totem_ok(s.totem_air_condition, context.in_group) then
             if not context.totem_air_active or context.totem_air_remaining < threshold then return true end
         end
 
@@ -195,9 +196,10 @@ local Enh_TotemManagement = {
     execute = function(icon, context, state)
         local s = context.settings
         local threshold = Constants.TOTEM_REFRESH_THRESHOLD
+        local totem_ok = NS.totem_allowed
 
-        -- Fire totem (skip if FNT twist active, Fire Elemental active, or "none")
-        if not s.enh_twist_fire_nova and not context.fire_elemental_active and (s.enh_fire_totem or "searing") ~= "none" then
+        -- Fire totem (skip if FNT twist active, Fire Elemental active, "none", or group-only while solo)
+        if not s.enh_twist_fire_nova and not context.fire_elemental_active and (s.enh_fire_totem or "searing") ~= "none" and totem_ok(s.totem_fire_condition, context.in_group) then
             if not context.totem_fire_active or context.totem_fire_remaining < threshold then
                 local spell = resolve_totem_spell(s.enh_fire_totem or "searing", NS.FIRE_TOTEM_SPELLS)
                 if spell and spell:IsReady(PLAYER_UNIT) then
@@ -206,9 +208,9 @@ local Enh_TotemManagement = {
             end
         end
 
-        -- Earth totem (skip if "none" or Tremor active)
+        -- Earth totem (skip if "none", Tremor active, or group-only while solo)
         local earth_setting = s.enh_earth_totem or "strength_of_earth"
-        if earth_setting ~= "none" then
+        if earth_setting ~= "none" and totem_ok(s.totem_earth_condition, context.in_group) then
             local skip_earth = false
             if s.use_auto_tremor and context.totem_earth_active then
                 local have, name = GetTotemInfo(2)
@@ -224,8 +226,8 @@ local Enh_TotemManagement = {
             end
         end
 
-        -- Water totem (skip if "none")
-        if (s.enh_water_totem or "mana_spring") ~= "none" then
+        -- Water totem (skip if "none" or group-only while solo)
+        if (s.enh_water_totem or "mana_spring") ~= "none" and totem_ok(s.totem_water_condition, context.in_group) then
             if not context.totem_water_active or context.totem_water_remaining < threshold then
                 local spell = resolve_totem_spell(s.enh_water_totem or "mana_spring", NS.WATER_TOTEM_SPELLS)
                 if spell and spell:IsReady(PLAYER_UNIT) then
@@ -234,8 +236,8 @@ local Enh_TotemManagement = {
             end
         end
 
-        -- Air totem (only if NOT twisting and not "none")
-        if not s.enh_twist_windfury and (s.enh_air_totem or "windfury") ~= "none" then
+        -- Air totem (only if NOT twisting, not "none", and not group-only while solo)
+        if not s.enh_twist_windfury and (s.enh_air_totem or "windfury") ~= "none" and totem_ok(s.totem_air_condition, context.in_group) then
             if not context.totem_air_active or context.totem_air_remaining < threshold then
                 local spell = resolve_totem_spell(s.enh_air_totem or "windfury", NS.AIR_TOTEM_SPELLS)
                 if spell and spell:IsReady(PLAYER_UNIT) then
@@ -254,6 +256,9 @@ local Enh_WindfuryTwist = {
     requires_combat = true,
 
     matches = function(context, state)
+        -- Group-only check for air totems
+        if not NS.totem_allowed(context.settings.totem_air_condition, context.in_group) then return false end
+
         if not context.settings.enh_twist_windfury then
             -- Not twisting: just ensure air totem is up if needed
             if not context.totem_air_active or context.totem_air_remaining < Constants.TOTEM_REFRESH_THRESHOLD then
@@ -346,10 +351,10 @@ local Enh_FireNovaTotemTwist = {
     setting_key = "enh_twist_fire_nova",
 
     matches = function(context, state)
-        local min_ttd = context.settings.cd_min_ttd or 0
-        if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         -- Don't overwrite Fire Elemental Totem
         if context.fire_elemental_active then return false end
+        -- Group-only check for fire totems
+        if not NS.totem_allowed(context.settings.totem_fire_condition, context.in_group) then return false end
         -- OOM protection
         if context.mana_pct < Constants.TWIST.OOM_THRESHOLD * 100 then return false end
 
@@ -466,13 +471,8 @@ local Enh_Shock = {
     execute = function(icon, context, state)
         local s = context.settings
 
-        -- Shamanistic Focus: nearly free shock — prioritize Earth Shock immediately
-        if state.shamanistic_focus_active then
-            local result = try_cast(A.EarthShock, icon, TARGET_UNIT, "[ENH] Earth Shock (Sham. Focus)")
-            if result then return result end
-        end
-
         -- Flame Shock weaving takes priority — maintain DoT before spending shocks on filler
+        -- (Shamanistic Focus mana reduction applies to Flame Shock too, so no waste)
         if s.enh_weave_flame_shock and state.flame_shock_duration <= 2 then
             local fs_ttd = s.enh_fs_min_ttd or 0
             local ttd_ok = fs_ttd <= 0 or not context.ttd or context.ttd <= 0 or context.ttd >= fs_ttd
@@ -481,6 +481,12 @@ local Enh_Shock = {
                     format("[ENH] Flame Shock - DoT: %.1fs", state.flame_shock_duration))
                 if result then return result end
             end
+        end
+
+        -- Shamanistic Focus: nearly free shock — use on Earth Shock when DoT is already ticking
+        if state.shamanistic_focus_active then
+            local result = try_cast(A.EarthShock, icon, TARGET_UNIT, "[ENH] Earth Shock (Sham. Focus)")
+            if result then return result end
         end
 
         -- Stormstrike synergy: prefer Earth Shock when SS +20% nature debuff is active

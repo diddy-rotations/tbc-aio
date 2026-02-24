@@ -4,6 +4,7 @@ Thumbs.db
 
 # Editor
 .playwright-mcp
+fix-vscode-claude.sh
 
 # Claude session data
 .claude/
