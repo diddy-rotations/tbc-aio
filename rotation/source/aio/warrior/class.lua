@@ -97,9 +97,19 @@ Action[A.PlayerClass] = {
     HealthstoneMaster  = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
     HealthstoneMajor   = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
 
-    -- Bandages
+    -- Bandages (descending quality for DetermineUsableObject)
     HeavyNetherweaveBandage = Create({ Type = "Item", ID = 21991, Click = { unit = "player", type = "item", item = 21991 } }),
     NetherweaveBandage      = Create({ Type = "Item", ID = 21990, Click = { unit = "player", type = "item", item = 21990 } }),
+    HeavyRuneclothBandage   = Create({ Type = "Item", ID = 14530, Click = { unit = "player", type = "item", item = 14530 } }),
+    RuneclothBandage        = Create({ Type = "Item", ID = 14529, Click = { unit = "player", type = "item", item = 14529 } }),
+    HeavyMageweaveBandage   = Create({ Type = "Item", ID = 8545,  Click = { unit = "player", type = "item", item = 8545 } }),
+    MageweaveBandage        = Create({ Type = "Item", ID = 8544,  Click = { unit = "player", type = "item", item = 8544 } }),
+    HeavySilkBandage        = Create({ Type = "Item", ID = 6451,  Click = { unit = "player", type = "item", item = 6451 } }),
+    SilkBandage             = Create({ Type = "Item", ID = 6450,  Click = { unit = "player", type = "item", item = 6450 } }),
+    HeavyWoolBandage        = Create({ Type = "Item", ID = 3531,  Click = { unit = "player", type = "item", item = 3531 } }),
+    WoolBandage             = Create({ Type = "Item", ID = 3530,  Click = { unit = "player", type = "item", item = 3530 } }),
+    HeavyLinenBandage       = Create({ Type = "Item", ID = 2581,  Click = { unit = "player", type = "item", item = 2581 } }),
+    LinenBandage            = Create({ Type = "Item", ID = 1251,  Click = { unit = "player", type = "item", item = 1251 } }),
 }
 
 -- ============================================================================

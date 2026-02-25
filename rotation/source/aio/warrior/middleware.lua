@@ -769,7 +769,12 @@ rotation_registry:register_middleware({
 
     execute = function(icon, context)
         local bandage = DetermineUsableObject(PLAYER_UNIT, true, nil, true, nil,
-            A.HeavyNetherweaveBandage, A.NetherweaveBandage)
+            A.HeavyNetherweaveBandage, A.NetherweaveBandage,
+            A.HeavyRuneclothBandage, A.RuneclothBandage,
+            A.HeavyMageweaveBandage, A.MageweaveBandage,
+            A.HeavySilkBandage, A.SilkBandage,
+            A.HeavyWoolBandage, A.WoolBandage,
+            A.HeavyLinenBandage, A.LinenBandage)
         if bandage then
             return bandage:Show(icon), format("[MW] Bandage - HP: %.0f%%", context.hp)
         end
