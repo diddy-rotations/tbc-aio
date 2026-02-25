@@ -40,6 +40,7 @@ local format = string.format
 
 -- Debuff ID tables
 local DEMO_ROAR_DEBUFF_IDS = NS.DEMO_ROAR_DEBUFF_IDS
+local MANGLE_DEBUFF_IDS = NS.MANGLE_DEBUFF_IDS
 
 -- Utility imports
 local get_spell_rage_cost = NS.get_spell_rage_cost
@@ -92,13 +93,31 @@ do
       return Unit("targettarget"):IsHealer() == true
    end
 
-   -- Reliable aggro check: threat API OR targettarget confirmation
-   -- UnitThreatSituation: 3 = tanking + highest threat, 2 = tanking (not highest)
-   -- Either signal alone is sufficient to confirm we have aggro
-   local function has_target_aggro()
-      local threat = _G.UnitThreatSituation(PLAYER_UNIT, TARGET_UNIT) or 0
-      if threat >= 2 then return true end
-      return _G.UnitExists("targettarget") and _G.UnitIsUnit("targettarget", PLAYER_UNIT)
+   -- Check if a mob is being tanked by another tank (not us)
+   -- Returns true if the mob's target is another player detected as a tank
+   local function is_other_tank_target(unitID)
+      unitID = unitID or TARGET_UNIT
+      local mobTarget = unitID .. "target"
+      if not _G.UnitExists(mobTarget) then return false end
+      if _G.UnitIsUnit(mobTarget, PLAYER_UNIT) then return false end
+      if not _G.UnitIsPlayer(mobTarget) then return false end
+      return Unit(mobTarget):IsTank() == true
+   end
+
+   -- Threat level helper: returns 0-3 threat status for a unit
+   -- 0 = not on threat table, 1 = have threat but not tanking,
+   -- 2 = insecurely tanking, 3 = securely tanking (highest threat)
+   -- Fallback: if API says 0/1 but mob's target is us, treat as 2
+   local function get_target_threat(unitID)
+      unitID = unitID or TARGET_UNIT
+      local threat = _G.UnitThreatSituation(PLAYER_UNIT, unitID) or 0
+      if threat < 2 then
+         local tt = unitID .. "target"
+         if _G.UnitExists(tt) and _G.UnitIsUnit(tt, PLAYER_UNIT) then
+            return 2
+         end
+      end
+      return threat
    end
 
    -- AoE floor: when swipe_min=1, AoE optimization still kicks in at this enemy count
@@ -225,7 +244,6 @@ do
       if (GetTime() - bear_state.manual_target_time) < MANUAL_TARGET_GRACE then return false end
 
       -- Normal evaluation: decide IF and WHERE to switch
-      if ctx.enemy_count < 2 then return false end
       if _G.UnitIsPlayer(TARGET_UNIT) then return false end
 
       -- Switch if current target is dead or doesn't exist
@@ -236,29 +254,42 @@ do
       -- Switch away from CC'd target to find a valid one (no specific target, AUTOTARGET picks)
       if is_target_breakable_cc() then return true end
 
-      -- Current target out of melee or not visible → fall through to scan for an in-range target
+      -- Current target out of melee or not visible → fall through to scan
       local current_out_of_range = not ctx.in_melee_range or not _G.UnitIsVisible(TARGET_UNIT)
+      -- Current target is another tank's mob → need to switch, let scan find our mob
+      local current_other_tank = not current_out_of_range and is_other_tank_target()
 
-      if not current_out_of_range then
-         -- Only switch if we have solid aggro (threat >= 2) on current target
-         local threat = Unit(TARGET_UNIT):ThreatSituation() or 0
-         local hasAggro = threat >= 2 or (_G.UnitExists("targettarget") and _G.UnitIsUnit("targettarget", PLAYER_UNIT))
+      -- With only 1 enemy and it's not another tank's mob, nothing to tab to
+      if ctx.enemy_count < 2 and not current_other_tank and not current_out_of_range then return false end
 
-         if not hasAggro then
-            -- Don't have aggro yet, stay on this target
-            return false
-         end
-      end
+      -- Threat-level-aware current-target decision:
+      --   other_tank / out_of_range = treat as secure (3) to force scan
+      --   0 = stay (urgently need threat here)
+      --   1 = stay unless threat-0 mob exists (scan will check)
+      --   2 = insecure — scan for threat 0-1 mobs only
+      --   3 = secure — scan for threat 0-2 mobs (safe to leave)
+      local currentThreat = (current_out_of_range or current_other_tank) and 3 or get_target_threat()
+      if currentThreat == 0 then return false end -- absolutely stay, we have zero threat
 
-      -- Scan nameplates: count aggro status + find best target by priority (boss > elite > trash)
-      local mobsWithAggro = 0
-      local mobsWithoutAggro = 0
+      -- Scan nameplates: categorize mobs by threat level + unit priority
+      -- Threat tiers: 0 (no threat) > 1 (have threat, not tanking) > 2 (insecure)
+      -- Within each tier, prefer boss > elite > trash
       local maxMobsToManage = ctx.settings.tab_max_mobs or 4
       local minPriority = get_min_priority_from_setting(ctx.settings.tab_min_priority)
+      local secureMobs = 0  -- count of threat-3 mobs (for max-mobs check)
       local mobsWithLowLacerate = 0
-      local bestLooseUnit, bestLoosePriority = nil, 0
       local bestLacUnit, bestLacPriority = nil, 0
-      local bestInRangeUnit, bestInRangePriority = nil, 0  -- best target overall (for out-of-range swap)
+      local bestInRangeUnit, bestInRangePriority = nil, 0
+
+      -- Best target per threat tier (primary sort: threat asc, secondary: unit priority desc)
+      local bestT0Unit, bestT0Prio = nil, 0  -- threat 0: not on threat table
+      local bestT1Unit, bestT1Prio = nil, 0  -- threat 1: have threat, not tanking
+      local bestT2Unit, bestT2Prio = nil, 0  -- threat 2: insecurely tanking
+      local t0Count, t1Count, t2Count = 0, 0, 0
+
+      -- Threat equalization: among secure (threat 3) mobs, track the one with lowest threatValue
+      local lowestSecureUnit = nil
+      local lowestSecureThreatVal = math.huge
 
       local plates = A.MultiUnits:GetActiveUnitPlates()
       for unitID in pairs(plates) do
@@ -266,19 +297,17 @@ do
             and _G.UnitExists(unitID)
             and not _G.UnitIsDead(unitID)
             and not _G.UnitIsPlayer(unitID)
-            and not _G.UnitIsUnit(unitID, TARGET_UNIT) -- Don't count current target
+            and not _G.UnitIsUnit(unitID, TARGET_UNIT)
             and Unit(unitID):CombatTime() > 0
-            and A.MangleBear:IsInRange(unitID) == true -- Only consider targets in melee range
-            and (Unit(unitID):InCC() or 0) == 0 -- Don't count CC'd targets
+            and A.MangleBear:IsInRange(unitID) == true
+            and (Unit(unitID):InCC() or 0) == 0
+            and not is_other_tank_target(unitID) -- skip mobs another tank is handling
          then
             local unitTTD = Unit(unitID):TimeToDie()
             local unitIsDying = unitTTD > 0 and unitTTD < 5
 
-            -- Don't count dying mobs as needing pickup
             if not unitIsDying then
-               local unitThreat = _G.UnitThreatSituation(PLAYER_UNIT, unitID) or 0
-               local unitTargetingPlayer = _G.UnitExists(unitID .. "target") and _G.UnitIsUnit(unitID .. "target", PLAYER_UNIT)
-               local unitHasAggro = unitThreat >= 2 or unitTargetingPlayer
+               local unitThreat = get_target_threat(unitID)
                local unitPriority = get_unit_priority(unitID)
 
                -- Track best in-range unit overall (for out-of-range swap)
@@ -287,14 +316,32 @@ do
                   bestInRangeUnit = unitID
                end
 
-               if unitHasAggro then
-                  mobsWithAggro = mobsWithAggro + 1
-               else
-                  mobsWithoutAggro = mobsWithoutAggro + 1
-                  -- Only consider picking up mobs that meet min priority threshold
-                  if unitPriority >= minPriority and unitPriority > bestLoosePriority then
-                     bestLoosePriority = unitPriority
-                     bestLooseUnit = unitID
+               if unitThreat == 3 then
+                  secureMobs = secureMobs + 1
+                  -- Track lowest-threat secure mob for equalization
+                  local _, _, _, tvRaw = _G.UnitDetailedThreatSituation(PLAYER_UNIT, unitID)
+                  local tv = tvRaw or 0
+                  if tv < lowestSecureThreatVal then
+                     lowestSecureThreatVal = tv
+                     lowestSecureUnit = unitID
+                  end
+               elseif unitThreat == 2 then
+                  t2Count = t2Count + 1
+                  if unitPriority >= minPriority and unitPriority > bestT2Prio then
+                     bestT2Prio = unitPriority
+                     bestT2Unit = unitID
+                  end
+               elseif unitThreat == 1 then
+                  t1Count = t1Count + 1
+                  if unitPriority >= minPriority and unitPriority > bestT1Prio then
+                     bestT1Prio = unitPriority
+                     bestT1Unit = unitID
+                  end
+               else -- unitThreat == 0
+                  t0Count = t0Count + 1
+                  if unitPriority >= minPriority and unitPriority > bestT0Prio then
+                     bestT0Prio = unitPriority
+                     bestT0Unit = unitID
                   end
                end
 
@@ -313,20 +360,59 @@ do
          end
       end
 
-      -- Switch if there are uncontrolled mobs and we're not already managing too many
-      if mobsWithoutAggro > 0 and mobsWithAggro < maxMobsToManage then
-         if bestLooseUnit then
-            bear_state.tab_target_desired = bestLooseUnit
-            bear_state.tab_target_attempts = 0
-         end
+      -- Select best tab-target based on current threat level:
+      -- Lower threat tier = more urgent. Only switch to mobs MORE urgent than current.
+      local looseMobs = t0Count + t1Count
+      local bestUnit = nil
+
+      if currentThreat == 1 then
+         -- We have threat but not tanking: only switch for threat-0 mobs (completely uncontrolled)
+         if t0Count > 0 and bestT0Unit then bestUnit = bestT0Unit end
+      elseif currentThreat == 2 then
+         -- Insecurely tanking: switch for loose mobs (threat 0-1)
+         if bestT0Unit then bestUnit = bestT0Unit
+         elseif bestT1Unit then bestUnit = bestT1Unit end
+      elseif currentThreat >= 3 then
+         -- Securely tanking: switch for loose (0-1) or insecure (2) mobs
+         if bestT0Unit then bestUnit = bestT0Unit
+         elseif bestT1Unit then bestUnit = bestT1Unit
+         elseif bestT2Unit then bestUnit = bestT2Unit end
+      end
+
+      -- Don't exceed max mobs to manage
+      if bestUnit and looseMobs > 0 and secureMobs >= maxMobsToManage then
+         -- Only switch if the target is truly loose (threat 0-1), not insecure
+         local bestThreat = get_target_threat(bestUnit)
+         if bestThreat >= 2 then bestUnit = nil end
+      end
+
+      if bestUnit then
+         bear_state.tab_target_desired = bestUnit
+         bear_state.tab_target_attempts = 0
          return true
+      end
+
+      -- Threat equalization: when all mobs securely tanked, rotate to the lowest-threat mob
+      -- so Mangle/Maul/Swipe/Lacerate build threat on the weakest link
+      if currentThreat >= 3 and not current_out_of_range
+         and t0Count == 0 and t1Count == 0 and t2Count == 0
+         and lowestSecureUnit
+      then
+         -- Only switch if the lowest mob has meaningfully less threat than current target
+         local _, _, _, currentThreatVal = _G.UnitDetailedThreatSituation(PLAYER_UNIT, TARGET_UNIT)
+         currentThreatVal = currentThreatVal or 0
+         -- 10% threshold to prevent ping-ponging between similar-threat mobs
+         if currentThreatVal > 0 and lowestSecureThreatVal < (currentThreatVal * 0.9) then
+            bear_state.tab_target_desired = lowestSecureUnit
+            bear_state.tab_target_attempts = 0
+            return true
+         end
       end
 
       -- DPS optimization: Spread lacerate on multi-target (but below swipe threshold)
       -- Only do this on non-boss fights to maximize DPS
       if ctx.settings.tab_spread_lacerate ~= false and not ctx.is_boss and ctx.enemy_count >= 2 and ctx.enemy_count < 3 then
          local currentLacerateStacks = state.lacerate_stacks
-         -- If current target has 3+ stacks and there are mobs with < 3 stacks, switch
          if currentLacerateStacks >= 3 and mobsWithLowLacerate > 0 then
             if bestLacUnit then
                bear_state.tab_target_desired = bestLacUnit
@@ -349,7 +435,6 @@ do
          return true
       end
 
-      -- Stay on current target if we have aggro and it's in range
       return false
    end
 
@@ -415,6 +500,9 @@ do
             local tt = unitID .. "target"
             if not _G.UnitExists(tt) or _G.UnitIsUnit(tt, PLAYER_UNIT) then
                -- Skip: either no target (idle) or already targeting us
+               unitID = nil
+            elseif is_other_tank_target(unitID) then
+               -- Skip: another tank is handling this mob
                unitID = nil
             end
          end
@@ -517,6 +605,10 @@ do
          if context.hp <= context.settings.emergency_heal_hp then
             return true
          end
+         -- Proactive: skip if fight is ending (save rage for next pull)
+         if context.enemy_count <= 1 and context.ttd > 0 and context.ttd < 8 then
+            return false
+         end
          -- Proactive use: when grouped and rage-rich, use at higher threshold
          -- High rage means more total healing; healers keep us alive while FR ticks
          return context.hp <= Constants.BEAR.FRENZIED_PROACTIVE_HP
@@ -553,6 +645,10 @@ do
             local fr_active = (Unit(PLAYER_UNIT):HasBuffs(A.FrenziedRegeneration.ID) or 0) > 0
             if not fr_active then return false end
          end
+         -- Fight ending: don't reduce armor when last mob is dying
+         if context.enemy_count <= 1 and context.ttd > 0 and context.ttd < 8 then
+            return false
+         end
          return true
       end,
       execute = function(icon, context)
@@ -584,7 +680,10 @@ do
    local Bear_FaerieFire = create_faerie_fire_strategy()
 
    -- [5] Growl (single-target taunt when losing aggro - PvE only)
-   -- Smart: skips CC'd mobs, dying mobs (unless healer targeted), double-checks via targettarget
+   -- Threat-level-aware:
+   --   Threat 0 (not on table): selective — elite/boss only (natural rotation handles trash)
+   --   Threat 1 (have threat, not tanking): elite/boss only, TTD gated
+   --   Threat 2-3 (tanking): skip
    local Bear_Growl = {
       is_gcd_gated = false,
       requires_combat = true,
@@ -594,30 +693,43 @@ do
       spell = A.Growl,
       matches = function(context)
          if context.settings.bear_no_taunt then return false end
-         -- Only taunt NPCs, not players
          if _G.UnitIsPlayer(TARGET_UNIT) then return false end
-         -- Grace period: don't taunt immediately on pull (threat needs ~1.5s to register after charge/pull)
          if context.combat_time < 1.5 then return false end
-         -- Skip if target is CC'd (taunting wastes 10s CD, mob can't attack while CC'd)
          if is_target_cc_locked(Constants.BEAR.GROWL_CC_THRESHOLD) then return false end
-         -- Skip if target is already attacking us (we have aggro)
-         if has_target_aggro() then return false end
-         -- Only taunt elites and bosses - don't waste 10s CD on trash
-         local classification = _G.UnitClassification(TARGET_UNIT)
-         if classification ~= "elite" and classification ~= "worldboss" and classification ~= "rareelite" then return false end
-         -- TTD check: skip dying elites to save taunt CD
-         -- Exception: ALWAYS taunt if elite is hitting a healer
+         local threat = get_target_threat()
+         if threat >= 2 then return false end -- already tanking (insecure or secure)
+         -- Don't taunt mobs another tank is handling
+         if is_other_tank_target() then return false end
          local targeting_healer = is_targettarget_healer()
-         if not targeting_healer and context.ttd < Constants.BEAR.GROWL_MIN_TTD then return false end
+         if threat == 1 then
+            -- Have some threat but not tanking: elite/boss only (save 10s CD)
+            local classification = _G.UnitClassification(TARGET_UNIT)
+            if classification ~= "elite" and classification ~= "worldboss" and classification ~= "rareelite" then return false end
+            -- TTD check: skip dying targets to save CD (exception: targeting healer)
+            if not targeting_healer and context.ttd < Constants.BEAR.GROWL_MIN_TTD then return false end
+         end
+         -- Threat 0: no threat built yet — be selective with taunt CD
+         -- Natural rotation (Mangle/Maul) builds threat quickly after tab-target;
+         -- only taunt if healer is targeted OR elite/boss with enough TTD
+         if threat == 0 and not targeting_healer then
+            local classification = _G.UnitClassification(TARGET_UNIT)
+            if classification ~= "elite" and classification ~= "worldboss" and classification ~= "rareelite" then
+               return false
+            end
+            if context.ttd > 0 and context.ttd < 8 then
+               return false
+            end
+         end
          return true
       end,
       execute = function(icon, context)
+         local threat = get_target_threat()
          local targeting_healer = is_targettarget_healer()
-         local reason = targeting_healer and "HEALER TARGETED" or "taunting"
-         local threatStatus = _G.UnitThreatSituation(PLAYER_UNIT, TARGET_UNIT) or -1
+         local urgency = threat == 0 and "NO THREAT" or "losing aggro"
+         local reason = targeting_healer and "HEALER TARGETED" or urgency
          local tt = _G.UnitExists("targettarget") and (_G.UnitName("targettarget") or "?") or "none"
-         NS.debug_print(format("[GROWL] threat=%d, targettarget=%s, healer=%s, TTD=%.0f", threatStatus, tt, tostring(targeting_healer), context.ttd))
-         return try_cast_fmt(A.Growl, icon, TARGET_UNIT, "[P3]", "Growl", "Lost aggro - %s (threat=%d, tt=%s, TTD: %.0fs)", reason, threatStatus, tt, context.ttd)
+         NS.debug_print(format("[GROWL] threat=%d, targettarget=%s, healer=%s, TTD=%.0f", threat, tt, tostring(targeting_healer), context.ttd))
+         return try_cast_fmt(A.Growl, icon, TARGET_UNIT, "[P3]", "Growl", "%s (threat=%d, tt=%s, TTD: %.0fs)", reason, threat, tt, context.ttd)
       end,
    }
 
@@ -830,8 +942,14 @@ do
 
          local stacks, duration = state.lacerate_stacks, state.lacerate_duration
 
-         -- Still building stacks → always Lacerate (don't hold for Mangle)
+         -- Still building stacks → require Mangle debuff first (30% bleed bonus)
+         -- Mangle fires higher priority, so this naturally sequences: Mangle → Lacerate
+         -- If Mangle not available (not talented), skip the check and Lacerate freely
          if stacks < Constants.BEAR.LACERATE_MAX_STACKS then
+            if is_spell_available(A.MangleBear) then
+               local mangle_debuff = (Unit(TARGET_UNIT):HasDeBuffs(MANGLE_DEBUFF_IDS) or 0) > 0
+               return mangle_debuff
+            end
             return true
          end
 

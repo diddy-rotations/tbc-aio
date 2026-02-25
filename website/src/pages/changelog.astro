@@ -15,6 +15,26 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.7.7 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3>Druid</h3>
+      <ul class="features">
+        <li><strong>Bear: Threat-Level-Aware Tab Targeting</strong> &mdash; Replaced binary aggro/no-aggro model with 4-tier threat system (0=not on threat table, 1=have threat but not tanking, 2=insecurely tanking, 3=securely tanking). Tab targeting now prioritizes mobs by urgency tier &mdash; only switches to more urgent targets than current.</li>
+        <li><strong>Bear: Multi-Tank Awareness</strong> &mdash; Tab targeting and nameplate scanning now skip mobs being tanked by other tanks (detected via IsTank on mob&rsquo;s target). Prevents fighting over mobs in multi-tank dungeons/raids.</li>
+        <li><strong>Bear: Threat Equalization</strong> &mdash; When all mobs are securely tanked, automatically rotates to the lowest-threat mob so Mangle/Maul/Lacerate build threat on the weakest link. 10% hysteresis threshold prevents ping-ponging.</li>
+        <li><strong>Bear: Smarter Growl</strong> &mdash; Growl decisions now factor threat tier. Saves the 10s cooldown on trash (natural rotation handles it) while still taunting elites/bosses or any mob targeting a healer.</li>
+        <li><strong>Bear: Lacerate Mangle Sequencing</strong> &mdash; Lacerate stack-building now waits for Mangle debuff (30% bleed damage bonus) before applying. Naturally sequences Mangle &rarr; Lacerate for optimal DPS.</li>
+        <li><strong>Bear: Fight-Ending Conservation</strong> &mdash; Frenzied Regeneration and Enrage skip proactive use when the last mob is dying (TTD &lt; 8s), saving rage and armor for the next pull.</li>
+      </ul>
+
+      <h3>Warrior</h3>
+      <ul class="features">
+        <li><strong>Arms: Stance Dance Fix</strong> &mdash; Stance return middleware now yields to Whirlwind when in Berserker Stance with sufficient rage, preventing the rotation from fighting its own inline stance dances.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.7.5 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 

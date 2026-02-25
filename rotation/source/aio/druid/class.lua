@@ -461,6 +461,7 @@ local THORNS_BUFF_IDS = { 467, 782, 1075, 8914, 9756, 9910, 26992 }
 
 NS.FAERIE_FIRE_DEBUFF_IDS = FAERIE_FIRE_DEBUFF_IDS
 NS.DEMO_ROAR_DEBUFF_IDS = DEMO_ROAR_DEBUFF_IDS
+NS.MANGLE_DEBUFF_IDS = MANGLE_DEBUFF_IDS
 
 -- ============================================================================
 -- PLAYSTYLE CONSTANTS
@@ -567,7 +568,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.7.5",
+   version = "v1.7.7",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 

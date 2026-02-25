@@ -422,6 +422,13 @@ rotation_registry:register_middleware({
         local preferred = Constants.PREFERRED_STANCE[spec]
         if not preferred then return false end
         if context.stance == preferred then return false end
+        -- Don't fight inline stance dances: Arms WW needs Berserker — yield while WW is ready
+        if spec == "arms" and context.stance == Constants.STANCE.BERSERKER
+            and context.settings.arms_use_whirlwind
+            and context.rage >= 25
+            and (A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true)) then
+            return false
+        end
         -- TM check: don't swap if we'd lose significant rage
         local tm_cap = get_tactical_mastery_cap()
         -- Arms needs to return to Battle often (MS/Overpower) — tolerate more rage waste
