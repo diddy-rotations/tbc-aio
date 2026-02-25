@@ -67,6 +67,11 @@ Action[A.PlayerClass] = {
     LastStand          = Create({ Type = "Spell", ID = 12975, Click = { unit = "player", type = "spell", spell = 12975 } }),
     SpellReflection    = Create({ Type = "Spell", ID = 23920, Click = { unit = "player", type = "spell", spell = 23920 } }),
 
+    -- Stances (isStance tells the framework these are stance-change spells)
+    BattleStance       = Create({ Type = "Spell", ID = 2457, isStance = 1 }),
+    DefensiveStance    = Create({ Type = "Spell", ID = 71,   isStance = 2 }),
+    BerserkerStance    = Create({ Type = "Spell", ID = 2458, isStance = 3 }),
+
     -- Interrupts
     Pummel             = Create({ Type = "Spell", ID = 6552 }),
     ShieldBash         = Create({ Type = "Spell", ID = 72, useMaxRank = true }),
@@ -101,6 +106,13 @@ local Constants = {
         BATTLE    = 1,
         DEFENSIVE = 2,
         BERSERKER = 3,
+    },
+
+    -- Preferred stance per spec (used by stance correction middleware)
+    PREFERRED_STANCE = {
+        arms       = 1,  -- Battle
+        fury       = 3,  -- Berserker
+        protection = 2,  -- Defensive
     },
 
     BUFF_ID = {
