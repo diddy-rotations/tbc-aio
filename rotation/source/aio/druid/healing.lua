@@ -125,12 +125,12 @@ local function unit_has_aggro(unit_id)
 end
 
 local function is_in_raid()
-   return _G.IsInRaid and _G.IsInRaid() or _G.GetNumRaidMembers and _G.GetNumRaidMembers() > 0
+   return _G.IsInRaid and _G.IsInRaid() or false
 end
 
 local function is_in_party()
    if is_in_raid() then return false end
-   return _G.IsInGroup and _G.IsInGroup() or _G.GetNumPartyMembers and _G.GetNumPartyMembers() > 0
+   return _G.IsInGroup and _G.IsInGroup() or false
 end
 
 local function scan_healing_targets()

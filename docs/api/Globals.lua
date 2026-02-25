@@ -389,11 +389,13 @@ function print(...) end
 ---@return number count Number of group members
 function GetNumGroupMembers() end
 
---- Get number of raid members (Classic/TBC)
+--- Get number of raid members (removed in Anniversary client, use IsInRaid)
+---@deprecated Use IsInRaid() instead
 ---@return number count Number of raid members
 function GetNumRaidMembers() end
 
---- Get number of party members (Classic/TBC)
+--- Get number of party members (removed in Anniversary client, use IsInGroup)
+---@deprecated Use IsInGroup() instead
 ---@return number count Number of party members
 function GetNumPartyMembers() end
 
