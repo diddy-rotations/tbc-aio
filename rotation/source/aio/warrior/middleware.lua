@@ -17,6 +17,7 @@ end
 local A = NS.A
 local Player = NS.Player
 local Unit = NS.Unit
+local MultiUnits = A.MultiUnits
 local rotation_registry = NS.rotation_registry
 local Priority = NS.Priority
 local Constants = NS.Constants
@@ -781,6 +782,70 @@ rotation_registry:register_middleware({
             return bandage:Show(icon), format("[MW] Bandage - HP: %.0f%%", context.hp)
         end
         return nil
+    end,
+})
+
+-- ============================================================================
+-- AUTO TAB TARGET (Smart target switching)
+-- ============================================================================
+-- Tabs to nearby enemy when current target is dead, missing, or out of range.
+-- Optional: prioritize executable (<20% HP) targets for Execute kills.
+local UnitExists = _G.UnitExists
+local UnitIsDead = _G.UnitIsDead
+local UnitIsPlayer = _G.UnitIsPlayer
+local UnitIsUnit = _G.UnitIsUnit
+
+-- Scan nameplates for the best target to tab to
+-- Returns true if an execute-priority target was found (else nil)
+local function has_execute_target_nearby()
+    local plates = MultiUnits:GetActiveUnitPlates()
+    if not plates then return false end
+    for unitID in pairs(plates) do
+        if unitID
+            and UnitExists(unitID)
+            and not UnitIsDead(unitID)
+            and not UnitIsPlayer(unitID)
+            and not UnitIsUnit(unitID, TARGET_UNIT)
+            and Unit(unitID):CombatTime() > 0
+            and A.Rend:IsInRange(unitID) == true
+        then
+            local hp = Unit(unitID):HealthPercent()
+            if hp and hp > 0 and hp < 20 then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+rotation_registry:register_middleware({
+    name = "Warrior_AutoTab",
+    priority = 55,
+
+    matches = function(context)
+        if not context.settings.use_auto_tab then return false end
+        if context.is_mounted then return false end
+        if not context.in_combat then return false end
+
+        -- Always tab if no valid target
+        if not context.has_valid_enemy_target then return true end
+
+        -- Tab if current target is out of melee range and enemies are nearby
+        if not context.in_melee_range and context.enemy_count >= 1 then return true end
+
+        -- Execute-priority tabbing: switch if a nearby mob is executable and current isn't
+        if context.settings.auto_tab_execute
+            and context.target_hp >= 20
+            and has_execute_target_nearby()
+        then
+            return true
+        end
+
+        return false
+    end,
+
+    execute = function(icon, context)
+        return A:Show(icon, CONST.AUTOTARGET), "[MW] Auto Tab"
     end,
 })
 

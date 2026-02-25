@@ -72,6 +72,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Reactively use Berserker Rage or Death Wish to break fears and incapacitates." },
             { type = "checkbox", key = "use_auto_charge", default = true, label = "Auto Charge",
               tooltip = "Automatically Charge (Battle Stance) or Intercept (Berserker Stance) to close gaps on your target." },
+            { type = "checkbox", key = "use_auto_tab", default = true, label = "Auto Tab Target",
+              tooltip = "Automatically tab to a nearby enemy when your target is dead, out of melee range, or doesn't exist." },
+            { type = "checkbox", key = "auto_tab_execute", default = false, label = "Tab to Execute Targets",
+              tooltip = "Prefer tabbing to enemies below 20% HP for Execute kills." },
         }},
         { header = "External Buff Management", settings = {
             { type = "checkbox", key = "cancel_pws", default = true, label = "Cancel PW:S",
