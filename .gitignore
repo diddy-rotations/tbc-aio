@@ -38,3 +38,8 @@ bot/.env
 
 # Website build output
 website/dist/
+
+# Log analyzer output data
+log-analyzer/data/raw/
+log-analyzer/data/fights/
+log-analyzer/data/comparisons/
