@@ -33,8 +33,8 @@ Action[A.PlayerClass] = {
     -- Core Damage
     LightningBolt  = Create({ Type = "Spell", ID = 403, useMaxRank = true }),
     ChainLightning = Create({ Type = "Spell", ID = 421, useMaxRank = true }),
-    EarthShock     = Create({ Type = "Spell", ID = 8042, useMaxRank = true }),
-    EarthShockR1   = Create({ Type = "Spell", ID = 8042 }),  -- Rank 1 for interrupt-only (saves mana)
+    EarthShock     = Create({ Type = "Spell", ID = 25454, useMaxRank = true }),  -- R8 (25454) for damage
+    EarthShockR1   = Create({ Type = "Spell", ID = 8042 }),  -- R1 (8042) for interrupt-only (saves mana)
     FlameShock     = Create({ Type = "Spell", ID = 8050, useMaxRank = true }),
     FrostShock     = Create({ Type = "Spell", ID = 8056, useMaxRank = true }),
     Stormstrike    = Create({ Type = "Spell", ID = 17364 }),
