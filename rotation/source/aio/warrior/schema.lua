@@ -87,6 +87,12 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "healing_potion_hp", default = 25, min = 10, max = 50, label = "Healing Potion HP (%)",
               tooltip = "Use Healing Potion when HP drops below this.", format = "%d%%" },
         }},
+        { header = "Out of Combat", settings = {
+            { type = "checkbox", key = "use_auto_bandage", default = false, label = "Auto Bandage",
+              tooltip = "Automatically use bandages out of combat when HP is low." },
+            { type = "slider", key = "bandage_hp", default = 70, min = 30, max = 90, label = "Bandage HP (%)",
+              tooltip = "Use bandage when HP drops below this (out of combat only).", format = "%d%%" },
+        }},
         S.burst(),
         S.dashboard(),
         S.debug(),
