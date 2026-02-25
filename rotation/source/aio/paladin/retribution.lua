@@ -230,6 +230,11 @@ local Ret_PrepSealTwist = {
         if not state.should_twist then return false end
         -- Only prep if SoC is not already active
         if state.seal_command_active then return false end
+        -- Don't override Seal of Wisdom during mana recovery
+        if context.seal_wisdom_active and context.settings.use_seal_of_wisdom_low_mana then
+            local threshold = context.settings.seal_of_wisdom_mana_pct or 20
+            if context.mana_pct <= threshold then return false end
+        end
         -- Don't prep if in twist window (too late)
         if state.in_twist_window then return false end
         -- Don't prep if swing is very imminent
@@ -361,6 +366,13 @@ local Ret_MaintainSealFallback = {
     execute = function(icon, context, state)
         if SealOfBloodAction:IsReady(PLAYER_UNIT) then
             return SealOfBloodAction:Show(icon), "[RET] Re-seal SoB (fallback)"
+        end
+        -- SoB unavailable (pre-64, wrong faction, OOM) — fall back to SoC then SoR
+        if A.SealOfCommandMax:IsReady(PLAYER_UNIT) then
+            return A.SealOfCommandMax:Show(icon), "[RET] Re-seal SoC (fallback)"
+        end
+        if A.SealOfRighteousness:IsReady(PLAYER_UNIT) then
+            return A.SealOfRighteousness:Show(icon), "[RET] Re-seal SoR (fallback)"
         end
         return nil
     end,
