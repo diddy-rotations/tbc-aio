@@ -28,6 +28,7 @@ local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
 local is_spell_available = NS.is_spell_available
+local is_stance_swap_safe = NS.is_stance_swap_safe
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
@@ -210,7 +211,8 @@ local Prot_SunderArmor = {
     end,
 }
 
--- [6] Thunder Clap maintenance (Battle Stance only)
+-- [6] Thunder Clap maintenance (requires Battle Stance — stance dance from Defensive)
+local RAGE_COST_TC = 20  -- Thunder Clap rage cost in TBC
 local Prot_ThunderClap = {
     requires_combat = true,
     requires_enemy = true,
@@ -219,11 +221,22 @@ local Prot_ThunderClap = {
     matches = function(context, state)
         -- Only refresh when debuff is missing or about to expire
         if state.thunder_clap_debuff > Constants.TC_REFRESH_WINDOW then return false end
-        -- Thunder Clap requires Battle Stance — only fires when warrior is in Battle
-        return A.ThunderClap:IsReady(TARGET_UNIT)
+        -- TC requires Battle Stance — check if we can afford the stance dance
+        if context.stance ~= Constants.STANCE.BATTLE then
+            if not is_stance_swap_safe(context.rage, RAGE_COST_TC) then return false end
+        end
+        -- skipUsable=true: bypass stance check so we can dance to Battle
+        return A.ThunderClap:IsReady(TARGET_UNIT, nil, nil, nil, true)
     end,
 
     execute = function(icon, context, state)
+        -- Swap to Battle Stance if needed (StanceCorrection middleware returns us to Defensive)
+        if context.stance ~= Constants.STANCE.BATTLE then
+            if A.BattleStance:IsReady(PLAYER_UNIT) then
+                return A.BattleStance:Show(icon), "[PROT] \226\134\146 Battle (for Thunder Clap)"
+            end
+            return nil
+        end
         return try_cast(A.ThunderClap, icon, TARGET_UNIT,
             format("[PROT] Thunder Clap - Debuff: %.1fs", state.thunder_clap_debuff))
     end,
@@ -269,7 +282,7 @@ local Prot_Taunt = {
         -- TTD check: skip dying elites to save taunt CD
         -- Exception: ALWAYS taunt if elite is hitting a healer
         local targeting_healer = is_targettarget_healer()
-        if not targeting_healer and context.ttd < Constants.TAUNT.MIN_TTD then return false end
+        if not targeting_healer and (context.ttd or 999) < Constants.TAUNT.MIN_TTD then return false end
         return true
     end,
 
@@ -277,7 +290,7 @@ local Prot_Taunt = {
         local targeting_healer = is_targettarget_healer()
         local reason = targeting_healer and "HEALER TARGETED" or "taunting"
         return try_cast(A.Taunt, icon, TARGET_UNIT,
-            format("[PROT] Taunt - Lost aggro - %s (TTD: %.0fs)", reason, context.ttd))
+            format("[PROT] Taunt - Lost aggro - %s (TTD: %.0fs)", reason, context.ttd or 0))
     end,
 }
 
@@ -325,7 +338,7 @@ local Prot_MockingBlow = {
         local classification = UnitClassification(TARGET_UNIT)
         if classification ~= "elite" and classification ~= "worldboss" and classification ~= "rareelite" then return false end
         local targeting_healer = is_targettarget_healer()
-        if not targeting_healer and context.ttd < Constants.TAUNT.MIN_TTD then return false end
+        if not targeting_healer and (context.ttd or 999) < Constants.TAUNT.MIN_TTD then return false end
         return true
     end,
 
@@ -354,7 +367,19 @@ local Prot_Execute = {
     end,
 }
 
--- [12] Heroic Strike / Cleave (off-GCD rage dump)
+-- [12] Victory Rush (free instant after killing blow, 0 rage)
+local Prot_VictoryRush = {
+    requires_combat = true,
+    requires_enemy = true,
+    spell = A.VictoryRush,
+    setting_key = "prot_use_victory_rush",
+
+    execute = function(icon, context, state)
+        return try_cast(A.VictoryRush, icon, TARGET_UNIT, "[PROT] Victory Rush")
+    end,
+}
+
+-- [13] Heroic Strike / Cleave (off-GCD rage dump)
 local Prot_HeroicStrike = {
     requires_combat = true,
     requires_enemy = true,
@@ -367,16 +392,14 @@ local Prot_HeroicStrike = {
     end,
 
     execute = function(icon, context, state)
-        -- Use Cleave if AoE threshold met
-        local aoe = context.settings.aoe_threshold or 0
-        if aoe > 0 and context.enemy_count >= aoe and A.Cleave:IsReady(TARGET_UNIT) then
-            return try_cast(A.Cleave, icon, TARGET_UNIT,
-                format("[PROT] Cleave - Rage: %d, Enemies: %d", context.rage, context.enemy_count))
+        -- Auto Cleave/HS: use Cleave at threshold, HS otherwise
+        local cleave_at = context.settings.aoe_threshold or 2
+        if cleave_at > 0 and context.enemy_count >= cleave_at and A.Cleave:IsReady(TARGET_UNIT) then
+            return A.Cleave:Show(icon), format("[PROT] Cleave - Rage: %d, Enemies: %d", context.rage, context.enemy_count)
         end
 
         if A.HeroicStrike:IsReady(TARGET_UNIT) then
-            return try_cast(A.HeroicStrike, icon, TARGET_UNIT,
-                format("[PROT] Heroic Strike - Rage: %d", context.rage))
+            return A.HeroicStrike:Show(icon), format("[PROT] Heroic Strike - Rage: %d", context.rage)
         end
         return nil
     end,
@@ -391,12 +414,13 @@ rotation_registry:register("protection", {
     named("Revenge",           Prot_Revenge),
     named("Devastate",         Prot_Devastate),
     named("SunderArmor",       Prot_SunderArmor),
+    named("Execute",           Prot_Execute),
+    named("VictoryRush",       Prot_VictoryRush),
     named("ThunderClap",       Prot_ThunderClap),
     named("DemoShout",         Prot_DemoShout),
     named("Taunt",             Prot_Taunt),
     named("ChallengingShout",  Prot_ChallengingShout),
     named("MockingBlow",       Prot_MockingBlow),
-    named("Execute",           Prot_Execute),
     named("HeroicStrike",      Prot_HeroicStrike),
 }, {
     context_builder = get_prot_state,

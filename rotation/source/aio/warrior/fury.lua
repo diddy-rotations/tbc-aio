@@ -23,6 +23,7 @@ end
 
 local A = NS.A
 local Constants = NS.Constants
+local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
@@ -42,6 +43,8 @@ local fury_state = {
     sunder_duration = 0,
     thunder_clap_duration = 0,
     demo_shout_duration = 0,
+    bt_cd = 0,
+    ww_cd = 0,
 }
 
 local function get_fury_state(context)
@@ -53,8 +56,36 @@ local function get_fury_state(context)
     fury_state.sunder_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     fury_state.thunder_clap_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.THUNDER_CLAP) or 0
     fury_state.demo_shout_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.DEMO_SHOUT) or 0
+    fury_state.bt_cd = A.Bloodthirst:GetCooldown() or 0
+    fury_state.ww_cd = A.Whirlwind:GetCooldown() or 0
 
     return fury_state
+end
+
+-- ============================================================================
+-- RESOURCE POOLING (matches wowsims slamMSWWDelay = 2000ms)
+-- ============================================================================
+-- Don't waste GCD + rage on Slam when core abilities are imminent.
+-- If BT or WW comes off CD within 2s, hold the filler unless we can
+-- afford both the filler AND the core ability's rage cost.
+local FILLER_HOLD_WINDOW = 2.0  -- seconds
+local RAGE_COST_BT = 30
+local RAGE_COST_WW = 25
+local RAGE_COST_SLAM = 15
+local RAGE_COST_PUMMEL = 10
+local SLAM_MIN_WINDOW = 1.1   -- Improved Slam 1.0s cast + 0.1s latency; only Slam if swing is further away
+
+local function should_pool_for_core_fury(context, state)
+    -- BT imminent: hold if spending Slam cost would starve BT
+    if state.bt_cd > 0 and state.bt_cd <= FILLER_HOLD_WINDOW then
+        if (context.rage - RAGE_COST_SLAM) < RAGE_COST_BT then return true end
+    end
+    -- WW imminent: hold if spending Slam cost would starve WW
+    if context.settings.fury_use_whirlwind
+        and state.ww_cd > 0 and state.ww_cd <= FILLER_HOLD_WINDOW then
+        if (context.rage - RAGE_COST_SLAM) < RAGE_COST_WW then return true end
+    end
+    return false
 end
 
 -- ============================================================================
@@ -96,8 +127,15 @@ local Fury_Bloodthirst = {
         if state.target_below_20 and context.settings.fury_execute_phase then
             if not context.settings.fury_bt_during_execute then return false end
         end
-        -- If WW is prioritized, BT runs at lower position (handled by registration order)
-        if context.settings.fury_prioritize_ww then return false end
+        -- Yield to WW when enough enemies are nearby and WW is ready
+        -- skipRange=true (PB AoE), skipUsable=true (bypass stance check)
+        local ww_prio = context.settings.fury_ww_prio_count or 2
+        if ww_prio > 0 and context.enemy_count >= ww_prio
+            and context.rage >= 25
+            and context.settings.fury_use_whirlwind
+            and A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true) then
+            return false
+        end
         return A.Bloodthirst:IsReady(TARGET_UNIT)
     end,
 
@@ -106,7 +144,27 @@ local Fury_Bloodthirst = {
     end,
 }
 
--- [3] Whirlwind (Berserker Stance)
+-- [3] Sweeping Strikes (Battle or Berserker Stance — Fury talent in TBC)
+local Fury_SweepingStrikes = {
+    requires_combat = true,
+    requires_enemy = true,
+    setting_key = "fury_use_sweeping_strikes",
+
+    matches = function(context, state)
+        if context.sweeping_strikes_active then return false end
+        if context.enemy_count < 2 then return false end
+        -- 30 rage cost — check explicitly since skipUsable bypasses resource checks
+        if context.rage < 30 then return false end
+        -- skipUsable=true: bypass IsUsableSpell stance check
+        return A.SweepingStrikes:IsReady(PLAYER_UNIT, nil, nil, nil, true)
+    end,
+
+    execute = function(icon, context, state)
+        return A.SweepingStrikes:Show(icon), format("[FURY] Sweeping Strikes - Rage: %d, Enemies: %d", context.rage, context.enemy_count)
+    end,
+}
+
+-- [4] Whirlwind (Berserker Stance) — handles stance swap inline
 local Fury_Whirlwind = {
     requires_combat = true,
     requires_enemy = true,
@@ -117,36 +175,26 @@ local Fury_Whirlwind = {
         if state.target_below_20 and context.settings.fury_execute_phase then
             if not context.settings.fury_ww_during_execute then return false end
         end
-        -- Whirlwind requires Berserker Stance — IsReady handles check
-        return A.Whirlwind:IsReady(TARGET_UNIT)
+        -- 25 rage cost — check explicitly since skipUsable bypasses resource checks
+        if context.rage < 25 then return false end
+        -- skipRange=true (PB AoE), skipUsable=true (bypass stance check) — matches old rotation pattern
+        return A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true)
     end,
 
     execute = function(icon, context, state)
-        return try_cast(A.Whirlwind, icon, TARGET_UNIT, "[FURY] Whirlwind")
-    end,
-}
-
--- [4] Bloodthirst (lower priority — when WW is prioritized, BT falls here)
-local Fury_BloodthirstLow = {
-    requires_combat = true,
-    requires_enemy = true,
-
-    matches = function(context, state)
-        -- Only runs when WW is prioritized
-        if not context.settings.fury_prioritize_ww then return false end
-        -- During execute phase, check setting
-        if state.target_below_20 and context.settings.fury_execute_phase then
-            if not context.settings.fury_bt_during_execute then return false end
+        -- Swap to Berserker Stance if needed (inline stance dance)
+        if context.stance ~= Constants.STANCE.BERSERKER then
+            if A.BerserkerStance:IsReady(PLAYER_UNIT) then
+                return A.BerserkerStance:Show(icon), "[FURY] → Berserker (for WW)"
+            end
+            return nil
         end
-        return A.Bloodthirst:IsReady(TARGET_UNIT)
-    end,
-
-    execute = function(icon, context, state)
-        return try_cast(A.Bloodthirst, icon, TARGET_UNIT, "[FURY] Bloodthirst")
+        -- Direct Show — range/usability already validated in matches (PB AoE)
+        return A.Whirlwind:Show(icon), format("[FURY] Whirlwind - Rage: %d", context.rage)
     end,
 }
 
--- [5] Execute (target <20% HP)
+-- [4] Execute (target <20% HP)
 local Fury_Execute = {
     requires_combat = true,
     requires_enemy = true,
@@ -154,6 +202,8 @@ local Fury_Execute = {
 
     matches = function(context, state)
         if not state.target_below_20 then return false end
+        -- Pool extra rage for bigger Executes (+21 dmg per extra rage point)
+        if context.rage < 25 then return false end
         return A.Execute:IsReady(TARGET_UNIT)
     end,
 
@@ -240,30 +290,15 @@ local Fury_Slam = {
         if context.is_moving then return false end
         -- Don't Slam in execute phase
         if state.target_below_20 and context.settings.fury_execute_phase then return false end
+        -- Resource pooling: hold GCD for BT/WW if imminent and rage is tight
+        if should_pool_for_core_fury(context, state) then return false end
+        -- Slam weaving: only Slam if the cast fits before next auto-attack
+        if NS.get_time_until_swing() < SLAM_MIN_WINDOW then return false end
         return A.Slam:IsReady(TARGET_UNIT)
     end,
 
     execute = function(icon, context, state)
         return try_cast(A.Slam, icon, TARGET_UNIT, "[FURY] Slam")
-    end,
-}
-
--- [9] Overpower (Battle Stance only, dodge proc)
-local Fury_Overpower = {
-    requires_combat = true,
-    requires_enemy = true,
-    setting_key = "fury_use_overpower",
-
-    matches = function(context, state)
-        local min_rage = context.settings.fury_overpower_rage or 25
-        if context.rage < min_rage then return false end
-        -- Overpower requires Battle Stance — IsReady handles check
-        return A.Overpower:IsReady(TARGET_UNIT)
-    end,
-
-    execute = function(icon, context, state)
-        return try_cast(A.Overpower, icon, TARGET_UNIT,
-            format("[FURY] Overpower - Rage: %d", context.rage))
     end,
 }
 
@@ -298,31 +333,42 @@ local Fury_HeroicStrike = {
             if not context.settings.fury_hs_during_execute then return false end
         end
         local threshold = context.settings.fury_hs_rage_threshold or 50
+        -- HS Trick: lower threshold when dual-wielding (the dequeue middleware handles safety)
+        if context.settings.hs_trick and Player:HasWeaponOffHand(true) then
+            threshold = 30  -- keep enough for BT (30 rage) — dequeue middleware handles safety
+        end
         if context.rage < threshold then return false end
+        -- Smart rage hold: don't dump into HS when an interrupt may be needed soon
+        if context.settings.use_interrupt then
+            local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
+            if castLeft and castLeft > 0 and not notKickAble then
+                -- Hold enough rage for Pummel (10 rage)
+                if (context.rage - 15) < RAGE_COST_PUMMEL then return false end
+            end
+        end
         return true
     end,
 
     execute = function(icon, context, state)
-        -- Use Cleave if AoE threshold met
-        local aoe = context.settings.aoe_threshold or 0
-        if aoe > 0 and context.enemy_count >= aoe and A.Cleave:IsReady(TARGET_UNIT) then
-            return try_cast(A.Cleave, icon, TARGET_UNIT,
-                format("[FURY] Cleave - Rage: %d, Enemies: %d", context.rage, context.enemy_count))
+        -- Auto Cleave/HS: use Cleave at threshold, HS otherwise
+        local cleave_at = context.settings.aoe_threshold or 2
+        if cleave_at > 0 and context.enemy_count >= cleave_at and A.Cleave:IsReady(TARGET_UNIT) then
+            return A.Cleave:Show(icon), format("[FURY] Cleave - Rage: %d, Enemies: %d", context.rage, context.enemy_count)
         end
 
         if A.HeroicStrike:IsReady(TARGET_UNIT) then
-            return try_cast(A.HeroicStrike, icon, TARGET_UNIT,
-                format("[FURY] Heroic Strike - Rage: %d", context.rage))
+            return A.HeroicStrike:Show(icon), format("[FURY] Heroic Strike - Rage: %d", context.rage)
         end
         return nil
     end,
 }
 
--- [11] Victory Rush (free instant after killing blow)
+-- [11] Victory Rush (free instant after killing blow, 0 rage)
 local Fury_VictoryRush = {
     requires_combat = true,
     requires_enemy = true,
     spell = A.VictoryRush,
+    setting_key = "fury_use_victory_rush",
 
     execute = function(icon, context, state)
         return try_cast(A.VictoryRush, icon, TARGET_UNIT, "[FURY] Victory Rush")
@@ -335,15 +381,14 @@ local Fury_VictoryRush = {
 rotation_registry:register("fury", {
     named("Rampage",         Fury_Rampage),
     named("Bloodthirst",     Fury_Bloodthirst),
+    named("SweepingStrikes", Fury_SweepingStrikes),  -- before WW to double hits in AoE (if talented)
     named("Whirlwind",       Fury_Whirlwind),
-    named("BloodthirstLow",  Fury_BloodthirstLow),
     named("Execute",         Fury_Execute),
+    named("VictoryRush",     Fury_VictoryRush),
     named("SunderMaintain",  Fury_SunderMaintain),
     named("ThunderClap",     Fury_ThunderClap),
     named("DemoShout",       Fury_DemoShout),
-    named("Overpower",       Fury_Overpower),
     named("Slam",            Fury_Slam),
-    named("VictoryRush",     Fury_VictoryRush),
     named("Hamstring",       Fury_Hamstring),
     named("HeroicStrike",    Fury_HeroicStrike),
 }, {

@@ -68,10 +68,20 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Don't use Bloodrage when HP is below this (it costs HP).", format = "%d%%" },
             { type = "checkbox", key = "use_berserker_rage", default = true, label = "Auto Berserker Rage",
               tooltip = "Use Berserker Rage on cooldown when in Berserker Stance (rage gen + fear immunity)." },
+            { type = "checkbox", key = "use_loc_breaker", default = true, label = "LoC Fear/Incap Breaker",
+              tooltip = "Reactively use Berserker Rage or Death Wish to break fears and incapacitates." },
+            { type = "checkbox", key = "use_auto_charge", default = false, label = "Auto Charge",
+              tooltip = "Automatically Charge (Battle Stance) or Intercept (Berserker Stance) to close gaps on your target." },
+        }},
+        { header = "External Buff Management", settings = {
+            { type = "checkbox", key = "cancel_pws", default = true, label = "Cancel PW:S",
+              tooltip = "Cancel Power Word: Shield when rage is below 30 (PW:S blocks rage from damage taken)." },
+            { type = "checkbox", key = "cancel_bop", default = false, label = "Cancel BoP",
+              tooltip = "Cancel Blessing of Protection when HP > 50% (BoP prevents all attacks)." },
         }},
         { header = "AoE", settings = {
-            { type = "slider", key = "aoe_threshold", default = 0, min = 0, max = 8, label = "AoE Threshold",
-              tooltip = "Minimum enemies to use Cleave instead of Heroic Strike. 0 = disable.", format = "%d" },
+            { type = "slider", key = "aoe_threshold", default = 2, min = 0, max = 8, label = "Cleave Threshold",
+              tooltip = "Use Cleave instead of Heroic Strike at this many enemies. 0 = never Cleave (HS only).", format = "%d" },
         }},
         { header = "Cooldown Management", settings = {
             { type = "slider", key = "cd_min_ttd", default = 0, min = 0, max = 60, label = "CD Min TTD (sec)",
@@ -84,6 +94,12 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Healing Potion when HP drops low in combat." },
             { type = "slider", key = "healing_potion_hp", default = 25, min = 10, max = 50, label = "Healing Potion HP (%)",
               tooltip = "Use Healing Potion when HP drops below this.", format = "%d%%" },
+        }},
+        { header = "Out of Combat", settings = {
+            { type = "checkbox", key = "use_auto_bandage", default = false, label = "Auto Bandage",
+              tooltip = "Automatically use bandages out of combat when HP is low." },
+            { type = "slider", key = "bandage_hp", default = 70, min = 30, max = 90, label = "Bandage HP (%)",
+              tooltip = "Use bandage when HP drops below this (out of combat only).", format = "%d%%" },
         }},
         S.burst(),
         S.dashboard(),
@@ -110,6 +126,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "arms_use_sweeping_strikes", default = true, label = "Use Sweeping Strikes",
               tooltip = "Use Sweeping Strikes on cooldown (Battle Stance)." },
         }},
+        { header = "Utility", settings = {
+            { type = "checkbox", key = "arms_use_victory_rush", default = true, label = "Use Victory Rush",
+              tooltip = "Use Victory Rush (free instant attack after a killing blow, 0 rage)." },
+        }},
         { header = "Execute Phase", settings = {
             { type = "checkbox", key = "arms_execute_phase", default = true, label = "Execute Phase",
               tooltip = "Switch to Execute priority at <20% target HP." },
@@ -135,20 +155,21 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "Core Abilities", settings = {
             { type = "checkbox", key = "fury_use_whirlwind", default = true, label = "Use Whirlwind",
               tooltip = "Use Whirlwind on cooldown." },
-            { type = "checkbox", key = "fury_prioritize_ww", default = false, label = "Prioritize WW over BT",
-              tooltip = "Use Whirlwind before Bloodthirst in priority." },
+            { type = "checkbox", key = "fury_use_sweeping_strikes", default = true, label = "Use Sweeping Strikes",
+              tooltip = "Use Sweeping Strikes on cooldown in AoE (Fury talent)." },
+            { type = "slider", key = "fury_ww_prio_count", default = 2, min = 0, max = 6, label = "WW Prio Mob Count",
+              tooltip = "Prioritize Whirlwind over Bloodthirst when this many enemies are nearby. 0 = always BT first.", format = "%d" },
             { type = "checkbox", key = "fury_use_slam", default = false, label = "Use Slam",
               tooltip = "Use Slam weaving (requires Improved Slam 2/2)." },
-            { type = "checkbox", key = "fury_use_overpower", default = false, label = "Use Overpower",
-              tooltip = "Use Overpower on dodge procs (Battle Stance only)." },
-            { type = "slider", key = "fury_overpower_rage", default = 25, min = 10, max = 50, label = "Overpower Min Rage",
-              tooltip = "Minimum rage to use Overpower.", format = "%d" },
+
         }},
         { header = "Rage Dump & Utility", settings = {
             { type = "checkbox", key = "fury_use_heroic_strike", default = true, label = "Heroic Strike Dump",
               tooltip = "Auto-queue Heroic Strike as rage dump." },
             { type = "slider", key = "fury_hs_rage_threshold", default = 50, min = 30, max = 80, label = "HS Rage Threshold",
               tooltip = "Queue Heroic Strike above this rage.", format = "%d" },
+            { type = "checkbox", key = "hs_trick", default = false, label = "HS Queue Trick (DW)",
+              tooltip = "Dual-wield only. Queue HS to convert off-hand swings to yellow hits (no glancing blows). Auto-dequeues before main-hand lands if rage is low." },
             { type = "checkbox", key = "fury_use_hamstring", default = false, label = "Hamstring Weave",
               tooltip = "Weave Hamstring for Sword Spec procs." },
             { type = "slider", key = "fury_hamstring_rage", default = 50, min = 20, max = 80, label = "Hamstring Min Rage",
@@ -157,6 +178,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "Rampage", settings = {
             { type = "slider", key = "fury_rampage_threshold", default = 5, min = 2, max = 10, label = "Rampage Refresh (sec)",
               tooltip = "Refresh Rampage when duration below this.", format = "%d sec" },
+        }},
+        { header = "Utility", settings = {
+            { type = "checkbox", key = "fury_use_victory_rush", default = true, label = "Use Victory Rush",
+              tooltip = "Use Victory Rush (free instant attack after a killing blow, 0 rage)." },
         }},
         { header = "Execute Phase", settings = {
             { type = "checkbox", key = "fury_execute_phase", default = true, label = "Execute Phase",
@@ -187,6 +212,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Devastate (requires Prot 41-point talent)." },
             { type = "checkbox", key = "prot_use_execute", default = true, label = "Use Execute",
               tooltip = "Use Execute on targets below 20% HP (rage-efficient finisher)." },
+        }},
+        { header = "Utility", settings = {
+            { type = "checkbox", key = "prot_use_victory_rush", default = true, label = "Use Victory Rush",
+              tooltip = "Use Victory Rush (free instant attack after a killing blow, 0 rage)." },
         }},
         { header = "Debuffs", settings = {
             { type = "checkbox", key = "prot_use_thunder_clap", default = true, label = "Use Thunder Clap",
@@ -224,6 +253,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Shield Wall below this HP. 0 = disable.", format = "%d%%" },
             { type = "checkbox", key = "use_spell_reflection", default = true, label = "Auto Spell Reflect",
               tooltip = "Use Spell Reflection on incoming spells." },
+            { type = "checkbox", key = "use_retaliation", default = false, label = "Use Retaliation",
+              tooltip = "Use Retaliation when surrounded by many enemies (Battle Stance, 5min CD)." },
+            { type = "slider", key = "retaliation_min_enemies", default = 3, min = 2, max = 6, label = "Retaliation Min Enemies",
+              tooltip = "Minimum nearby enemies to trigger Retaliation.", format = "%d" },
         }},
     }},
 }

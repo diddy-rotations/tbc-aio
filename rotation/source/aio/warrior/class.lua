@@ -22,6 +22,10 @@ Action[A.PlayerClass] = {
     -- Racials
     BloodFury          = Create({ Type = "Spell", ID = 20572, Click = { unit = "player", type = "spell", spell = 20572 } }),
     Berserking         = Create({ Type = "Spell", ID = 26296, Click = { unit = "player", type = "spell", spell = 26296 } }),
+    Stoneform          = Create({ Type = "Spell", ID = 20594, Click = { unit = "player", type = "spell", spell = 20594 } }),
+    WillOfTheForsaken  = Create({ Type = "Spell", ID = 7744,  Click = { unit = "player", type = "spell", spell = 7744 } }),
+    WarStomp           = Create({ Type = "Spell", ID = 20549, Click = { unit = "player", type = "spell", spell = 20549 } }),
+    EscapeArtist       = Create({ Type = "Spell", ID = 20589, Click = { unit = "player", type = "spell", spell = 20589 } }),
 
     -- Core Damage (useMaxRank with base IDs)
     HeroicStrike       = Create({ Type = "Spell", ID = 78, useMaxRank = true }),
@@ -67,9 +71,24 @@ Action[A.PlayerClass] = {
     LastStand          = Create({ Type = "Spell", ID = 12975, Click = { unit = "player", type = "spell", spell = 12975 } }),
     SpellReflection    = Create({ Type = "Spell", ID = 23920, Click = { unit = "player", type = "spell", spell = 23920 } }),
 
+    -- Stances
+    BattleStance       = Create({ Type = "Spell", ID = 2457 }),
+    DefensiveStance    = Create({ Type = "Spell", ID = 71   }),
+    BerserkerStance    = Create({ Type = "Spell", ID = 2458 }),
+
+    -- Defensive abilities
+    Retaliation        = Create({ Type = "Spell", ID = 20230 }),
+
     -- Interrupts
     Pummel             = Create({ Type = "Spell", ID = 6552 }),
     ShieldBash         = Create({ Type = "Spell", ID = 72, useMaxRank = true }),
+
+    -- Talents (hidden, for rank queries)
+    TacticalMastery    = Create({ Type = "Spell", ID = 12295, Hidden = true, isTalent = true }),
+
+    -- External buff cancelauras
+    PowerWordShield    = Create({ Type = "Spell", ID = 17,   Click = { type = "cancelaura" } }),
+    BlessingOfProtection = Create({ Type = "Spell", ID = 1022, Click = { type = "cancelaura" } }),
 
     -- Items
     SuperHealingPotion = Create({ Type = "Item", ID = 22829, Click = { unit = "player", type = "item", item = 22829 } }),
@@ -77,6 +96,20 @@ Action[A.PlayerClass] = {
     -- Healthstones
     HealthstoneMaster  = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
     HealthstoneMajor   = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
+
+    -- Bandages (descending quality for DetermineUsableObject)
+    HeavyNetherweaveBandage = Create({ Type = "Item", ID = 21991, Click = { unit = "player", type = "item", item = 21991 } }),
+    NetherweaveBandage      = Create({ Type = "Item", ID = 21990, Click = { unit = "player", type = "item", item = 21990 } }),
+    HeavyRuneclothBandage   = Create({ Type = "Item", ID = 14530, Click = { unit = "player", type = "item", item = 14530 } }),
+    RuneclothBandage        = Create({ Type = "Item", ID = 14529, Click = { unit = "player", type = "item", item = 14529 } }),
+    HeavyMageweaveBandage   = Create({ Type = "Item", ID = 8545,  Click = { unit = "player", type = "item", item = 8545 } }),
+    MageweaveBandage        = Create({ Type = "Item", ID = 8544,  Click = { unit = "player", type = "item", item = 8544 } }),
+    HeavySilkBandage        = Create({ Type = "Item", ID = 6451,  Click = { unit = "player", type = "item", item = 6451 } }),
+    SilkBandage             = Create({ Type = "Item", ID = 6450,  Click = { unit = "player", type = "item", item = 6450 } }),
+    HeavyWoolBandage        = Create({ Type = "Item", ID = 3531,  Click = { unit = "player", type = "item", item = 3531 } }),
+    WoolBandage             = Create({ Type = "Item", ID = 3530,  Click = { unit = "player", type = "item", item = 3530 } }),
+    HeavyLinenBandage       = Create({ Type = "Item", ID = 2581,  Click = { unit = "player", type = "item", item = 2581 } }),
+    LinenBandage            = Create({ Type = "Item", ID = 1251,  Click = { unit = "player", type = "item", item = 1251 } }),
 }
 
 -- ============================================================================
@@ -103,6 +136,13 @@ local Constants = {
         BERSERKER = 3,
     },
 
+    -- Preferred stance per spec (used by stance correction middleware)
+    PREFERRED_STANCE = {
+        arms       = 1,  -- Battle
+        fury       = 3,  -- Berserker
+        protection = 2,  -- Defensive
+    },
+
     BUFF_ID = {
         BATTLE_SHOUT      = 2048,
         COMMANDING_SHOUT  = 469,
@@ -116,6 +156,10 @@ local Constants = {
         SHIELD_BLOCK      = 2565,
         LAST_STAND        = 12975,
         SPELL_REFLECTION  = 23920,
+        RETALIATION       = 20230,
+        -- External buffs (for cancelaura)
+        POWER_WORD_SHIELD = 17,
+        BLESSING_OF_PROT  = 1022,
     },
 
     DEBUFF_ID = {
@@ -150,7 +194,7 @@ local STANCE_NAMES = { "Battle", "Defensive", "Berserker" }
 
 rotation_registry:register_class({
     name = "Warrior",
-    version = "v1.7.0",
+    version = "v1.8.0",
     playstyles = { "arms", "fury", "protection" },
     idle_playstyle_name = nil,
 
