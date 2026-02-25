@@ -15,6 +15,28 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.7.8 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3>Paladin</h3>
+      <ul class="features">
+        <li><strong>Ret: Level 60 Rotation Freeze Fix</strong> &mdash; MaintainSealFallback now falls back to Seal of Command then Seal of Righteousness when Seal of Blood is unavailable (pre-64, wrong faction, OOM), preventing a dead-end where no seal is active and the rotation stalls.</li>
+        <li><strong>Ret: Seal of Wisdom Mana Clash Fix</strong> &mdash; PrepSealTwist now respects Seal of Wisdom mana recovery mode &mdash; skips SoC prep when SoW is active and mana is below the recovery threshold, preventing twist logic from overriding mana regen.</li>
+        <li><strong>Seal of Wisdom Default</strong> &mdash; &ldquo;Seal of Wisdom (Low Mana)&rdquo; now defaults to off, preventing unexpected seal swaps for new installations.</li>
+      </ul>
+
+      <h3>Shaman</h3>
+      <ul class="features">
+        <li><strong>Earth Shock Spell ID Fix</strong> &mdash; Resolved duplicate spell ID collision between EarthShock and EarthShockR1 (both used 8042), which caused a framework TableKeyIdentify error. Max-rank Earth Shock now uses R8 ID.</li>
+      </ul>
+
+      <h3>Shared</h3>
+      <ul class="features">
+        <li><strong>Anniversary Client API Fix</strong> &mdash; Replaced removed GetNumRaidMembers/GetNumPartyMembers APIs with IsInRaid/IsInGroup across all healing modules (Druid, Paladin, Shaman).</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.7.7 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 
