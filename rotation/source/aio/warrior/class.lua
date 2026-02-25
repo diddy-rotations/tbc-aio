@@ -22,6 +22,10 @@ Action[A.PlayerClass] = {
     -- Racials
     BloodFury          = Create({ Type = "Spell", ID = 20572, Click = { unit = "player", type = "spell", spell = 20572 } }),
     Berserking         = Create({ Type = "Spell", ID = 26296, Click = { unit = "player", type = "spell", spell = 26296 } }),
+    Stoneform          = Create({ Type = "Spell", ID = 20594, Click = { unit = "player", type = "spell", spell = 20594 } }),
+    WillOfTheForsaken  = Create({ Type = "Spell", ID = 7744,  Click = { unit = "player", type = "spell", spell = 7744 } }),
+    WarStomp           = Create({ Type = "Spell", ID = 20549, Click = { unit = "player", type = "spell", spell = 20549 } }),
+    EscapeArtist       = Create({ Type = "Spell", ID = 20589, Click = { unit = "player", type = "spell", spell = 20589 } }),
 
     -- Core Damage (useMaxRank with base IDs)
     HeroicStrike       = Create({ Type = "Spell", ID = 78, useMaxRank = true }),
@@ -82,6 +86,10 @@ Action[A.PlayerClass] = {
     -- Healthstones
     HealthstoneMaster  = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
     HealthstoneMajor   = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
+
+    -- Bandages
+    HeavyNetherweaveBandage = Create({ Type = "Item", ID = 21991, Click = { unit = "player", type = "item", item = 21991 } }),
+    NetherweaveBandage      = Create({ Type = "Item", ID = 21990, Click = { unit = "player", type = "item", item = 21990 } }),
 }
 
 -- ============================================================================
