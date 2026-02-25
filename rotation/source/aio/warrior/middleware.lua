@@ -157,8 +157,11 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
--- INTERRUPT (Pummel in Berserker, Shield Bash in Defensive)
+-- INTERRUPT (Pummel / Shield Bash — with stance dancing)
 -- ============================================================================
+-- Pummel: Berserker Stance only. If in Battle Stance, dance to Berserker first.
+-- Shield Bash: Defensive Stance only (requires shield equipped).
+-- Priority: Pummel > stance dance for Pummel > Shield Bash (no dance to Defensive).
 rotation_registry:register_middleware({
     name = "Warrior_Interrupt",
     priority = 250,
@@ -174,14 +177,23 @@ rotation_registry:register_middleware({
         local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
         if not castLeft or castLeft <= 0 or notKickAble then return nil end
 
-        -- Try Pummel first (Berserker Stance)
+        -- Already in Berserker → Pummel directly
         if context.stance == Constants.STANCE.BERSERKER and A.Pummel:IsReady(TARGET_UNIT) then
             return A.Pummel:Show(icon), format("[MW] Pummel - Cast: %.1fs", castLeft)
         end
 
-        -- Try Shield Bash (Defensive Stance, requires shield)
+        -- Already in Defensive → Shield Bash (requires shield)
         if context.stance == Constants.STANCE.DEFENSIVE and A.ShieldBash:IsReady(TARGET_UNIT) then
             return A.ShieldBash:Show(icon), format("[MW] Shield Bash - Cast: %.1fs", castLeft)
+        end
+
+        -- In Battle Stance: dance to Berserker for Pummel (enough time to swap + kick)
+        if context.stance == Constants.STANCE.BATTLE and castLeft > 0.5 then
+            -- Check Pummel CD before committing to the stance swap
+            local pummel_cd = A.Pummel:GetCooldown() or 0
+            if pummel_cd <= 0 and A.BerserkerStance:IsReady(PLAYER_UNIT) then
+                return A.BerserkerStance:Show(icon), format("[MW] → Berserker (for Pummel) - Cast: %.1fs", castLeft)
+            end
         end
 
         return nil
@@ -381,8 +393,11 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
--- RACIAL (Blood Fury / Berserking / etc.)
+-- RACIAL (Blood Fury / Berserking / War Stomp / etc.)
 -- ============================================================================
+-- Offensive racials (Blood Fury, Berserking) fire as burst CDs.
+-- Stoneform / Will of the Forsaken / Escape Artist fire as defensives.
+-- War Stomp fires as a defensive interrupt (PBAoE stun).
 rotation_registry:register_middleware({
     name = "Warrior_Racial",
     priority = 70,
@@ -399,11 +414,69 @@ rotation_registry:register_middleware({
     end,
 
     execute = function(icon, context)
+        -- Offensive racials (burst)
         if A.BloodFury:IsReady(PLAYER_UNIT) then
             return A.BloodFury:Show(icon), "[MW] Blood Fury"
         end
         if A.Berserking:IsReady(PLAYER_UNIT) then
             return A.Berserking:Show(icon), "[MW] Berserking"
+        end
+        return nil
+    end,
+})
+
+-- Defensive racials: Stoneform (Dwarf), WotF (Undead), Escape Artist (Gnome)
+rotation_registry:register_middleware({
+    name = "Warrior_RacialDefensive",
+    priority = 260,
+    is_defensive = true,
+    is_gcd_gated = false,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.settings.use_racial then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        -- Stoneform: removes bleed/poison/disease + 10% armor for 8s
+        if A.Stoneform:IsReady(PLAYER_UNIT) then
+            return A.Stoneform:Show(icon), "[MW] Stoneform"
+        end
+        -- Will of the Forsaken: removes fear/sleep/charm
+        if A.WillOfTheForsaken:IsReady(PLAYER_UNIT) then
+            return A.WillOfTheForsaken:Show(icon), "[MW] Will of the Forsaken"
+        end
+        -- Escape Artist: removes snare/root (useful when not in melee)
+        if not context.in_melee_range and A.EscapeArtist:IsReady(PLAYER_UNIT) then
+            return A.EscapeArtist:Show(icon), "[MW] Escape Artist"
+        end
+        return nil
+    end,
+})
+
+-- War Stomp: PBAoE stun (Tauren) — useful as interrupt/CC
+rotation_registry:register_middleware({
+    name = "Warrior_WarStomp",
+    priority = 245,
+    is_defensive = true,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.settings.use_racial then return false end
+        if not context.has_valid_enemy_target then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        -- Use War Stomp as an interrupt when target is casting and other kicks unavailable
+        local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
+        if castLeft and castLeft > 0.5 and not notKickAble then
+            -- Only if Pummel is on CD and we're in melee range
+            local pummel_cd = A.Pummel:GetCooldown() or 0
+            if pummel_cd > 0 and context.in_melee_range and A.WarStomp:IsReady(PLAYER_UNIT) then
+                return A.WarStomp:Show(icon), format("[MW] War Stomp (interrupt) - Cast: %.1fs", castLeft)
+            end
         end
         return nil
     end,
@@ -463,6 +536,33 @@ rotation_registry:register_middleware({
             if A.Intercept:IsReady(TARGET_UNIT) then
                 return A.Intercept:Show(icon), format("[MW] Intercept - Rage: %d", context.rage)
             end
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
+-- AUTO BANDAGE (Out of combat healing)
+-- ============================================================================
+rotation_registry:register_middleware({
+    name = "Warrior_AutoBandage",
+    priority = 50,
+
+    matches = function(context)
+        if context.in_combat then return false end
+        if not context.settings.use_auto_bandage then return false end
+        if context.is_mounted then return false end
+        if context.is_moving then return false end
+        local threshold = context.settings.bandage_hp or 70
+        if context.hp > threshold then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        local bandage = DetermineUsableObject(PLAYER_UNIT, true, nil, true, nil,
+            A.HeavyNetherweaveBandage, A.NetherweaveBandage)
+        if bandage then
+            return bandage:Show(icon), format("[MW] Bandage - HP: %.0f%%", context.hp)
         end
         return nil
     end,
