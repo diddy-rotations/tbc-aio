@@ -354,7 +354,19 @@ local Prot_Execute = {
     end,
 }
 
--- [12] Heroic Strike / Cleave (off-GCD rage dump)
+-- [12] Victory Rush (free instant after killing blow, 0 rage)
+local Prot_VictoryRush = {
+    requires_combat = true,
+    requires_enemy = true,
+    spell = A.VictoryRush,
+    setting_key = "prot_use_victory_rush",
+
+    execute = function(icon, context, state)
+        return try_cast(A.VictoryRush, icon, TARGET_UNIT, "[PROT] Victory Rush")
+    end,
+}
+
+-- [13] Heroic Strike / Cleave (off-GCD rage dump)
 local Prot_HeroicStrike = {
     requires_combat = true,
     requires_enemy = true,
@@ -367,16 +379,14 @@ local Prot_HeroicStrike = {
     end,
 
     execute = function(icon, context, state)
-        -- Use Cleave if AoE threshold met
-        local aoe = context.settings.aoe_threshold or 0
-        if aoe > 0 and context.enemy_count >= aoe and A.Cleave:IsReady(TARGET_UNIT) then
-            return try_cast(A.Cleave, icon, TARGET_UNIT,
-                format("[PROT] Cleave - Rage: %d, Enemies: %d", context.rage, context.enemy_count))
+        -- Auto Cleave/HS: use Cleave at threshold, HS otherwise
+        local cleave_at = context.settings.aoe_threshold or 2
+        if cleave_at > 0 and context.enemy_count >= cleave_at and A.Cleave:IsReady(TARGET_UNIT) then
+            return A.Cleave:Show(icon), format("[PROT] Cleave - Rage: %d, Enemies: %d", context.rage, context.enemy_count)
         end
 
         if A.HeroicStrike:IsReady(TARGET_UNIT) then
-            return try_cast(A.HeroicStrike, icon, TARGET_UNIT,
-                format("[PROT] Heroic Strike - Rage: %d", context.rage))
+            return A.HeroicStrike:Show(icon), format("[PROT] Heroic Strike - Rage: %d", context.rage)
         end
         return nil
     end,
@@ -393,6 +403,7 @@ rotation_registry:register("protection", {
     named("SunderArmor",       Prot_SunderArmor),
     named("ThunderClap",       Prot_ThunderClap),
     named("DemoShout",         Prot_DemoShout),
+    named("VictoryRush",       Prot_VictoryRush),
     named("Taunt",             Prot_Taunt),
     named("ChallengingShout",  Prot_ChallengingShout),
     named("MockingBlow",       Prot_MockingBlow),
