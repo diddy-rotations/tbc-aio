@@ -216,6 +216,43 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
+-- STANCE CORRECTION (Switch to spec's home stance when in melee)
+-- ============================================================================
+-- Pre-allocated lookup: stance ID → stance spell action
+local STANCE_SPELL = {
+    [Constants.STANCE.BATTLE]    = A.BattleStance,
+    [Constants.STANCE.DEFENSIVE] = A.DefensiveStance,
+    [Constants.STANCE.BERSERKER] = A.BerserkerStance,
+}
+
+rotation_registry:register_middleware({
+    name = "Warrior_StanceCorrection",
+    priority = 195,
+
+    matches = function(context)
+        if context.is_mounted then return false end
+        if not context.has_valid_enemy_target then return false end
+        -- Don't fight AutoCharge for stance — let it handle pre-charge stance swaps
+        if context.settings.use_auto_charge and not context.in_melee_range then return false end
+        local spec = context.settings.playstyle or "fury"
+        local preferred = Constants.PREFERRED_STANCE[spec]
+        if not preferred then return false end
+        if context.stance == preferred then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        local spec = context.settings.playstyle or "fury"
+        local preferred = Constants.PREFERRED_STANCE[spec]
+        local spell = STANCE_SPELL[preferred]
+        if spell and spell:IsReady(PLAYER_UNIT) then
+            return spell:Show(icon), format("[MW] Stance → %s", preferred == 1 and "Battle" or preferred == 2 and "Defensive" or "Berserker")
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
 -- BERSERKER RAGE (Rage gen + Fear immunity)
 -- ============================================================================
 rotation_registry:register_middleware({
@@ -367,6 +404,65 @@ rotation_registry:register_middleware({
         end
         if A.Berserking:IsReady(PLAYER_UNIT) then
             return A.Berserking:Show(icon), "[MW] Berserking"
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
+-- AUTO CHARGE / INTERCEPT (Gap closer)
+-- ============================================================================
+-- Suppress Intercept after a recent Charge to avoid intercepting mid-flight.
+-- Two signals: timestamp (addon-triggered) + Charge CD state (catches manual charges too).
+local last_charge_time = 0
+local CHARGE_INTERCEPT_COOLDOWN = 3  -- seconds
+local CHARGE_TOTAL_CD = 15           -- Charge base CD in TBC
+
+local function recently_charged(now)
+    -- Signal 1: addon set the timestamp when it fired Charge
+    if (now - last_charge_time) < CHARGE_INTERCEPT_COOLDOWN then return true end
+    -- Signal 2: Charge is on CD with most of its duration left → just used (handles manual charges)
+    local charge_cd = A.Charge:GetCooldown() or 0
+    if charge_cd > (CHARGE_TOTAL_CD - CHARGE_INTERCEPT_COOLDOWN) then return true end
+    return false
+end
+
+rotation_registry:register_middleware({
+    name = "Warrior_AutoCharge",
+    priority = 160,
+    setting_key = "use_auto_charge",
+
+    matches = function(context)
+        if context.is_mounted then return false end
+        if not context.has_valid_enemy_target then return false end
+        -- Don't charge if already in melee range
+        if context.in_melee_range then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        local now = _G.GetTime()
+        -- Charge: Battle Stance, out of combat
+        if not context.in_combat then
+            -- Need Battle Stance for Charge — swap first if needed
+            if context.stance ~= Constants.STANCE.BATTLE and A.BattleStance:IsReady(PLAYER_UNIT) then
+                return A.BattleStance:Show(icon), "[MW] Battle Stance (for Charge)"
+            end
+            if A.Charge:IsReady(TARGET_UNIT) then
+                last_charge_time = now
+                return A.Charge:Show(icon), "[MW] Charge"
+            end
+        end
+        -- Intercept: Berserker Stance, in combat
+        -- Suppress after a recent Charge (travel time + landing) to avoid intercepting mid-flight
+        if context.in_combat and not recently_charged(now) then
+            -- Need Berserker Stance for Intercept — swap first if needed
+            if context.stance ~= Constants.STANCE.BERSERKER and A.BerserkerStance:IsReady(PLAYER_UNIT) then
+                return A.BerserkerStance:Show(icon), "[MW] Berserker Stance (for Intercept)"
+            end
+            if A.Intercept:IsReady(TARGET_UNIT) then
+                return A.Intercept:Show(icon), format("[MW] Intercept - Rage: %d", context.rage)
+            end
         end
         return nil
     end,
