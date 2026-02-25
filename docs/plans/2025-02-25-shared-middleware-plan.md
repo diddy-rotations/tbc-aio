@@ -12,6 +12,43 @@
 
 ---
 
+## Task Summary
+
+### Phase 1: Build System + Recovery Consolidation
+| # | Task | What it does |
+|---|------|-------------|
+| 1 | Update build.js | Add recovery.lua, threat.lua, interrupt.lua to ORDER_MAP + LOAD_ORDER (Order 6, shared) |
+| 2 | Create recovery.lua | Shared factory: `NS.register_recovery_middleware(class, config)` for Healthstone, Healing Potion, Mana Potion, Dark Rune |
+| 3 | Migrate Hunter | Replace 3 recovery MW blocks with factory call (custom tiers: HSMaster1/2/3, stealth check, mana_rune keys) |
+| 4 | Migrate Mage | Replace 4 recovery MW blocks with factory call (all defaults) |
+| 5 | Migrate Paladin | Replace 4 recovery MW blocks with factory call (custom mana defaults: 40%) |
+| 6 | Migrate Priest | Replace 4 recovery MW blocks with factory call (all defaults). Keep Shadowfiend. |
+| 7 | Migrate Rogue | Replace 2 recovery MW blocks with factory call (no mana items). Keep Thistle Tea. |
+| 8 | Migrate Shaman | Replace 4 recovery MW blocks with factory call (MajorManaPotion fallback tier). |
+| 9 | Migrate Warlock | Replace 4 recovery MW blocks with factory call (HealthstoneFel tier, lower mana thresholds). Keep Life Tap, Dark Pact. |
+| 10 | Migrate Warrior | Replace 2 recovery MW blocks with factory call (no mana items). Keep Bandages. |
+
+### Phase 2: Threat Awareness System
+| # | Task | What it does |
+|---|------|-------------|
+| 11 | Create threat.lua | Shared factory: `NS.register_threat_middleware(class, config)`. Nameplate scanning, classification counting, TTD awareness, configurable mode (dump/stop/off) + scope (boss/elite/all) |
+| 12 | Add threat settings to schemas | Add `threat_mode` + `threat_scope` dropdowns to all 8 DPS class schemas |
+| 13 | Register threat + remove old dumps | Register all classes for shared threat. Remove Hunter_FeignDeath, Rogue_Feint, Warlock_Soulshatter, Priest_Fade MW blocks. |
+
+### Phase 3: Interrupt Awareness System
+| # | Task | What it does |
+|---|------|-------------|
+| 14 | Create interrupt.lua | Priority spell DB (44+ spells from Shaman), `NS.should_interrupt()` decision function, tab-target state machine, nameplate scanner, combat log SPELL_INTERRUPT dedup, original target validation on return |
+| 15 | Add interrupt settings to schemas | Add `interrupt_priority_only`, `interrupt_scope`, `interrupt_delay` to 6 class schemas (Mage, Paladin, Priest, Rogue, Shaman, Warrior) |
+| 16 | Integrate interrupt awareness | Update all 6 class interrupt MW to use `NS.should_interrupt()`. Shaman/Mage/Priest get tab-targeting. Register capabilities with `resolve_spell` pattern. Remove Shaman's local priority table + state machine. |
+
+### Phase 4: Final Verification
+| # | Task | What it does |
+|---|------|-------------|
+| 17 | Build verification + cleanup | Full build, remove dead code (Priest's count_mobs_targeting_me, Shaman's PRIORITY_INTERRUPT_SPELLS, orphaned locals) |
+
+---
+
 ## Phase 1: Build System + Recovery Consolidation
 
 ### Task 1: Update build.js for new shared files

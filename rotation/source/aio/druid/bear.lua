@@ -997,9 +997,9 @@ do
    -- Maul is off-GCD (swing queue) — placed last so GCD abilities fire first.
    -- During GCD frames, only off-GCD strategies evaluate, so Maul fires then.
    --
-   -- KEY: SwipeAoE sits ABOVE Mangle (sim SwipeSpam mode).
-   -- In AoE, total Swipe damage > Mangle single-target damage.
-   -- Single-target Swipe filler sits below Mangle (conditional on Lacerate maintained).
+   -- KEY: Mangle is highest-priority GCD ability (best DPET, opener).
+   -- SwipeAoE sits above ST filler but below Mangle (AoE total > Mangle only at threshold).
+   -- DemoRoar is defensive — deferred below core damage abilities.
    rotation_registry:register("bear", {
       named("FrenziedRegen",    Bear_FrenziedRegen),     -- [1]  off-GCD emergency heal
       named("Enrage",           Bear_Enrage),            -- [2]  off-GCD rage gen
@@ -1008,10 +1008,10 @@ do
       named("LacerateUrgent",   Bear_LacerateUrgent),    -- [5]  GCD — urgent refresh
       named("TabTarget",        Bear_TabTarget),         -- [6]  off-GCD tab targeting
       named("FaerieFire",       Bear_FaerieFire),        -- [7]  GCD — debuff maintenance
-      named("DemoRoar",         Bear_DemoRoar),          -- [8]  GCD — AP reduction
-      named("SwipeAoE",         Bear_SwipeAoE),          -- [9]  GCD — AoE priority (above Mangle)
-      named("Mangle",           Bear_Mangle),            -- [10] GCD — main ST damage/threat
-      named("Swipe",            Bear_Swipe),             -- [11] GCD — ST filler (Lac maintained)
+      named("Mangle",           Bear_Mangle),            -- [8]  GCD — main ST damage/threat
+      named("SwipeAoE",         Bear_SwipeAoE),          -- [9]  GCD — AoE priority (above filler)
+      named("DemoRoar",         Bear_DemoRoar),          -- [10] GCD — AP reduction (defensive)
+      named("Swipe",            Bear_Swipe),             -- [11] GCD — ST filler
       named("LacerateBuild",    Bear_LacerateBuild),     -- [12] GCD — stack builder
       named("Maul",             Bear_Maul),              -- [13] off-GCD swing queue (fires during GCD)
    }, {
