@@ -71,14 +71,24 @@ Action[A.PlayerClass] = {
     LastStand          = Create({ Type = "Spell", ID = 12975, Click = { unit = "player", type = "spell", spell = 12975 } }),
     SpellReflection    = Create({ Type = "Spell", ID = 23920, Click = { unit = "player", type = "spell", spell = 23920 } }),
 
-    -- Stances (isStance tells the framework these are stance-change spells)
-    BattleStance       = Create({ Type = "Spell", ID = 2457, isStance = 1 }),
-    DefensiveStance    = Create({ Type = "Spell", ID = 71,   isStance = 2 }),
-    BerserkerStance    = Create({ Type = "Spell", ID = 2458, isStance = 3 }),
+    -- Stances
+    BattleStance       = Create({ Type = "Spell", ID = 2457 }),
+    DefensiveStance    = Create({ Type = "Spell", ID = 71   }),
+    BerserkerStance    = Create({ Type = "Spell", ID = 2458 }),
+
+    -- Defensive abilities
+    Retaliation        = Create({ Type = "Spell", ID = 20230 }),
 
     -- Interrupts
     Pummel             = Create({ Type = "Spell", ID = 6552 }),
     ShieldBash         = Create({ Type = "Spell", ID = 72, useMaxRank = true }),
+
+    -- Talents (hidden, for rank queries)
+    TacticalMastery    = Create({ Type = "Spell", ID = 12295, Hidden = true, isTalent = true }),
+
+    -- External buff cancelauras
+    PowerWordShield    = Create({ Type = "Spell", ID = 17,   Click = { type = "cancelaura" } }),
+    BlessingOfProtection = Create({ Type = "Spell", ID = 1022, Click = { type = "cancelaura" } }),
 
     -- Items
     SuperHealingPotion = Create({ Type = "Item", ID = 22829, Click = { unit = "player", type = "item", item = 22829 } }),
@@ -136,6 +146,10 @@ local Constants = {
         SHIELD_BLOCK      = 2565,
         LAST_STAND        = 12975,
         SPELL_REFLECTION  = 23920,
+        RETALIATION       = 20230,
+        -- External buffs (for cancelaura)
+        POWER_WORD_SHIELD = 17,
+        BLESSING_OF_PROT  = 1022,
     },
 
     DEBUFF_ID = {
@@ -170,7 +184,7 @@ local STANCE_NAMES = { "Battle", "Defensive", "Berserker" }
 
 rotation_registry:register_class({
     name = "Warrior",
-    version = "v1.7.0",
+    version = "v1.8.0",
     playstyles = { "arms", "fury", "protection" },
     idle_playstyle_name = nil,
 
