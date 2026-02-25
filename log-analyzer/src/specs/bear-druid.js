@@ -2,8 +2,8 @@
  * Bear Druid (Feral Tank) spec configuration for fight processing.
  * Defines which spells to track, resource types, debuff durations, cooldowns.
  *
- * Spell IDs sourced from rotation/source/aio/druid/class.lua
  * WCL uses max-rank spell IDs (abilityGameID).
+ * Max-rank IDs sourced from docs/DRUID_RESEARCH.md
  */
 export const bearDruid = {
   name: 'Bear Druid',
@@ -12,58 +12,69 @@ export const bearDruid = {
   resource: 'rage',
 
   // Spells to track in cast_summary and cast_sequence
+  // WCL reports max-rank IDs, so we need both base and max-rank entries
   trackedSpells: {
-    // Core bear abilities (max rank IDs from class.lua useMaxRank)
-    33878: { name: 'Mangle (Bear)', category: 'ability', cooldown: 6 },
-    6807:  { name: 'Maul', category: 'ability' },  // on-next-attack, off-GCD
-    779:   { name: 'Swipe', category: 'ability' },
-    33745: { name: 'Lacerate', category: 'dot' },
-    99:    { name: 'Demoralizing Roar', category: 'debuff', base_duration: 30 },
+    // Core bear abilities — max rank IDs (what WCL actually reports)
+    33987: { name: 'Mangle (Bear)', category: 'ability', cooldown: 6 },  // R3
+    33986: { name: 'Mangle (Bear)', category: 'ability', cooldown: 6 },  // R2
+    33878: { name: 'Mangle (Bear)', category: 'ability', cooldown: 6 },  // R1
+    26996: { name: 'Maul', category: 'ability' },            // R8 (on-next-attack, off-GCD)
+    6807:  { name: 'Maul', category: 'ability' },             // base ID fallback
+    26997: { name: 'Swipe', category: 'ability' },            // R6
+    779:   { name: 'Swipe', category: 'ability' },            // base ID fallback
+    33745: { name: 'Lacerate', category: 'dot' },             // single rank
+    26998: { name: 'Demoralizing Roar', category: 'debuff', base_duration: 30 }, // R6
+    9898:  { name: 'Demoralizing Roar', category: 'debuff', base_duration: 30 }, // R5
+    99:    { name: 'Demoralizing Roar', category: 'debuff', base_duration: 30 }, // R1
     6795:  { name: 'Growl', category: 'taunt', cooldown: 10 },
     5209:  { name: 'Challenging Roar', category: 'taunt', cooldown: 600 },
-    22842: { name: 'Frenzied Regeneration', category: 'defensive', cooldown: 180 },
+    26999: { name: 'Frenzied Regeneration', category: 'defensive', cooldown: 180 }, // R4
+    22842: { name: 'Frenzied Regeneration', category: 'defensive', cooldown: 180 }, // base
     5229:  { name: 'Enrage', category: 'utility', cooldown: 60 },
     22812: { name: 'Barkskin', category: 'defensive', cooldown: 60 },
-    16857: { name: 'Faerie Fire (Feral)', category: 'debuff' },
-    // Forms (powershifting detection)
+    // Faerie Fire (Feral) — all ranks
+    27011: { name: 'Faerie Fire (Feral)', category: 'debuff' },  // R5
+    17392: { name: 'Faerie Fire (Feral)', category: 'debuff' },  // R4
+    16857: { name: 'Faerie Fire (Feral)', category: 'debuff' },  // R1
+    // Forms
     9634:  { name: 'Dire Bear Form', category: 'form' },
     768:   { name: 'Cat Form', category: 'form' },
-    // Feral Charge
+    // Utility
     16979: { name: 'Feral Charge', category: 'utility', cooldown: 15 },
-    // Bash (interrupt)
     8983:  { name: 'Bash', category: 'interrupt', cooldown: 60 },
+    26994: { name: 'Rebirth', category: 'utility' },
   },
 
   // Debuffs to track for uptime analysis (on target)
-  // Multi-rank IDs — WCL reports whichever rank was used
   trackedDebuffs: {
     // Lacerate (single ID, stacking)
     33745: { name: 'Lacerate', duration: 15 },
-    // Mangle debuff (all ranks: cat + bear variants)
-    33878: { name: 'Mangle (Bear)', duration: 12 },
-    33986: { name: 'Mangle (Bear) R2', duration: 12 },
-    33987: { name: 'Mangle (Bear) R3', duration: 12 },
-    33876: { name: 'Mangle (Cat)', duration: 12 },
-    33982: { name: 'Mangle (Cat) R2', duration: 12 },
-    33983: { name: 'Mangle (Cat) R3', duration: 12 },
+    // Mangle debuff (all ranks)
+    33987: { name: 'Mangle', duration: 12 },
+    33986: { name: 'Mangle', duration: 12 },
+    33878: { name: 'Mangle', duration: 12 },
+    33876: { name: 'Mangle', duration: 12 },
+    33983: { name: 'Mangle', duration: 12 },
+    33982: { name: 'Mangle', duration: 12 },
     // Demoralizing Roar (all ranks)
+    26998: { name: 'Demoralizing Roar', duration: 30 },
+    9898:  { name: 'Demoralizing Roar', duration: 30 },
+    9747:  { name: 'Demoralizing Roar', duration: 30 },
+    9490:  { name: 'Demoralizing Roar', duration: 30 },
+    1735:  { name: 'Demoralizing Roar', duration: 30 },
     99:    { name: 'Demoralizing Roar', duration: 30 },
-    1735:  { name: 'Demoralizing Roar R2', duration: 30 },
-    9490:  { name: 'Demoralizing Roar R3', duration: 30 },
-    9747:  { name: 'Demoralizing Roar R4', duration: 30 },
-    9898:  { name: 'Demoralizing Roar R5', duration: 30 },
-    26998: { name: 'Demoralizing Roar R6', duration: 30 },
-    // Faerie Fire (feral + caster, all ranks)
-    16857: { name: 'Faerie Fire (Feral)', duration: 40 },
-    17390: { name: 'Faerie Fire (Feral) R2', duration: 40 },
-    17391: { name: 'Faerie Fire (Feral) R3', duration: 40 },
-    17392: { name: 'Faerie Fire (Feral) R4', duration: 40 },
-    27011: { name: 'Faerie Fire (Feral) R5', duration: 40 },
+    // Faerie Fire (all ranks)
+    27011: { name: 'Faerie Fire', duration: 40 },
+    17392: { name: 'Faerie Fire', duration: 40 },
+    17391: { name: 'Faerie Fire', duration: 40 },
+    17390: { name: 'Faerie Fire', duration: 40 },
+    16857: { name: 'Faerie Fire', duration: 40 },
   },
 
   // Buffs to track (on player)
   trackedBuffs: {
     16870: { name: 'Clearcasting', duration: 15 },
+    26999: { name: 'Frenzied Regeneration', duration: 10 },
     22842: { name: 'Frenzied Regeneration', duration: 10 },
     5229:  { name: 'Enrage', duration: 10 },
     22812: { name: 'Barkskin', duration: 12 },
@@ -78,7 +89,7 @@ export const bearDruid = {
   // Bloodlust buff IDs (for burst/defensive alignment)
   bloodlustBuffs: [2825, 32182],
 
-  // Execute phase threshold (% HP) — less relevant for tank but useful for threat analysis
+  // Execute phase threshold (% HP)
   executeThreshold: 25,
 
   // GCD for this spec (seconds) — bear GCD is 1.5s
