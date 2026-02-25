@@ -416,8 +416,8 @@ rotation_registry:register_middleware({
     matches = function(context)
         if context.is_mounted then return false end
         if not context.has_valid_enemy_target then return false end
-        -- Don't fight AutoCharge for stance — let it handle pre-charge stance swaps
-        if context.settings.use_auto_charge and not context.in_melee_range then return false end
+        -- Out of combat at range: don't correct stance — let AutoCharge or manual approach handle it
+        if not context.in_combat and not context.in_melee_range then return false end
         local spec = context.settings.playstyle or "fury"
         local preferred = Constants.PREFERRED_STANCE[spec]
         if not preferred then return false end
@@ -709,9 +709,11 @@ end
 rotation_registry:register_middleware({
     name = "Warrior_AutoCharge",
     priority = 160,
-    setting_key = "use_auto_charge",
+    -- NOTE: setting_key is NOT auto-checked for middleware (only strategies).
+    -- Must check manually in matches().
 
     matches = function(context)
+        if not context.settings.use_auto_charge then return false end
         if context.is_mounted then return false end
         if not context.has_valid_enemy_target then return false end
         -- Don't charge if already in melee range
