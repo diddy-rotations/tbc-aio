@@ -48,7 +48,7 @@ local function unit_has_aggro(unit_id)
 end
 
 local function is_in_raid()
-    return _G.IsInRaid and _G.IsInRaid() or _G.GetNumRaidMembers and _G.GetNumRaidMembers() > 0
+    return _G.IsInRaid and _G.IsInRaid() or false
 end
 
 local function is_in_party()
