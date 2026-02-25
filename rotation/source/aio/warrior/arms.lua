@@ -28,6 +28,7 @@ local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
 local is_spell_available = NS.is_spell_available
+local is_stance_swap_safe = NS.is_stance_swap_safe
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
@@ -75,6 +76,8 @@ local FILLER_HOLD_WINDOW = 2.0  -- seconds
 local RAGE_COST_MS = 30
 local RAGE_COST_WW = 25
 local RAGE_COST_SLAM = 15
+local RAGE_COST_PUMMEL = 10
+local SLAM_MIN_WINDOW = 1.1   -- Improved Slam 1.0s cast + 0.1s latency; only Slam if swing is further away
 
 local function should_pool_for_core_arms(context, state)
     -- MS imminent: hold if spending Slam cost would starve MS
@@ -115,7 +118,7 @@ local Arms_MaintainRend = {
     end,
 }
 
--- [2] Overpower (Battle Stance only, dodge proc)
+-- [2] Overpower (Battle Stance only, dodge proc) — stance dance inline
 local Arms_Overpower = {
     requires_combat = true,
     requires_enemy = true,
@@ -124,11 +127,21 @@ local Arms_Overpower = {
     matches = function(context, state)
         local min_rage = context.settings.arms_overpower_rage or 25
         if context.rage < min_rage then return false end
-        -- Overpower requires Battle Stance — IsReady handles stance check
-        return A.Overpower:IsReady(TARGET_UNIT)
+        -- 5 rage cost — check explicitly since skipUsable bypasses resource checks
+        -- skipUsable=true: bypass stance check so we can dance to Battle
+        return A.Overpower:IsReady(TARGET_UNIT, nil, nil, nil, true)
     end,
 
     execute = function(icon, context, state)
+        -- Swap to Battle Stance if needed (inline stance dance)
+        if context.stance ~= Constants.STANCE.BATTLE then
+            -- TM check: Overpower costs 5 rage, don't dance if we'd waste too much rage
+            if not is_stance_swap_safe(context.rage, 5) then return nil end
+            if A.BattleStance:IsReady(PLAYER_UNIT) then
+                return A.BattleStance:Show(icon), "[ARMS] → Battle (for Overpower)"
+            end
+            return nil
+        end
         return try_cast(A.Overpower, icon, TARGET_UNIT,
             format("[ARMS] Overpower - Rage: %d", context.rage))
     end,
@@ -172,6 +185,8 @@ local Arms_Whirlwind = {
     execute = function(icon, context, state)
         -- Swap to Berserker Stance if needed (inline stance dance)
         if context.stance ~= Constants.STANCE.BERSERKER then
+            -- TM check: WW costs 25 rage, don't dance if we'd waste too much
+            if not is_stance_swap_safe(context.rage, 25) then return nil end
             if A.BerserkerStance:IsReady(PLAYER_UNIT) then
                 return A.BerserkerStance:Show(icon), "[ARMS] → Berserker (for WW)"
             end
@@ -212,6 +227,8 @@ local Arms_Execute = {
 
     matches = function(context, state)
         if not state.target_below_20 then return false end
+        -- Pool extra rage for bigger Executes (+21 dmg per extra rage point)
+        if context.rage < 25 then return false end
         return A.Execute:IsReady(TARGET_UNIT)
     end,
 
@@ -302,6 +319,8 @@ local Arms_Slam = {
         if state.target_below_20 and context.settings.arms_execute_phase then return false end
         -- Resource pooling: hold GCD for MS/WW if imminent and rage is tight
         if should_pool_for_core_arms(context, state) then return false end
+        -- Slam weaving: only Slam if the cast fits before next auto-attack
+        if NS.get_time_until_swing() < SLAM_MIN_WINDOW then return false end
         return A.Slam:IsReady(TARGET_UNIT)
     end,
 
@@ -323,6 +342,14 @@ local Arms_HeroicStrike = {
         end
         local threshold = context.settings.arms_hs_rage_threshold or 55
         if context.rage < threshold then return false end
+        -- Smart rage hold: don't dump into HS when an interrupt may be needed soon
+        if context.settings.use_interrupt then
+            local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
+            if castLeft and castLeft > 0 and not notKickAble then
+                -- Hold enough rage for Pummel (10 rage)
+                if (context.rage - 15) < RAGE_COST_PUMMEL then return false end
+            end
+        end
         return true
     end,
 

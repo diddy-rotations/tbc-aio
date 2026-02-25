@@ -23,6 +23,7 @@ end
 
 local A = NS.A
 local Constants = NS.Constants
+local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
@@ -71,6 +72,8 @@ local FILLER_HOLD_WINDOW = 2.0  -- seconds
 local RAGE_COST_BT = 30
 local RAGE_COST_WW = 25
 local RAGE_COST_SLAM = 15
+local RAGE_COST_PUMMEL = 10
+local SLAM_MIN_WINDOW = 1.1   -- Improved Slam 1.0s cast + 0.1s latency; only Slam if swing is further away
 
 local function should_pool_for_core_fury(context, state)
     -- BT imminent: hold if spending Slam cost would starve BT
@@ -199,6 +202,8 @@ local Fury_Execute = {
 
     matches = function(context, state)
         if not state.target_below_20 then return false end
+        -- Pool extra rage for bigger Executes (+21 dmg per extra rage point)
+        if context.rage < 25 then return false end
         return A.Execute:IsReady(TARGET_UNIT)
     end,
 
@@ -287,30 +292,13 @@ local Fury_Slam = {
         if state.target_below_20 and context.settings.fury_execute_phase then return false end
         -- Resource pooling: hold GCD for BT/WW if imminent and rage is tight
         if should_pool_for_core_fury(context, state) then return false end
+        -- Slam weaving: only Slam if the cast fits before next auto-attack
+        if NS.get_time_until_swing() < SLAM_MIN_WINDOW then return false end
         return A.Slam:IsReady(TARGET_UNIT)
     end,
 
     execute = function(icon, context, state)
         return try_cast(A.Slam, icon, TARGET_UNIT, "[FURY] Slam")
-    end,
-}
-
--- [9] Overpower (Battle Stance only, dodge proc)
-local Fury_Overpower = {
-    requires_combat = true,
-    requires_enemy = true,
-    setting_key = "fury_use_overpower",
-
-    matches = function(context, state)
-        local min_rage = context.settings.fury_overpower_rage or 25
-        if context.rage < min_rage then return false end
-        -- Overpower requires Battle Stance — IsReady handles check
-        return A.Overpower:IsReady(TARGET_UNIT)
-    end,
-
-    execute = function(icon, context, state)
-        return try_cast(A.Overpower, icon, TARGET_UNIT,
-            format("[FURY] Overpower - Rage: %d", context.rage))
     end,
 }
 
@@ -345,7 +333,19 @@ local Fury_HeroicStrike = {
             if not context.settings.fury_hs_during_execute then return false end
         end
         local threshold = context.settings.fury_hs_rage_threshold or 50
+        -- HS Trick: lower threshold when dual-wielding (the dequeue middleware handles safety)
+        if context.settings.hs_trick and Player:HasWeaponOffHand(true) then
+            threshold = 30  -- keep enough for BT (30 rage) — dequeue middleware handles safety
+        end
         if context.rage < threshold then return false end
+        -- Smart rage hold: don't dump into HS when an interrupt may be needed soon
+        if context.settings.use_interrupt then
+            local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
+            if castLeft and castLeft > 0 and not notKickAble then
+                -- Hold enough rage for Pummel (10 rage)
+                if (context.rage - 15) < RAGE_COST_PUMMEL then return false end
+            end
+        end
         return true
     end,
 
@@ -388,7 +388,6 @@ rotation_registry:register("fury", {
     named("SunderMaintain",  Fury_SunderMaintain),
     named("ThunderClap",     Fury_ThunderClap),
     named("DemoShout",       Fury_DemoShout),
-    named("Overpower",       Fury_Overpower),
     named("Slam",            Fury_Slam),
     named("Hamstring",       Fury_Hamstring),
     named("HeroicStrike",    Fury_HeroicStrike),
