@@ -42,6 +42,7 @@ local set_last_action = NS.set_last_action
 -- Lua optimizations
 local format = string.format
 local ipairs = ipairs
+local IsResting = _G.IsResting
 
 -- Suggestion system for A[1] icon
 local suggestion = { spell = nil }
@@ -211,6 +212,9 @@ A[3] = function(icon)
 
    local cc = rotation_registry.class_config
    if not cc then return end
+
+   -- Auto-disable in rested zones (inns/cities) unless in combat
+   if IsResting() and not context.in_combat then return end
 
    -- Reset last action each frame
    set_last_action(nil, nil)
