@@ -133,13 +133,41 @@ NS.register_threat_middleware("Mage", {})
 
 ### User Settings
 
-New `threat_mode` dropdown setting per DPS class:
+New settings per DPS class:
+
+**`threat_mode`** (dropdown):
 
 | Value | Behavior |
 |-------|----------|
 | `"dump"` (default) | Use threat dump at level 2+. If dump unavailable, suppress DPS |
 | `"stop"` | Suppress DPS rotation at level 2+. No dump attempt |
 | `"off"` | Ignore threat entirely |
+
+**`threat_scope`** (dropdown) — unit classification filter:
+
+| Value | Behavior |
+|-------|----------|
+| `"all"` | Manage threat on all targets |
+| `"elite"` (default) | Only manage threat on elites and bosses |
+| `"boss"` | Only manage threat on bosses |
+
+Uses `UnitClassification("target")` → `"worldboss"`, `"elite"`, `"rareelite"`, `"normal"`, `"trivial"`. The `"elite"` scope includes `"worldboss"`, `"elite"`, and `"rareelite"`.
+
+### TTD Awareness
+
+Don't waste threat dumps on dying targets. If `context.ttd` is available and below a threshold (e.g., 3s), skip threat management — the mob will die before it matters. This prevents wasting long-cooldown abilities like Soulshatter (5m CD) or Feign Death (30s CD) on targets that are about to die anyway.
+
+### Enemy Classification Counting
+
+The threat system scans nameplates to count enemies targeting the player, broken down by classification:
+- `threat_bosses` — worldboss units targeting player
+- `threat_elites` — elite/rareelite units targeting player
+- `threat_trash` — normal/trivial units targeting player
+- `threat_total` — total enemies targeting player
+
+This enables smarter decisions: "1 boss on me = definitely dump" vs "3 trash mobs on me = probably fine." The Priest already has a `count_mobs_targeting_me()` implementation for Fade — this gets promoted to the shared threat module so all classes benefit.
+
+These counts are populated on the context object by the threat module so strategies can also reference them if needed.
 
 ### Middleware Behavior
 
@@ -281,6 +309,20 @@ end
 |---------|------|---------|-------------|
 | `interrupt_priority_only` | toggle | false | Only kick priority casts (heals, CC, big damage) |
 | `interrupt_delay` | slider (0-1s) | 0 | Delay before kicking (0 = instant) |
+| `interrupt_scope` | dropdown | `"all"` | Unit classification filter: `"all"` / `"elite"` / `"boss"` |
+
+### Unit Classification Awareness
+
+The `interrupt_scope` setting controls which targets get interrupted:
+- `"all"` (default) — Interrupt any interruptible cast
+- `"elite"` — Only interrupt elites and bosses (skip trash casts)
+- `"boss"` — Only interrupt bosses
+
+Uses `UnitClassification("target")` for scoping. Within scope, the priority database still applies — so `interrupt_scope = "all"` + `interrupt_priority_only = true` means "interrupt priority casts from any target."
+
+### TTD Awareness
+
+Don't waste a kick on a target about to die. If `context.ttd` < threshold (e.g., 2s), skip the interrupt — the mob will die before the cast completes anyway. This preserves kick CDs for targets that matter.
 
 ### What Stays in Class Files
 
@@ -307,8 +349,10 @@ ALL class interrupt mechanics stay:
 | Setting | Type | Default | Classes | Section |
 |---------|------|---------|---------|---------|
 | `threat_mode` | dropdown | "dump" | All DPS specs | Threat |
+| `threat_scope` | dropdown | "elite" | All DPS specs | Threat |
 | `interrupt_priority_only` | toggle | false | Classes with interrupts | Interrupt |
 | `interrupt_delay` | slider (0-1s) | 0 | Classes with interrupts | Interrupt |
+| `interrupt_scope` | dropdown | "all" | Classes with interrupts | Interrupt |
 
 ### Existing Settings (No Change)
 
