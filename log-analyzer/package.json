@@ -6,6 +6,11 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "scripts": {
+    "cli": "node src/cli.js",
+    "discover": "node src/cli.js discover --expansion tbc",
+    "test": "node test/process-fight.test.js && node test/compare.test.js"
+  },
   "dependencies": {
     "dotenv": "^16.4.0"
   }
