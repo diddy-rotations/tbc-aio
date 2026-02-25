@@ -70,7 +70,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Berserker Rage on cooldown when in Berserker Stance (rage gen + fear immunity)." },
             { type = "checkbox", key = "use_loc_breaker", default = true, label = "LoC Fear/Incap Breaker",
               tooltip = "Reactively use Berserker Rage or Death Wish to break fears and incapacitates." },
-            { type = "checkbox", key = "use_auto_charge", default = false, label = "Auto Charge",
+            { type = "checkbox", key = "use_auto_charge", default = true, label = "Auto Charge",
               tooltip = "Automatically Charge (Battle Stance) or Intercept (Berserker Stance) to close gaps on your target." },
         }},
         { header = "External Buff Management", settings = {
@@ -96,7 +96,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Healing Potion when HP drops below this.", format = "%d%%" },
         }},
         { header = "Out of Combat", settings = {
-            { type = "checkbox", key = "use_auto_bandage", default = false, label = "Auto Bandage",
+            { type = "checkbox", key = "use_auto_bandage", default = true, label = "Auto Bandage",
               tooltip = "Automatically use bandages out of combat when HP is low." },
             { type = "slider", key = "bandage_hp", default = 70, min = 30, max = 90, label = "Bandage HP (%)",
               tooltip = "Use bandage when HP drops below this (out of combat only).", format = "%d%%" },
@@ -115,7 +115,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Refresh Rend when remaining duration is below this.", format = "%d sec" },
             { type = "checkbox", key = "arms_use_overpower", default = true, label = "Use Overpower",
               tooltip = "Use Overpower on dodge procs (Battle Stance only)." },
-            { type = "slider", key = "arms_overpower_rage", default = 25, min = 10, max = 50, label = "Overpower Min Rage",
+            { type = "slider", key = "arms_overpower_rage", default = 15, min = 10, max = 50, label = "Overpower Min Rage",
               tooltip = "Minimum rage to use Overpower.", format = "%d" },
         }},
         { header = "Rotation", settings = {
@@ -139,10 +139,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Whirlwind during execute phase." },
         }},
         { header = "Rage Dump", settings = {
-            { type = "slider", key = "arms_hs_rage_threshold", default = 55, min = 30, max = 80, label = "HS Rage Threshold",
+            { type = "slider", key = "arms_hs_rage_threshold", default = 50, min = 30, max = 80, label = "HS Rage Threshold",
               tooltip = "Queue Heroic Strike above this rage.", format = "%d" },
-            { type = "checkbox", key = "arms_hs_during_execute", default = false, label = "HS During Execute",
-              tooltip = "Allow Heroic Strike during execute phase." },
+            { type = "checkbox", key = "arms_hs_during_execute", default = true, label = "HS During Execute",
+              tooltip = "Allow Heroic Strike during execute phase (dump excess rage)." },
         }},
         { header = "Cooldowns", settings = {
             { type = "checkbox", key = "arms_use_death_wish", default = true, label = "Use Death Wish",
@@ -168,7 +168,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Auto-queue Heroic Strike as rage dump." },
             { type = "slider", key = "fury_hs_rage_threshold", default = 50, min = 30, max = 80, label = "HS Rage Threshold",
               tooltip = "Queue Heroic Strike above this rage.", format = "%d" },
-            { type = "checkbox", key = "hs_trick", default = false, label = "HS Queue Trick (DW)",
+            { type = "checkbox", key = "hs_trick", default = true, label = "HS Queue Trick (DW)",
               tooltip = "Dual-wield only. Queue HS to convert off-hand swings to yellow hits (no glancing blows). Auto-dequeues before main-hand lands if rage is low." },
             { type = "checkbox", key = "fury_use_hamstring", default = false, label = "Hamstring Weave",
               tooltip = "Weave Hamstring for Sword Spec procs." },
@@ -190,8 +190,8 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Bloodthirst during execute phase." },
             { type = "checkbox", key = "fury_ww_during_execute", default = true, label = "WW During Execute",
               tooltip = "Use Whirlwind during execute phase." },
-            { type = "checkbox", key = "fury_hs_during_execute", default = false, label = "HS During Execute",
-              tooltip = "Allow Heroic Strike during execute phase." },
+            { type = "checkbox", key = "fury_hs_during_execute", default = true, label = "HS During Execute",
+              tooltip = "Allow Heroic Strike during execute phase (keeps yellow OH hits with HS trick)." },
         }},
         { header = "Cooldowns", settings = {
             { type = "checkbox", key = "fury_use_death_wish", default = true, label = "Use Death Wish",
