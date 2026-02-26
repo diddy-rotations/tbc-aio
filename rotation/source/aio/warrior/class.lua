@@ -90,26 +90,26 @@ Action[A.PlayerClass] = {
     PowerWordShield    = Create({ Type = "Spell", ID = 17,   Click = { type = "cancelaura" } }),
     BlessingOfProtection = Create({ Type = "Spell", ID = 1022, Click = { type = "cancelaura" } }),
 
-    -- Items
-    SuperHealingPotion = Create({ Type = "Item", ID = 22829, Click = { unit = "player", type = "item", item = 22829 } }),
-    MajorHealingPotion = Create({ Type = "Item", ID = 13446, Click = { unit = "player", type = "item", item = 13446 } }),
+    -- Items (No Click table — MetaEngine auto-generates secure bindings)
+    SuperHealingPotion = Create({ Type = "Potion", ID = 22829, QueueForbidden = true }),
+    MajorHealingPotion = Create({ Type = "Potion", ID = 13446, QueueForbidden = true }),
     -- Healthstones
-    HealthstoneMaster  = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
-    HealthstoneMajor   = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
+    HealthstoneMaster  = Create({ Type = "Item", ID = 22105, QueueForbidden = true }),
+    HealthstoneMajor   = Create({ Type = "Item", ID = 22104, QueueForbidden = true }),
 
     -- Bandages (descending quality for DetermineUsableObject)
-    HeavyNetherweaveBandage = Create({ Type = "Item", ID = 21991, Click = { unit = "player", type = "item", item = 21991 } }),
-    NetherweaveBandage      = Create({ Type = "Item", ID = 21990, Click = { unit = "player", type = "item", item = 21990 } }),
-    HeavyRuneclothBandage   = Create({ Type = "Item", ID = 14530, Click = { unit = "player", type = "item", item = 14530 } }),
-    RuneclothBandage        = Create({ Type = "Item", ID = 14529, Click = { unit = "player", type = "item", item = 14529 } }),
-    HeavyMageweaveBandage   = Create({ Type = "Item", ID = 8545,  Click = { unit = "player", type = "item", item = 8545 } }),
-    MageweaveBandage        = Create({ Type = "Item", ID = 8544,  Click = { unit = "player", type = "item", item = 8544 } }),
-    HeavySilkBandage        = Create({ Type = "Item", ID = 6451,  Click = { unit = "player", type = "item", item = 6451 } }),
-    SilkBandage             = Create({ Type = "Item", ID = 6450,  Click = { unit = "player", type = "item", item = 6450 } }),
-    HeavyWoolBandage        = Create({ Type = "Item", ID = 3531,  Click = { unit = "player", type = "item", item = 3531 } }),
-    WoolBandage             = Create({ Type = "Item", ID = 3530,  Click = { unit = "player", type = "item", item = 3530 } }),
-    HeavyLinenBandage       = Create({ Type = "Item", ID = 2581,  Click = { unit = "player", type = "item", item = 2581 } }),
-    LinenBandage            = Create({ Type = "Item", ID = 1251,  Click = { unit = "player", type = "item", item = 1251 } }),
+    HeavyNetherweaveBandage = Create({ Type = "Item", ID = 21991, QueueForbidden = true }),
+    NetherweaveBandage      = Create({ Type = "Item", ID = 21990, QueueForbidden = true }),
+    HeavyRuneclothBandage   = Create({ Type = "Item", ID = 14530, QueueForbidden = true }),
+    RuneclothBandage        = Create({ Type = "Item", ID = 14529, QueueForbidden = true }),
+    HeavyMageweaveBandage   = Create({ Type = "Item", ID = 8545,  QueueForbidden = true }),
+    MageweaveBandage        = Create({ Type = "Item", ID = 8544,  QueueForbidden = true }),
+    HeavySilkBandage        = Create({ Type = "Item", ID = 6451,  QueueForbidden = true }),
+    SilkBandage             = Create({ Type = "Item", ID = 6450,  QueueForbidden = true }),
+    HeavyWoolBandage        = Create({ Type = "Item", ID = 3531,  QueueForbidden = true }),
+    WoolBandage             = Create({ Type = "Item", ID = 3530,  QueueForbidden = true }),
+    HeavyLinenBandage       = Create({ Type = "Item", ID = 2581,  QueueForbidden = true }),
+    LinenBandage            = Create({ Type = "Item", ID = 1251,  QueueForbidden = true }),
 }
 
 -- ============================================================================

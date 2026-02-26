@@ -479,6 +479,9 @@ rotation_registry:register_middleware({
     matches = function(context)
         if not context.settings.auto_shout then return false end
         if context.is_mounted then return false end
+        -- Don't waste a GCD on shout if target is about to die
+        local min_ttd = context.settings.cd_min_ttd or 0
+        if min_ttd > 0 and context.in_combat and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         local shout_type = context.settings.shout_type or "battle"
         if shout_type == "none" then return false end
 
@@ -769,6 +772,8 @@ rotation_registry:register_middleware({
 
 -- ============================================================================
 -- AUTO BANDAGE (Out of combat healing)
+-- NOTE: Visual recommendation only. MetaEngine does not pre-allocate secure
+-- buttons for bandages, so :Show(icon) displays the icon but cannot auto-use.
 -- ============================================================================
 rotation_registry:register_middleware({
     name = "Warrior_AutoBandage",
@@ -854,6 +859,7 @@ rotation_registry:register_middleware({
 
     matches = function(context)
         if not context.settings.use_auto_tab then return false end
+        if A.IsInPvP then return false end
         if context.is_mounted then return false end
         if not context.in_combat then return false end
         -- Grace period: don't override manual targeting in the first 3s of combat
