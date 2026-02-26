@@ -244,6 +244,17 @@ rotation_registry:register_class({
         ctx.rage = Player:Rage()
         ctx.enemy_count = MultiUnits:GetByRangeInCombat(8) or 0
 
+        -- Sync framework AutoTarget with our use_auto_tab setting:
+        -- When our smart Auto Tab is enabled, disable the native one (we manage targeting).
+        -- When ours is off, let the framework handle auto-targeting.
+        local our_auto_tab = ctx.settings.use_auto_tab
+        local native_auto_target = A.GetToggle(1, "AutoTarget")
+        if our_auto_tab and native_auto_target then
+            A.SetToggle({1, "AutoTarget"}, false)
+        elseif not our_auto_tab and not native_auto_target then
+            A.SetToggle({1, "AutoTarget"}, true)
+        end
+
         -- Buff tracking
         ctx.has_battle_shout = (Unit("player"):HasBuffs(Constants.BUFF_ID.BATTLE_SHOUT) or 0) > 0
         ctx.has_commanding_shout = (Unit("player"):HasBuffs(Constants.BUFF_ID.COMMANDING_SHOUT) or 0) > 0

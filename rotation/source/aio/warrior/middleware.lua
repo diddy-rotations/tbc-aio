@@ -693,16 +693,28 @@ rotation_registry:register_middleware({
 -- ============================================================================
 -- AUTO CHARGE / INTERCEPT (Gap closer)
 -- ============================================================================
--- Suppress Intercept after a recent Charge to avoid intercepting mid-flight.
--- Two signals: timestamp (addon-triggered) + Charge CD state (catches manual charges too).
+-- Suppress Intercept to the SAME target we just Charged to (avoid intercepting mid-flight).
+-- Target-aware: tracks the GUID of the Charge target so Intercept to a DIFFERENT mob is allowed.
+local UnitGUID = _G.UnitGUID
 local last_charge_time = 0
+local last_charge_guid = nil
 local CHARGE_INTERCEPT_COOLDOWN = 3  -- seconds
 local CHARGE_TOTAL_CD = 15           -- Charge base CD in TBC
 
-local function recently_charged(now)
-    -- Signal 1: addon set the timestamp when it fired Charge
-    if (now - last_charge_time) < CHARGE_INTERCEPT_COOLDOWN then return true end
-    -- Signal 2: Charge is on CD with most of its duration left → just used (handles manual charges)
+local function recently_charged_same_target(now)
+    local within_window = (now - last_charge_time) < CHARGE_INTERCEPT_COOLDOWN
+
+    -- Addon-triggered Charge: we have a recorded GUID — use target-aware check
+    if within_window and last_charge_guid then
+        local target_guid = UnitGUID(TARGET_UNIT)
+        -- Same target we charged → suppress (still mid-flight / landing)
+        if target_guid and target_guid == last_charge_guid then return true end
+        -- Different target → allow Intercept immediately
+        return false
+    end
+
+    -- Fallback: Charge freshly on CD without recorded GUID (manual charge)
+    -- Blanket suppress since we can't know which mob was charged
     local charge_cd = A.Charge:GetCooldown() or 0
     if charge_cd > (CHARGE_TOTAL_CD - CHARGE_INTERCEPT_COOLDOWN) then return true end
     return false
@@ -733,12 +745,13 @@ rotation_registry:register_middleware({
             end
             if A.Charge:IsReady(TARGET_UNIT) then
                 last_charge_time = now
+                last_charge_guid = UnitGUID(TARGET_UNIT)
                 return A.Charge:Show(icon), "[MW] Charge"
             end
         end
         -- Intercept: Berserker Stance, in combat
-        -- Suppress after a recent Charge (travel time + landing) to avoid intercepting mid-flight
-        if context.in_combat and not recently_charged(now) then
+        -- Suppress Intercept to same target we just Charged to (travel time + landing)
+        if context.in_combat and not recently_charged_same_target(now) then
             -- Need Berserker Stance for Intercept — swap first if needed
             if context.stance ~= Constants.STANCE.BERSERKER then
                 -- Check TM: Intercept costs 10 rage, don't swap if we'd lose too much
@@ -843,6 +856,8 @@ rotation_registry:register_middleware({
         if not context.settings.use_auto_tab then return false end
         if context.is_mounted then return false end
         if not context.in_combat then return false end
+        -- Grace period: don't override manual targeting in the first 3s of combat
+        if context.combat_time < 3 then return false end
 
         -- Mid-cycle: keep tabbing until we land on desired target
         if tab_state.desired_unit then
