@@ -21,6 +21,7 @@ local MultiUnits = A.MultiUnits
 local rotation_registry = NS.rotation_registry
 local Priority = NS.Priority
 local Constants = NS.Constants
+local debug_print = NS.debug_print
 local DetermineUsableObject = A.DetermineUsableObject
 local LoC = A.LossOfControl
 
@@ -789,17 +790,31 @@ rotation_registry:register_middleware({
 -- AUTO TAB TARGET (Smart target switching)
 -- ============================================================================
 -- Tabs to nearby enemy when current target is dead, missing, or out of range.
+-- Picks the lowest HP target and cycles AUTOTARGET until it lands on it.
 -- Optional: prioritize executable (<20% HP) targets for Execute kills.
 local UnitExists = _G.UnitExists
 local UnitIsDead = _G.UnitIsDead
 local UnitIsPlayer = _G.UnitIsPlayer
 local UnitIsUnit = _G.UnitIsUnit
+local UnitName = _G.UnitName
 
--- Scan nameplates for the best target to tab to
--- Returns true if an execute-priority target was found (else nil)
-local function has_execute_target_nearby()
+local TAB_MAX_ATTEMPTS = 10
+
+-- Pre-allocated cycling state (no inline tables in combat)
+local tab_state = {
+    desired_unit = nil,
+    attempts = 0,
+}
+
+-- Scan nameplates for the lowest HP enemy within melee range
+-- Returns unitID, hp (or nil if none found)
+local function find_lowest_hp_nearby()
     local plates = MultiUnits:GetActiveUnitPlates()
-    if not plates then return false end
+    if not plates then return nil end
+
+    local best_unit = nil
+    local best_hp = 101
+
     for unitID in pairs(plates) do
         if unitID
             and UnitExists(unitID)
@@ -810,12 +825,14 @@ local function has_execute_target_nearby()
             and A.Rend:IsInRange(unitID) == true
         then
             local hp = Unit(unitID):HealthPercent()
-            if hp and hp > 0 and hp < 20 then
-                return true
+            if hp and hp > 0 and hp < best_hp then
+                best_hp = hp
+                best_unit = unitID
             end
         end
     end
-    return false
+
+    return best_unit, best_hp
 end
 
 rotation_registry:register_middleware({
@@ -827,24 +844,73 @@ rotation_registry:register_middleware({
         if context.is_mounted then return false end
         if not context.in_combat then return false end
 
-        -- Always tab if no valid target
-        if not context.has_valid_enemy_target then return true end
+        -- Mid-cycle: keep tabbing until we land on desired target
+        if tab_state.desired_unit then
+            -- Landed on it
+            if context.has_valid_enemy_target and UnitIsUnit(TARGET_UNIT, tab_state.desired_unit) then
+                tab_state.desired_unit = nil
+                tab_state.attempts = 0
+                return false
+            end
+            -- Desired target gone or dead
+            if not UnitExists(tab_state.desired_unit) or UnitIsDead(tab_state.desired_unit) then
+                tab_state.desired_unit = nil
+                tab_state.attempts = 0
+                return false
+            end
+            -- Max attempts reached
+            tab_state.attempts = tab_state.attempts + 1
+            if tab_state.attempts > TAB_MAX_ATTEMPTS then
+                tab_state.desired_unit = nil
+                tab_state.attempts = 0
+                return false
+            end
+            return true
+        end
 
-        -- Tab if current target is out of melee range and enemies are nearby
-        if not context.in_melee_range and context.enemy_count >= 1 then return true end
+        -- Only tab if enemies are nearby (8yd range check)
+        if context.enemy_count < 1 then return false end
+
+        -- Tab if no valid target — pick lowest HP nearby
+        if not context.has_valid_enemy_target then
+            local best = find_lowest_hp_nearby()
+            if best then
+                tab_state.desired_unit = best
+                tab_state.attempts = 0
+                return true
+            end
+            return true -- no nameplates but enemy_count > 0, blind tab
+        end
+
+        -- Tab if current target is out of melee range
+        if not context.in_melee_range then
+            local best = find_lowest_hp_nearby()
+            if best then
+                tab_state.desired_unit = best
+                tab_state.attempts = 0
+            end
+            return true
+        end
 
         -- Execute-priority tabbing: switch if a nearby mob is executable and current isn't
-        if context.settings.auto_tab_execute
-            and context.target_hp >= 20
-            and has_execute_target_nearby()
-        then
-            return true
+        if context.settings.auto_tab_execute and context.target_hp >= 20 then
+            local best, best_hp = find_lowest_hp_nearby()
+            if best and best_hp < 20 then
+                tab_state.desired_unit = best
+                tab_state.attempts = 0
+                return true
+            end
         end
 
         return false
     end,
 
     execute = function(icon, context)
+        local desired = tab_state.desired_unit
+        if desired and UnitExists(desired) then
+            debug_print(format("[MW] Auto Tab → cycling toward %s (HP: %.0f%%) [attempt %d]",
+                UnitName(desired) or "?", Unit(desired):HealthPercent() or 0, tab_state.attempts))
+        end
         return A:Show(icon, CONST.AUTOTARGET), "[MW] Auto Tab"
     end,
 })
