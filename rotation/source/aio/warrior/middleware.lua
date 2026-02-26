@@ -251,19 +251,84 @@ rotation_registry:register_middleware({
 -- ============================================================================
 -- SPELL REFLECTION (Proactive defense)
 -- ============================================================================
--- PvE: reflect when target is casting at us
--- PvP: scan all enemy nameplates for players casting at us (not just target)
-local function pvp_any_caster_targeting_player()
+-- PvP: whitelist-only — reflect high-value CC and burst spells
+-- PvE: reflect any interruptible non-channel cast targeting us
+
+-- PvP whitelist: only reflect these spells (matched by name, English client)
+-- Tier 1: CC — always reflect, game-changing
+-- Tier 2: Big damage nukes
+-- Tier 3: Moderate value
+local PVP_REFLECTABLE_SPELLS = {
+    -- Tier 1: CC
+    ["Polymorph"]         = true,  -- Mage (8s full CC)
+    ["Fear"]              = true,  -- Warlock (full CC)
+    ["Death Coil"]        = true,  -- Warlock (3s Horror + self-heal)
+    ["Cyclone"]           = true,  -- Druid (6s full CC, unique DR)
+    ["Mind Control"]      = true,  -- Priest (channeled but initial cast reflectable)
+    ["Hammer of Justice"] = true,  -- Paladin (6s stun)
+
+    -- Tier 2: Big damage
+    ["Pyroblast"]         = true,  -- Mage (massive crit burst)
+    ["Mind Blast"]        = true,  -- Priest (high damage + Shadowform synergy)
+    ["Aimed Shot"]        = true,  -- Hunter (big burst)
+    ["Shadow Bolt"]       = true,  -- Warlock (primary nuke)
+
+    -- Tier 3: Moderate value
+    ["Frostbolt"]         = true,  -- Mage (damage + slow)
+    ["Fireball"]          = true,  -- Mage (solid damage)
+    ["Lightning Bolt"]    = true,  -- Shaman (damage)
+    ["Chain Lightning"]   = true,  -- Shaman (first target hit)
+    ["Starfire"]          = true,  -- Druid (slow cast, big hit)
+    ["Wrath"]             = true,  -- Druid (fast cast)
+    ["Incinerate"]        = true,  -- Warlock (TBC nuke)
+    ["Immolate"]          = true,  -- Warlock (DoT component)
+    ["Holy Fire"]         = true,  -- Priest (damage + DoT)
+    ["Hammer of Wrath"]   = true,  -- Paladin (execute range)
+}
+
+-- PvP: scan enemy nameplates for whitelisted casts targeting us
+local function pvp_find_reflectable_caster()
     local plates = MultiUnits:GetActiveUnitPlates()
     if not plates then return false end
     for unitID in pairs(plates) do
         if unitID and UnitExists(unitID) and not UnitIsDead(unitID) and UnitIsPlayer(unitID) then
-            local castLeft = Unit(unitID):IsCastingRemains()
-            if castLeft and castLeft > 0 and castLeft < 2.0 then
-                -- Check if they're targeting us
+            local castLeft, _, _, spellName, notKickAble, isChannel = Unit(unitID):IsCastingRemains()
+            if castLeft and castLeft > 0 and castLeft < 2.0 and not notKickAble and not isChannel then
+                if spellName and PVP_REFLECTABLE_SPELLS[spellName] then
+                    local targetOfUnit = unitID .. "target"
+                    if UnitExists(targetOfUnit) and UnitIsUnit(targetOfUnit, PLAYER_UNIT) then
+                        return true, castLeft, spellName
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- PvE: check if any enemy nameplate or target is casting at us (any interruptible spell)
+local function pve_find_reflectable_caster(has_target)
+    -- Check target first (most common case)
+    if has_target then
+        local castLeft, _, _, spellName, notKickAble, isChannel = Unit(TARGET_UNIT):IsCastingRemains()
+        if castLeft and castLeft > 0 and not notKickAble and not isChannel then
+            local targetOfTarget = TARGET_UNIT .. "target"
+            if UnitExists(targetOfTarget) and UnitIsUnit(targetOfTarget, PLAYER_UNIT) then
+                return true, castLeft, spellName
+            end
+        end
+    end
+
+    -- Scan nameplates for other casters targeting us (e.g. trash packs)
+    local plates = MultiUnits:GetActiveUnitPlates()
+    if not plates then return false end
+    for unitID in pairs(plates) do
+        if unitID and UnitExists(unitID) and not UnitIsDead(unitID) then
+            local castLeft, _, _, spellName, notKickAble, isChannel = Unit(unitID):IsCastingRemains()
+            if castLeft and castLeft > 0 and not notKickAble and not isChannel then
                 local targetOfUnit = unitID .. "target"
                 if UnitExists(targetOfUnit) and UnitIsUnit(targetOfUnit, PLAYER_UNIT) then
-                    return true, castLeft
+                    return true, castLeft, spellName
                 end
             end
         end
@@ -283,22 +348,30 @@ rotation_registry:register_middleware({
         -- Spell Reflect works in Battle or Defensive Stance only
         if context.stance == Constants.STANCE.BERSERKER then return false end
 
-        -- PvP: scan all enemy nameplates for casters targeting us
+        -- PvP: whitelist-only, scan all enemy nameplates
         if context.is_pvp and context.settings.pvp_enabled then
-            return pvp_any_caster_targeting_player()
+            local found, castLeft, spellName = pvp_find_reflectable_caster()
+            if found then
+                context._sr_cast_left = castLeft
+                context._sr_spell_name = spellName
+            end
+            return found
         end
 
-        -- PvE: check target casting
-        if not context.has_valid_enemy_target then return false end
-        local castLeft = Unit(TARGET_UNIT):IsCastingRemains()
-        if not castLeft or castLeft <= 0 then return false end
-        return true
+        -- PvE: reflect any interruptible non-channel cast targeting us
+        local found, castLeft, spellName = pve_find_reflectable_caster(context.has_valid_enemy_target)
+        if found then
+            context._sr_cast_left = castLeft
+            context._sr_spell_name = spellName
+        end
+        return found
     end,
 
     execute = function(icon, context)
         if A.SpellReflection:IsReady(PLAYER_UNIT) then
-            local castLeft = Unit(TARGET_UNIT):IsCastingRemains()
-            return A.SpellReflection:Show(icon), format("[MW] Spell Reflection - Cast: %.1fs", castLeft or 0)
+            local castLeft = context._sr_cast_left or 0
+            local spellName = context._sr_spell_name or "?"
+            return A.SpellReflection:Show(icon), format("[MW] Spell Reflection - %s (%.1fs)", spellName, castLeft)
         end
         return nil
     end,
