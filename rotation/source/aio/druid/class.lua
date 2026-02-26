@@ -574,12 +574,12 @@ rotation_registry:register_class({
 
    get_active_playstyle = function(context)
       local stance = context.stance
-      if stance == 5 then
-         if _G.IsSpellKnown(24858) then return "balance" end
-         if _G.IsSpellKnown(33891) then return "resto" end
-         return nil
+      -- Detect Tree of Life and Moonkin via buff rather than hardcoded stance index,
+      -- because GetShapeshiftForm() returns bar position which varies per character.
+      if stance > 0 then
+         if (Unit("player"):HasBuffs(33891) or 0) > 0 then return "resto" end
+         if (Unit("player"):HasBuffs(24858) or 0) > 0 then return "balance" end
       end
-      if stance == 6 then return nil end
       return STANCE_PLAYSTYLE[stance]
    end,
 

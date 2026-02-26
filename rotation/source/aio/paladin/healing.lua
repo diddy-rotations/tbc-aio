@@ -23,6 +23,7 @@ if not NS.Constants then
 end
 
 local Unit = NS.Unit
+local predict_effective_deficit = NS.predict_effective_deficit
 local tsort = table.sort
 
 -- ============================================================================
@@ -95,9 +96,14 @@ local function scan_healing_targets()
                     healing_targets[idx] = entry
                 end
                 entry.unit = unit
-                entry.hp = _G.UnitHealth(unit) / _G.UnitHealthMax(unit) * 100
+                local max_hp = _G.UnitHealthMax(unit)
+                entry.hp = _G.UnitHealth(unit) / max_hp * 100
                 entry.is_player = (unit == "player")
                 entry.has_aggro = unit_has_aggro(unit)
+
+                -- Effective HP accounts for incoming heals, absorbs, and damage
+                local eff_deficit = predict_effective_deficit(unit, 1.5)
+                entry.effective_hp = max_hp > 0 and (100 - (eff_deficit / max_hp) * 100) or entry.hp
 
                 local role = _G.UnitGroupRolesAssigned and _G.UnitGroupRolesAssigned(unit)
                 entry.is_tank = entry.has_aggro or (role == "TANK")
@@ -116,12 +122,12 @@ local function scan_healing_targets()
         healing_targets[i] = nil
     end
 
-    -- Sort by HP ascending (lowest first)
+    -- Sort by effective HP ascending (most in need first)
     if healing_targets_count > 1 then
         tsort(healing_targets, function(a, b)
-            if not a or not a.hp then return false end
-            if not b or not b.hp then return true end
-            return a.hp < b.hp
+            if not a or not a.effective_hp then return false end
+            if not b or not b.effective_hp then return true end
+            return a.effective_hp < b.effective_hp
         end)
     end
 
@@ -147,7 +153,7 @@ local function get_lowest_hp_target(threshold)
 
     for i = 1, healing_targets_count do
         local entry = healing_targets[i]
-        if entry and entry.hp < threshold then
+        if entry and entry.effective_hp < threshold then
             return entry
         end
     end
@@ -160,7 +166,7 @@ local function all_members_above_hp(threshold)
 
     for i = 1, healing_targets_count do
         local entry = healing_targets[i]
-        if entry and entry.hp < threshold then
+        if entry and entry.effective_hp < threshold then
             return false
         end
     end
