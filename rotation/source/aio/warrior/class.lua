@@ -83,6 +83,19 @@ Action[A.PlayerClass] = {
     Pummel             = Create({ Type = "Spell", ID = 6552 }),
     ShieldBash         = Create({ Type = "Spell", ID = 72, useMaxRank = true }),
 
+    -- PvP CC / Utility
+    Disarm             = Create({ Type = "Spell", ID = 676, Click = { macrobefore = "/stopcasting" } }),
+    IntimidatingShout  = Create({ Type = "Spell", ID = 5246, Click = { macrobefore = "/stopcasting" } }),
+    ConcussionBlow     = Create({ Type = "Spell", ID = 12809, isTalent = true, Click = { macrobefore = "/stopcasting" } }),
+    PiercingHowl       = Create({ Type = "Spell", ID = 12323, isTalent = true }),
+    Intervene          = Create({ Type = "Spell", ID = 3411 }),
+    Perception         = Create({ Type = "Spell", ID = 20600, Click = { unit = "player", type = "spell", spell = 20600 } }),
+
+    -- PvP tracking (hidden, for buff/debuff condition checks)
+    Evasion            = Create({ Type = "Spell", ID = 26669, Hidden = true }),
+    Deterrence         = Create({ Type = "Spell", ID = 19263, Hidden = true }),
+    FreeActionPotion   = Create({ Type = "Spell", ID = 6615, Hidden = true }),
+
     -- Talents (hidden, for rank queries)
     TacticalMastery    = Create({ Type = "Spell", ID = 12295, Hidden = true, isTalent = true }),
 
@@ -174,6 +187,17 @@ local Constants = {
     TC_REFRESH_WINDOW        = 2,
     RAMPAGE_MAX_STACKS       = 5,
 
+    -- PvP immunity check tables (for AbsentImun calls)
+    -- Keys match AuraList categories in the framework
+    Temp = {
+        AttackTypes       = { "TotalImun", "DamagePhysImun" },
+        AuraForInterrupt  = { "TotalImun", "DamagePhysImun", "KickImun" },
+        AuraForFear       = { "TotalImun", "DamagePhysImun", "FearImun" },
+        AuraForStun       = { "TotalImun", "DamagePhysImun", "CCTotalImun", "StunImun" },
+        AuraForSlow       = { "TotalImun", "DamagePhysImun", "CCTotalImun", "Freedom" },
+        AuraForDisarm     = { "TotalImun", "DamagePhysImun", "CCTotalImun" },
+    },
+
     -- Taunt thresholds (matching Druid Growl/Challenging Roar pattern)
     TAUNT = {
         CC_THRESHOLD       = 2,     -- Skip CC'd mobs with > 2s remaining
@@ -243,6 +267,21 @@ rotation_registry:register_class({
         ctx.stance = Player:GetStance()
         ctx.rage = Player:Rage()
         ctx.enemy_count = MultiUnits:GetByRangeInCombat(8) or 0
+
+        -- PvP state (framework-managed, auto-detects BG/arena/flagged)
+        ctx.is_pvp = A.IsInPvP or false
+        ctx.is_arena = A.Zone == "arena"
+        ctx.is_battleground = A.Zone == "pvp"
+        ctx.target_is_player = ctx.target_exists and _G.UnitIsPlayer("target") or false
+
+        -- PvP: CC break prevention flag — true if any nearby enemy has breakable CC
+        -- Strategies check this before firing AoE (WW, Cleave, TC, Demo Shout)
+        if ctx.is_pvp then
+            local ok = A.EnemyTeam(nil):IsBreakAble(8)
+            ctx.has_breakable_cc_nearby = ok or false
+        else
+            ctx.has_breakable_cc_nearby = false
+        end
 
         -- Buff tracking
         ctx.has_battle_shout = (Unit("player"):HasBuffs(Constants.BUFF_ID.BATTLE_SHOUT) or 0) > 0

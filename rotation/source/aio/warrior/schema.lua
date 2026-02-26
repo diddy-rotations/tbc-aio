@@ -263,6 +263,54 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Minimum nearby enemies to trigger Retaliation.", format = "%d" },
         }},
     }},
+
+    -- Tab 6: PvP
+    [6] = { name = "PvP", sections = {
+        { header = "PvP General", settings = {
+            { type = "checkbox", key = "pvp_enabled", default = true, label = "Enable PvP Mode",
+              tooltip = "Enable PvP-specific logic (auto-detected via BG/Arena/PvP flag, but can be disabled here)." },
+        }},
+        { header = "Offensive", settings = {
+            { type = "checkbox", key = "pvp_hamstring", default = true, label = "Maintain Hamstring",
+              tooltip = "Keep Hamstring on enemy players (skips immune targets, evasion, FAP)." },
+            { type = "checkbox", key = "pvp_piercing_howl", default = true, label = "Piercing Howl (AoE Snare)",
+              tooltip = "Use Piercing Howl when 2+ enemy players nearby lack a slow (Fury talent)." },
+            { type = "checkbox", key = "pvp_rend_stealth", default = true, label = "Rend Anti-Stealth",
+              tooltip = "Apply Rend to Rogues/Druids to prevent stealth re-entry." },
+            { type = "checkbox", key = "pvp_overpower_evasion", default = true, label = "Overpower vs Evasion",
+              tooltip = "Prioritize Overpower against targets with Evasion or Deterrence active." },
+            { type = "checkbox", key = "pvp_shield_slam_purge", default = true, label = "Shield Slam Purge",
+              tooltip = "Use Shield Slam to purge beneficial magic effects (BoP, shields, etc.)." },
+        }},
+        { header = "CC & Control", settings = {
+            { type = "checkbox", key = "pvp_disarm", default = true, label = "Auto Disarm",
+              tooltip = "Disarm enemy melee players (stance dances to Defensive)." },
+            { type = "dropdown", key = "pvp_disarm_trigger", default = "on_burst", label = "Disarm Trigger",
+              tooltip = "When to use Disarm.",
+              options = {
+                  { value = "on_cooldown", text = "On Cooldown" },
+                  { value = "on_burst", text = "On Enemy Burst" },
+              }},
+            { type = "checkbox", key = "pvp_intimidating_shout", default = true, label = "Intimidating Shout",
+              tooltip = "Use Intimidating Shout as interrupt backup or CC." },
+            { type = "checkbox", key = "pvp_concussion_blow", default = true, label = "Concussion Blow",
+              tooltip = "Use Concussion Blow as stun interrupt (Prot talent)." },
+        }},
+        { header = "Interrupts (PvP)", settings = {
+            { type = "checkbox", key = "pvp_interrupt_cc_fallback", default = true, label = "CC Interrupt Fallback",
+              tooltip = "Use ConcussionBlow/IntimidatingShout/WarStomp as backup interrupts when kick is on CD." },
+        }},
+        { header = "Defensive", settings = {
+            { type = "checkbox", key = "pvp_def_stance_range", default = true, label = "Def Stance at Range",
+              tooltip = "Auto-switch to Defensive Stance when out of melee range (reduces damage taken)." },
+            { type = "checkbox", key = "pvp_intervene", default = false, label = "Auto Intervene",
+              tooltip = "Intervene to friendly party members below 40% HP (Defensive Stance)." },
+        }},
+        { header = "AoE Safety", settings = {
+            { type = "checkbox", key = "pvp_cc_break_check", default = true, label = "CC Break Prevention",
+              tooltip = "Prevent AoE abilities (WW, Cleave, TC, Demo Shout) from breaking CC on nearby enemies." },
+        }},
+    }},
 }
 
 print("|cFF00FF00[Flux AIO]|r Warrior schema loaded")
