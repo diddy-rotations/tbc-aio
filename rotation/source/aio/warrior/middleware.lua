@@ -251,6 +251,26 @@ rotation_registry:register_middleware({
 -- ============================================================================
 -- SPELL REFLECTION (Proactive defense)
 -- ============================================================================
+-- PvE: reflect when target is casting at us
+-- PvP: scan all enemy nameplates for players casting at us (not just target)
+local function pvp_any_caster_targeting_player()
+    local plates = MultiUnits:GetActiveUnitPlates()
+    if not plates then return false end
+    for unitID in pairs(plates) do
+        if unitID and UnitExists(unitID) and not UnitIsDead(unitID) and UnitIsPlayer(unitID) then
+            local castLeft = Unit(unitID):IsCastingRemains()
+            if castLeft and castLeft > 0 and castLeft < 2.0 then
+                -- Check if they're targeting us
+                local targetOfUnit = unitID .. "target"
+                if UnitExists(targetOfUnit) and UnitIsUnit(targetOfUnit, PLAYER_UNIT) then
+                    return true, castLeft
+                end
+            end
+        end
+    end
+    return false
+end
+
 rotation_registry:register_middleware({
     name = "Warrior_SpellReflection",
     priority = 400,
@@ -260,12 +280,18 @@ rotation_registry:register_middleware({
     matches = function(context)
         if not context.in_combat then return false end
         if not context.settings.use_spell_reflection then return false end
-        if not context.has_valid_enemy_target then return false end
-        -- Check if target is casting
-        local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
-        if not castLeft or castLeft <= 0 then return false end
-        -- Spell Reflect works in Battle or Defensive Stance
+        -- Spell Reflect works in Battle or Defensive Stance only
         if context.stance == Constants.STANCE.BERSERKER then return false end
+
+        -- PvP: scan all enemy nameplates for casters targeting us
+        if context.is_pvp and context.settings.pvp_enabled then
+            return pvp_any_caster_targeting_player()
+        end
+
+        -- PvE: check target casting
+        if not context.has_valid_enemy_target then return false end
+        local castLeft = Unit(TARGET_UNIT):IsCastingRemains()
+        if not castLeft or castLeft <= 0 then return false end
         return true
     end,
 
@@ -331,11 +357,12 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
--- INTERRUPT (Pummel / Shield Bash — with stance dancing)
+-- INTERRUPT (Pummel / Shield Bash — with stance dancing + PvP CC fallbacks)
 -- ============================================================================
 -- Pummel: Berserker Stance only. If in Battle Stance, dance to Berserker first.
 -- Shield Bash: Defensive Stance only (requires shield equipped).
 -- Priority: Pummel > stance dance for Pummel > Shield Bash (no dance to Defensive).
+-- PvP: immunity-aware, CC fallback chain when kick on CD (ConcBlow → IntimShout → WarStomp).
 rotation_registry:register_middleware({
     name = "Warrior_Interrupt",
     priority = 250,
@@ -349,24 +376,75 @@ rotation_registry:register_middleware({
 
     execute = function(icon, context)
         local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
-        if not castLeft or castLeft <= 0 or notKickAble then return nil end
+        if not castLeft or castLeft <= 0 then return nil end
 
-        -- Already in Berserker → Pummel directly
-        if context.stance == Constants.STANCE.BERSERKER and A.Pummel:IsReady(TARGET_UNIT) then
-            return A.Pummel:Show(icon), format("[MW] Pummel - Cast: %.1fs", castLeft)
+        local is_pvp_mode = context.is_pvp and context.settings.pvp_enabled
+
+        -- PvP AntiFake: use humanized random kick timing (CanInterrupt)
+        -- Randomizes between 15-67% of cast bar so opponents can't predict our kick window
+        -- PvE: kick ASAP (no delay)
+        local kick_allowed = true
+        if is_pvp_mode then
+            kick_allowed = Unit(TARGET_UNIT):CanInterrupt(true, nil, 15, 67)
         end
 
-        -- Already in Defensive → Shield Bash (requires shield)
-        if context.stance == Constants.STANCE.DEFENSIVE and A.ShieldBash:IsReady(TARGET_UNIT) then
-            return A.ShieldBash:Show(icon), format("[MW] Shield Bash - Cast: %.1fs", castLeft)
+        -- PvP: Check kick immunity before committing
+        if is_pvp_mode and notKickAble then
+            -- Target immune to kicks — skip to CC fallbacks below
+            kick_allowed = false
+        elseif kick_allowed then
+            if notKickAble then return nil end
+
+            -- PvP: Verify target isn't immune to physical interrupts
+            if is_pvp_mode and not A.Pummel:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForInterrupt) then
+                return nil
+            end
+
+            -- Already in Berserker → Pummel directly
+            if context.stance == Constants.STANCE.BERSERKER and A.Pummel:IsReady(TARGET_UNIT) then
+                return A.Pummel:Show(icon), format("[MW] Pummel - Cast: %.1fs", castLeft)
+            end
+
+            -- Already in Defensive → Shield Bash (requires shield)
+            if context.stance == Constants.STANCE.DEFENSIVE and A.ShieldBash:IsReady(TARGET_UNIT) then
+                return A.ShieldBash:Show(icon), format("[MW] Shield Bash - Cast: %.1fs", castLeft)
+            end
+
+            -- In Battle Stance: dance to Berserker for Pummel (enough time to swap + kick)
+            if context.stance == Constants.STANCE.BATTLE and castLeft > 0.5 then
+                local pummel_cd = A.Pummel:GetCooldown() or 0
+                if pummel_cd <= 0 and A.BerserkerStance:IsReady(PLAYER_UNIT) then
+                    return A.BerserkerStance:Show(icon), format("[MW] → Berserker (for Pummel) - Cast: %.1fs", castLeft)
+                end
+            end
         end
 
-        -- In Battle Stance: dance to Berserker for Pummel (enough time to swap + kick)
-        if context.stance == Constants.STANCE.BATTLE and castLeft > 0.5 then
-            -- Check Pummel CD before committing to the stance swap
-            local pummel_cd = A.Pummel:GetCooldown() or 0
-            if pummel_cd <= 0 and A.BerserkerStance:IsReady(PLAYER_UNIT) then
-                return A.BerserkerStance:Show(icon), format("[MW] → Berserker (for Pummel) - Cast: %.1fs", castLeft)
+        -- PvP CC fallback chain: when kick is on CD, not in correct stance, or waiting for AntiFake timing
+        if is_pvp_mode and context.settings.pvp_interrupt_cc_fallback and castLeft > 0.3 then
+            -- Concussion Blow (stun, Prot talent) — check stun immunity
+            if context.in_melee_range
+                and A.ConcussionBlow:IsReady(TARGET_UNIT)
+                and A.ConcussionBlow:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForStun)
+                and Unit(TARGET_UNIT):IsControlAble("stun")
+            then
+                return A.ConcussionBlow:Show(icon), format("[MW] Concussion Blow (interrupt) - Cast: %.1fs", castLeft)
+            end
+
+            -- Intimidating Shout (fear) — check fear immunity
+            if context.in_melee_range
+                and A.IntimidatingShout:IsReady(TARGET_UNIT)
+                and A.IntimidatingShout:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForFear)
+                and Unit(TARGET_UNIT):IsControlAble("fear")
+            then
+                return A.IntimidatingShout:Show(icon), format("[MW] Intimidating Shout (interrupt) - Cast: %.1fs", castLeft)
+            end
+
+            -- War Stomp (Tauren racial, PBAoE stun) — check stun immunity
+            if context.in_melee_range
+                and A.WarStomp:IsReady(PLAYER_UNIT)
+                and A.WarStomp:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForStun)
+            then
+                return A.WarStomp:Show(icon), format("[MW] War Stomp (interrupt) - Cast: %.1fs", castLeft)
             end
         end
 
@@ -444,8 +522,43 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
+-- PVP DEFENSIVE STANCE AT RANGE (Damage reduction when kiting/kited)
+-- ============================================================================
+-- In PvP, when out of melee and Intercept is on CD, switch to Defensive Stance
+-- for the 10% damage reduction. Re-entering melee triggers StanceCorrection (195)
+-- to swap back to the spec's preferred stance automatically.
+rotation_registry:register_middleware({
+    name = "Warrior_PvPDefStanceRange",
+    priority = 192,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.is_pvp or not context.settings.pvp_enabled then return false end
+        if not context.settings.pvp_def_stance_range then return false end
+        if not context.has_valid_enemy_target then return false end
+        -- Only when out of melee range
+        if context.in_melee_range then return false end
+        -- Already in Defensive
+        if context.stance == Constants.STANCE.DEFENSIVE then return false end
+        -- Don't switch if Intercept is available (we want to close gap via Berserker)
+        local intercept_cd = A.Intercept:GetCooldown() or 0
+        if intercept_cd <= 0 then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        if A.DefensiveStance:IsReady(PLAYER_UNIT) then
+            return A.DefensiveStance:Show(icon), "[MW] Defensive Stance (PvP at range)"
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
 -- BERSERKER RAGE (Rage gen + Fear immunity)
 -- ============================================================================
+-- PvE: Use on CD for rage generation and enrage effects
+-- PvP: Save for reactive fear/incap breaks (handled by LoC breaker at priority 485)
 rotation_registry:register_middleware({
     name = "Warrior_BerserkerRage",
     priority = 150,
@@ -458,6 +571,8 @@ rotation_registry:register_middleware({
         -- Berserker Rage requires Berserker Stance
         if context.stance ~= Constants.STANCE.BERSERKER then return false end
         if context.berserker_rage_active then return false end
+        -- PvP: don't burn on CD — save for LoC breaks (prio 485 handles reactive usage)
+        if context.is_pvp and context.settings.pvp_enabled then return false end
         return true
     end,
 
@@ -533,6 +648,12 @@ rotation_registry:register_middleware({
         if ps == "arms" and not context.settings.arms_use_death_wish then return false end
         if ps == "fury" and not context.settings.fury_use_death_wish then return false end
         if ps == "protection" then return false end
+        -- PvP: don't waste CDs on CC'd or physically immune targets
+        if context.is_pvp and context.settings.pvp_enabled and context.target_is_player then
+            local cc_remain = Unit(TARGET_UNIT):InCC() or 0
+            if cc_remain > 2 then return false end
+            if not A.DeathWish:AbsentImun(TARGET_UNIT, Constants.Temp.AttackTypes) then return false end
+        end
         return true
     end,
 
@@ -563,6 +684,12 @@ rotation_registry:register_middleware({
         if not context.settings.fury_use_recklessness then return false end
         -- Recklessness requires Berserker Stance
         if context.stance ~= Constants.STANCE.BERSERKER then return false end
+        -- PvP: don't waste CDs on CC'd or physically immune targets
+        if context.is_pvp and context.settings.pvp_enabled and context.target_is_player then
+            local cc_remain = Unit(TARGET_UNIT):InCC() or 0
+            if cc_remain > 2 then return false end
+            if not A.Recklessness:AbsentImun(TARGET_UNIT, Constants.Temp.AttackTypes) then return false end
+        end
         return true
     end,
 
@@ -592,6 +719,11 @@ rotation_registry:register_middleware({
         if not context.settings.use_racial then return false end
         local min_ttd = context.settings.cd_min_ttd or 0
         if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
+        -- PvP: don't waste burst racials on CC'd or immune targets
+        if context.is_pvp and context.settings.pvp_enabled and context.target_is_player then
+            local cc_remain = Unit(TARGET_UNIT):InCC() or 0
+            if cc_remain > 2 then return false end
+        end
         return true
     end,
 
@@ -602,6 +734,71 @@ rotation_registry:register_middleware({
         end
         if A.Berserking:IsReady(PLAYER_UNIT) then
             return A.Berserking:Show(icon), "[MW] Berserking"
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
+-- DISARM (PvP — remove melee weapon, Defensive Stance required)
+-- ============================================================================
+-- Disarms target, requiring Defensive Stance. Stance-dances if needed.
+-- Only targets player melee classes. Checks disarm immunity and DR.
+-- Trigger modes: on_cooldown or on_burst (enemy has damage buffs).
+local UnitClass = _G.UnitClass
+
+-- Pre-allocated melee class set (WARRIOR, ROGUE, PALADIN, SHAMAN enh)
+local DISARM_TARGET_CLASSES = {
+    WARRIOR = true,
+    ROGUE   = true,
+    PALADIN = true,
+    SHAMAN  = true,
+}
+
+rotation_registry:register_middleware({
+    name = "Warrior_Disarm",
+    priority = 258,
+    is_defensive = true,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.is_pvp or not context.settings.pvp_enabled then return false end
+        if not context.settings.pvp_disarm then return false end
+        if not context.has_valid_enemy_target then return false end
+        if not context.target_is_player then return false end
+        if not context.in_melee_range then return false end
+
+        -- Check target class is melee
+        local _, targetClass = UnitClass(TARGET_UNIT)
+        if not targetClass or not DISARM_TARGET_CLASSES[targetClass] then return false end
+
+        -- Trigger mode: on_burst requires enemy to have damage buffs
+        local trigger = context.settings.pvp_disarm_trigger or "on_burst"
+        if trigger == "on_burst" then
+            local has_dmg_buffs = Unit(TARGET_UNIT):HasBuffs("DamageBuffs") or 0
+            if has_dmg_buffs <= 0 then return false end
+        end
+
+        -- Check disarm immunity
+        if not A.Disarm:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForDisarm) then return false end
+
+        -- Check DR on disarm category
+        if not Unit(TARGET_UNIT):IsControlAble("disarm") then return false end
+
+        return true
+    end,
+
+    execute = function(icon, context)
+        -- Disarm requires Defensive Stance — stance dance if needed
+        if context.stance ~= Constants.STANCE.DEFENSIVE then
+            if is_stance_swap_safe(context.rage, 20) and A.DefensiveStance:IsReady(PLAYER_UNIT) then
+                return A.DefensiveStance:Show(icon), "[MW] Defensive Stance (for Disarm)"
+            end
+            return nil
+        end
+
+        if A.Disarm:IsReady(TARGET_UNIT) then
+            return A.Disarm:Show(icon), "[MW] Disarm"
         end
         return nil
     end,
@@ -667,6 +864,7 @@ rotation_registry:register_middleware({
 })
 
 -- War Stomp: PBAoE stun (Tauren) — useful as interrupt/CC
+-- PvP: War Stomp is handled by the Interrupt MW CC fallback chain; this is PvE-only
 rotation_registry:register_middleware({
     name = "Warrior_WarStomp",
     priority = 245,
@@ -676,6 +874,8 @@ rotation_registry:register_middleware({
         if not context.in_combat then return false end
         if not context.settings.use_racial then return false end
         if not context.has_valid_enemy_target then return false end
+        -- PvP: skip here, handled by Interrupt CC fallback chain
+        if context.is_pvp and context.settings.pvp_enabled then return false end
         return true
     end,
 
@@ -690,6 +890,251 @@ rotation_registry:register_middleware({
             end
         end
         return nil
+    end,
+})
+
+-- ============================================================================
+-- PVP: HAMSTRING MAINTENANCE (keep snare on enemy players)
+-- ============================================================================
+-- Maintain Hamstring on enemy players. Checks slow immunity and existing debuff.
+-- Skips targets with Evasion (will just dodge), Free Action Potion, or Freedom.
+rotation_registry:register_middleware({
+    name = "Warrior_PvPHamstring",
+    priority = 65,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.is_pvp or not context.settings.pvp_enabled then return false end
+        if not context.settings.pvp_hamstring then return false end
+        if not context.has_valid_enemy_target then return false end
+        if not context.target_is_player then return false end
+        if not context.in_melee_range then return false end
+        -- Check slow immunity (Freedom, FAP, CCTotalImun)
+        if not A.Hamstring:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForSlow) then return false end
+        -- Skip if Hamstring already active (> 1s remaining for refresh window)
+        local hamstring_dur = Unit(TARGET_UNIT):HasDeBuffs(A.Hamstring.ID, true) or 0
+        if hamstring_dur > 1 then return false end
+        -- Skip if target has Evasion active (will dodge)
+        local evasion_dur = Unit(TARGET_UNIT):HasBuffs(A.Evasion.ID) or 0
+        if evasion_dur > 0 then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        if A.Hamstring:IsReady(TARGET_UNIT) then
+            return A.Hamstring:Show(icon), "[MW] Hamstring (PvP snare)"
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
+-- PVP: PIERCING HOWL (AoE snare, Fury talent)
+-- ============================================================================
+-- AoE slow when 2+ enemy players nearby lack a slow. Instant, no stance req.
+rotation_registry:register_middleware({
+    name = "Warrior_PvPPiercingHowl",
+    priority = 64,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.is_pvp or not context.settings.pvp_enabled then return false end
+        if not context.settings.pvp_piercing_howl then return false end
+        if not context.has_valid_enemy_target then return false end
+        -- Need 2+ nearby enemies for AoE snare to be worth it
+        if context.enemy_count < 2 then return false end
+        -- CC break prevention
+        if context.has_breakable_cc_nearby and context.settings.pvp_cc_break_check then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        if A.PiercingHowl:IsReady(PLAYER_UNIT) then
+            return A.PiercingHowl:Show(icon), format("[MW] Piercing Howl (PvP) - %d enemies", context.enemy_count)
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
+-- PVP: REND ANTI-STEALTH (prevent Rogue/Druid restealth)
+-- ============================================================================
+-- Apply Rend to Rogues and Druids to keep them in combat and prevent stealth.
+-- Rend is a bleed, so it ticks even through Evasion and ignores armor.
+local STEALTH_CLASSES = { ROGUE = true, DRUID = true }
+
+rotation_registry:register_middleware({
+    name = "Warrior_PvPRendStealth",
+    priority = 63,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.is_pvp or not context.settings.pvp_enabled then return false end
+        if not context.settings.pvp_rend_stealth then return false end
+        if not context.has_valid_enemy_target then return false end
+        if not context.target_is_player then return false end
+        if not context.in_melee_range then return false end
+        -- Only on stealth-capable classes
+        local _, targetClass = UnitClass(TARGET_UNIT)
+        if not targetClass or not STEALTH_CLASSES[targetClass] then return false end
+        -- Rend requires Battle or Defensive Stance
+        if context.stance == Constants.STANCE.BERSERKER then return false end
+        -- Skip if Rend already active
+        local rend_dur = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.REND, true) or 0
+        if rend_dur > 2 then return false end
+        -- Check immunity
+        if not A.Rend:AbsentImun(TARGET_UNIT, Constants.Temp.AttackTypes) then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        if A.Rend:IsReady(TARGET_UNIT) then
+            return A.Rend:Show(icon), "[MW] Rend (anti-stealth)"
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
+-- PVP: OVERPOWER VS EVASION (high-priority Overpower when Evasion active)
+-- ============================================================================
+-- When target has Evasion or Deterrence, Overpower can't be dodged and should
+-- be prioritized over other melee attacks. Requires Battle Stance.
+rotation_registry:register_middleware({
+    name = "Warrior_PvPOverpower",
+    priority = 62,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.is_pvp or not context.settings.pvp_enabled then return false end
+        if not context.settings.pvp_overpower_evasion then return false end
+        if not context.has_valid_enemy_target then return false end
+        if not context.target_is_player then return false end
+        if not context.in_melee_range then return false end
+        -- Overpower requires Battle Stance
+        if context.stance ~= Constants.STANCE.BATTLE then return false end
+        -- Only when target has Evasion or Deterrence
+        local evasion = Unit(TARGET_UNIT):HasBuffs(A.Evasion.ID) or 0
+        local deterrence = Unit(TARGET_UNIT):HasBuffs(A.Deterrence.ID) or 0
+        if evasion <= 0 and deterrence <= 0 then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        if A.Overpower:IsReady(TARGET_UNIT) then
+            return A.Overpower:Show(icon), "[MW] Overpower (vs Evasion)"
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
+-- PVP: SHIELD SLAM PURGE (remove magic buffs, Prot talent)
+-- ============================================================================
+-- Shield Slam dispels 1 magic buff. Useful vs BoP, PW:S, Ice Barrier, etc.
+-- Requires a shield equipped (Defensive Stance or equipped in any stance).
+rotation_registry:register_middleware({
+    name = "Warrior_PvPShieldSlamPurge",
+    priority = 61,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.is_pvp or not context.settings.pvp_enabled then return false end
+        if not context.settings.pvp_shield_slam_purge then return false end
+        if not context.has_valid_enemy_target then return false end
+        if not context.target_is_player then return false end
+        if not context.in_melee_range then return false end
+        -- Target must have a purgeable magic buff
+        local has_purge = Unit(TARGET_UNIT):HasBuffs("DeffBuffs") or 0
+        if has_purge <= 0 then
+            has_purge = Unit(TARGET_UNIT):HasBuffs("ImportantPurje") or 0
+            if has_purge <= 0 then return false end
+        end
+        return true
+    end,
+
+    execute = function(icon, context)
+        -- Shield Slam requires Defensive Stance for guaranteed use
+        if context.stance ~= Constants.STANCE.DEFENSIVE then
+            -- Only stance dance if we can afford it
+            if is_stance_swap_safe(context.rage, 20) and A.DefensiveStance:IsReady(PLAYER_UNIT) then
+                return A.DefensiveStance:Show(icon), "[MW] Defensive Stance (for purge)"
+            end
+            return nil
+        end
+        if A.ShieldSlam:IsReady(TARGET_UNIT) then
+            return A.ShieldSlam:Show(icon), "[MW] Shield Slam (purge)"
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
+-- PVP: INTERVENE (protect a teammate under pressure)
+-- ============================================================================
+-- Intervene charges to a friendly party/raid member, intercepting the next melee/ranged
+-- attack made against them. Requires Defensive Stance + 25yd range.
+-- Targets the lowest-HP visible teammate in range.
+rotation_registry:register_middleware({
+    name = "Warrior_PvPIntervene",
+    priority = 59,
+    is_defensive = true,
+
+    matches = function(context)
+        if not context.in_combat then return false end
+        if not context.is_pvp or not context.settings.pvp_enabled then return false end
+        if not context.settings.pvp_intervene then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        -- Find lowest-HP friendly teammate within 25yd (Intervene range)
+        local unitID = A.FriendlyTeam(nil):GetUnitID(25)
+        if not unitID or unitID == "none" then return nil end
+
+        -- Only intervene if teammate is under pressure (below 50% HP)
+        local ally_hp = Unit(unitID):HealthPercent()
+        if not ally_hp or ally_hp > 50 then return nil end
+
+        -- Must be in Defensive Stance for Intervene
+        if context.stance ~= Constants.STANCE.DEFENSIVE then
+            if is_stance_swap_safe(context.rage, 10) and A.DefensiveStance:IsReady(PLAYER_UNIT) then
+                return A.DefensiveStance:Show(icon), format("[MW] Defensive Stance (for Intervene) - Ally HP: %.0f%%", ally_hp)
+            end
+            return nil
+        end
+
+        if A.Intervene:IsReady(unitID) then
+            return A.Intervene:Show(icon), format("[MW] Intervene - Ally HP: %.0f%%", ally_hp)
+        end
+        return nil
+    end,
+})
+
+-- ============================================================================
+-- PVP: PERCEPTION (Human racial — detect stealthed enemies)
+-- ============================================================================
+-- Pop Perception when enemy Rogues/Druids are stealthed in arena.
+-- Uses EnemyTeam API to detect invisible units.
+rotation_registry:register_middleware({
+    name = "Warrior_PvPPerception",
+    priority = 57,
+
+    matches = function(context)
+        if not context.is_pvp or not context.settings.pvp_enabled then return false end
+        -- Only useful in arena (BGs are too chaotic for stealth detection value)
+        if not context.is_arena then return false end
+        return true
+    end,
+
+    execute = function(icon, context)
+        if not A.Perception:IsReady(PLAYER_UNIT) then return nil end
+
+        -- Check if any enemy Rogues/Druids are stealthed
+        local has_invis = A.EnemyTeam(nil):HasInvisibleUnits(true)
+        if not has_invis then return nil end
+
+        return A.Perception:Show(icon), "[MW] Perception (stealth detection)"
     end,
 })
 

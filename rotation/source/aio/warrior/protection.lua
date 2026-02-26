@@ -219,6 +219,8 @@ local Prot_ThunderClap = {
     setting_key = "prot_use_thunder_clap",
 
     matches = function(context, state)
+        -- PvP CC break prevention: TC is PBAoE
+        if context.has_breakable_cc_nearby and context.settings.pvp_cc_break_check then return false end
         -- Only refresh when debuff is missing or about to expire
         if state.thunder_clap_debuff > Constants.TC_REFRESH_WINDOW then return false end
         -- TC requires Battle Stance — check if we can afford the stance dance
@@ -249,6 +251,8 @@ local Prot_DemoShout = {
     setting_key = "prot_use_demo_shout",
 
     matches = function(context, state)
+        -- PvP CC break prevention: Demo Shout is PBAoE
+        if context.has_breakable_cc_nearby and context.settings.pvp_cc_break_check then return false end
         -- Only refresh when debuff is missing or about to expire
         if state.demo_shout_debuff > 3 then return false end
         return A.DemoralizingShout:IsReady(PLAYER_UNIT)
@@ -394,7 +398,9 @@ local Prot_HeroicStrike = {
     execute = function(icon, context, state)
         -- Auto Cleave/HS: use Cleave at threshold, HS otherwise
         local cleave_at = context.settings.aoe_threshold or 2
-        if cleave_at > 0 and context.enemy_count >= cleave_at and A.Cleave:IsReady(TARGET_UNIT) then
+        -- PvP CC break prevention: Cleave can hit CC'd target
+        local cc_safe = not (context.has_breakable_cc_nearby and context.settings.pvp_cc_break_check)
+        if cc_safe and cleave_at > 0 and context.enemy_count >= cleave_at and A.Cleave:IsReady(TARGET_UNIT) then
             return A.Cleave:Show(icon), format("[PROT] Cleave - Rage: %d, Enemies: %d", context.rage, context.enemy_count)
         end
 
