@@ -305,7 +305,7 @@ local Constants = {
       LACERATE_SWIPE_THRESHOLD = 3,
       DEMO_ROAR_DURATION = 30,
       DEMO_ROAR_REFRESH = 5,
-      DEFAULT_MAUL_RAGE = 40,
+      DEFAULT_MAUL_RAGE = 25,
       DEFAULT_SWIPE_RAGE = 15,
       DEFAULT_SWIPE_TARGETS = 3,
       ENRAGE_RAGE_THRESHOLD = 20,
@@ -318,8 +318,8 @@ local Constants = {
       FRENZIED_PROACTIVE_RAGE = 50,
       DEFAULT_DEMO_ROAR_RANGE = 10,
       DEFAULT_DEMO_ROAR_MIN_BOSSES = 1,
-      DEFAULT_DEMO_ROAR_MIN_ELITES = 1,
-      DEFAULT_DEMO_ROAR_MIN_TRASH = 3,
+      DEFAULT_DEMO_ROAR_MIN_ELITES = 2,
+      DEFAULT_DEMO_ROAR_MIN_TRASH = 5,
       DEFAULT_CROAR_RANGE = 10,
       DEFAULT_CROAR_MIN_BOSSES = 1,
       DEFAULT_CROAR_MIN_ELITES = 3,
@@ -462,6 +462,7 @@ local THORNS_BUFF_IDS = { 467, 782, 1075, 8914, 9756, 9910, 26992 }
 NS.FAERIE_FIRE_DEBUFF_IDS = FAERIE_FIRE_DEBUFF_IDS
 NS.DEMO_ROAR_DEBUFF_IDS = DEMO_ROAR_DEBUFF_IDS
 NS.MANGLE_DEBUFF_IDS = MANGLE_DEBUFF_IDS
+NS.THORNS_BUFF_IDS = THORNS_BUFF_IDS
 
 -- ============================================================================
 -- PLAYSTYLE CONSTANTS
@@ -568,7 +569,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.7.7",
+   version = "v1.8.0",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 
@@ -673,20 +674,10 @@ rotation_registry:register_class({
       ctx.is_behind = Player:IsBehind(1.5)
       ctx.has_clearcasting = (Unit("player"):HasBuffs(Constants.BUFF_ID.CLEARCASTING) or 0) > 0
       ctx.enemy_count = A.MultiUnits:GetByRange(8)
+     
       ctx._cat_valid = false
       ctx._bear_valid = false
       ctx._resto_valid = false
-
-      -- Fallback melee range detection: GetRange() can return nil or incorrect values
-      -- for some users. Use a melee spell's IsInRange as a more reliable check.
---[[       if not ctx.in_melee_range and ctx.has_valid_enemy_target then
-         local stance = ctx.stance
-         if stance == Constants.STANCE.CAT then
-            ctx.in_melee_range = A.MangleCat:IsInRange(TARGET_UNIT) == true
-         elseif stance == Constants.STANCE.BEAR then
-            ctx.in_melee_range = A.MangleBear:IsInRange(TARGET_UNIT) == true
-         end
-      end ]]
    end,
 
    gap_handler = function(icon, context)

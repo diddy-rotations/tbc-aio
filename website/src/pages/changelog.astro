@@ -15,6 +15,46 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.8.0 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-feature">Feature</span>
+
+      <h3>Warrior</h3>
+      <ul class="features">
+        <li><strong>PvP Combat System</strong> &mdash; Comprehensive PvP package: immunity-aware interrupts with CC fallback chain (Concussion Blow &rarr; Intimidating Shout &rarr; War Stomp), anti-fake kick randomization, Disarm with burst-trigger mode, Hamstring maintenance, Piercing Howl AoE snare, Rend anti-stealth on Rogues/Druids, Overpower priority vs Evasion/Deterrence, and Shield Slam magic purge. All gated behind auto-detected PvP flag with per-feature toggles.</li>
+        <li><strong>Smart Spell Reflection</strong> &mdash; PvP: whitelist-only reflecting high-value CC and burst spells with nameplate scanning. PvE: reflects any interruptible non-channel cast targeting the player, scanning both current target and nameplates for trash pack coverage.</li>
+        <li><strong>PvP Defensive Systems</strong> &mdash; Defensive Stance at range when kiting (with Intercept CD awareness), Intervene to protect low-HP teammates, Perception racial for arena stealth detection, burst CD gating (skips Death Wish/Recklessness when target is CC&rsquo;d or immune).</li>
+        <li><strong>CC Break Prevention</strong> &mdash; Whirlwind, Cleave, Thunder Clap, and Demoralizing Shout across all 3 specs now check for breakable CC on nearby enemies before firing.</li>
+        <li><strong>Smart Auto-Tab Targeting</strong> &mdash; Scans nameplates for lowest HP enemy within melee range, cycles AUTOTARGET to reach desired target (max 10 attempts). Optional execute-priority mode tabs to sub-20% HP mobs. 3s combat-start grace period preserves manual pulls. PvP-excluded.</li>
+        <li><strong>GUID-Aware Intercept</strong> &mdash; Intercept suppression after Charge is now target-aware &mdash; only suppresses Intercept to the same mob that was Charged, allowing immediate Intercept to different targets.</li>
+        <li><strong>Item Type Fixes</strong> &mdash; Healing potions now use Type=&ldquo;Potion&rdquo; with QueueForbidden, removing redundant Click tables for cleaner framework integration.</li>
+        <li><strong>Optimized Defaults</strong> &mdash; Overpower min rage 25&rarr;15, HS threshold 55&rarr;50, HS trick enabled by default, HS during execute enabled for Arms and Fury, Auto Charge and Auto Bandage enabled by default.</li>
+        <li><strong>Bug Fixes</strong> &mdash; AutoCharge setting_key now manually checked (middleware doesn&rsquo;t auto-check). OOC stance oscillation fixed with unconditional range guard. Shout maintenance skips dying targets.</li>
+      </ul>
+
+      <h3>Druid</h3>
+      <ul class="features">
+        <li><strong>Bear: Mangle-First Priority</strong> &mdash; Swipe AoE now yields to Mangle on cooldown after the initial opener Swipe, weaving Mangle into AoE packs for the 30% bleed debuff. Swipe fills remaining GCDs between Mangle CDs.</li>
+        <li><strong>Bear: Demo Roar &amp; FF Throttle</strong> &mdash; Demo Roar and Faerie Fire now have cast throttles (10s and 6s respectively) to prevent burning GCDs on every tab-target switch. Demo Roar is PBAoE so one cast covers the pack.</li>
+        <li><strong>Bear: Dynamic Rage Costs</strong> &mdash; Rage costs for all abilities now refresh dynamically every frame from the API, correctly reflecting talent discounts and item effects instead of using stale load-time values.</li>
+        <li><strong>Bear: Lacerate Build Throttle</strong> &mdash; Stack-building Lacerate now applies at 0 stacks then reapplies when duration dips below 6s, letting Swipe fill GCDs in between. Previous behavior required Mangle debuff before any Lacerate.</li>
+        <li><strong>Bear: Swipe as Primary Filler</strong> &mdash; Swipe is now the default GCD filler between Mangle CDs (matching WCL top-bear CPM ratios: Swipe ~13.5 vs Lacerate ~8.4). Lacerate relegated to lowest-priority builder.</li>
+        <li><strong>Bear: Mangle Hold Window</strong> &mdash; Reduced from 1.0s to 0.5s so filler abilities only yield when Mangle is truly imminent, reducing dead GCDs.</li>
+        <li><strong>Bear: Maul Rage Threshold</strong> &mdash; Default lowered from 40 to 25 for more Maul casts and threat on boss fights.</li>
+        <li><strong>Bear: Context Logging</strong> &mdash; New &ldquo;Log Context&rdquo; debug checkbox dumps full bear state (rage, abilities, settings, costs) to debug log every 2s during combat.</li>
+        <li><strong>Cat: Bite Trick Setting Fix</strong> &mdash; Cat_BiteTrick now correctly uses <code>use_bite_trick</code> setting key instead of <code>use_rake_trick</code>.</li>
+        <li><strong>Cat: Tick Optimization Toggle</strong> &mdash; Mangle-over-Shred tick optimization now gated behind a setting (<code>cat_tick_optimization</code>, default off) instead of always active.</li>
+        <li><strong>Cat: Schema Reorganization</strong> &mdash; Settings UI reorganized into logical groups: Bleeds, Finishers, Opener &amp; Stealth, Energy Management, AoE, Advanced.</li>
+        <li><strong>Caster: Thorns Buff Detection</strong> &mdash; Thorns self-buff now checks all rank IDs instead of nil (was always recasting).</li>
+      </ul>
+
+      <h3>Shared</h3>
+      <ul class="features">
+        <li><strong>Context Logging System</strong> &mdash; New &ldquo;Log Context&rdquo; debug setting in General tab. Classes can provide <code>format_context_log</code> for custom output; default dumps all scalar context fields.</li>
+        <li><strong>Dead Code Cleanup</strong> &mdash; Removed unused <code>NS.A_base</code>, <code>NS.update_setting</code>, and <code>rotation_registry:run_strategy_list</code> from core.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.7.8 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 

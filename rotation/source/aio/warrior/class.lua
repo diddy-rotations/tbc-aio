@@ -189,7 +189,7 @@ local Constants = {
 
     -- PvP immunity check tables (for AbsentImun calls)
     -- Keys match AuraList categories in the framework
-    Temp = {
+    PVP = {
         AttackTypes       = { "TotalImun", "DamagePhysImun" },
         AuraForInterrupt  = { "TotalImun", "DamagePhysImun", "KickImun" },
         AuraForFear       = { "TotalImun", "DamagePhysImun", "FearImun" },

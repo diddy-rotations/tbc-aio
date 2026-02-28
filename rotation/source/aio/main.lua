@@ -42,7 +42,20 @@ local set_last_action = NS.set_last_action
 -- Lua optimizations
 local format = string.format
 local ipairs = ipairs
+local pairs = pairs
+local type = type
+local tostring = tostring
+local table_sort = table.sort
+local table_concat = table.concat
 local IsResting = _G.IsResting
+local GetTime = _G.GetTime
+local AddDebugLogLine = NS.AddDebugLogLine
+
+-- Context logging
+local last_context_log_time = 0
+local CONTEXT_LOG_INTERVAL = 2.0
+-- Pre-allocated table for default context dump (avoids per-frame allocation)
+local ctx_dump_parts = {}
 
 -- Suggestion system for A[1] icon
 local suggestion = { spell = nil }
@@ -108,6 +121,33 @@ function rotation_registry:execute_strategies(playstyle, icon, context)
    local force_burst = is_force_active("force_burst")
    local force_defensive = is_force_active("force_defensive")
    local auto_burst = should_auto_burst(context)
+
+   -- Periodic context dump (gated by "Log Context" checkbox)
+   if context.settings.log_context and context.in_combat and context.has_valid_enemy_target then
+      local now = GetTime()
+      if (now - last_context_log_time) >= CONTEXT_LOG_INTERVAL then
+         last_context_log_time = now
+         local msg
+         if config and config.format_context_log then
+            msg = config.format_context_log(context, state)
+         else
+            -- Default: dump all scalar context fields
+            local n = 0
+            for k, v in pairs(context) do
+               local t = type(v)
+               if t ~= "function" and t ~= "table" and t ~= "userdata" then
+                  n = n + 1
+                  ctx_dump_parts[n] = k .. "=" .. tostring(v)
+               end
+            end
+            -- Clear stale entries from previous frame
+            for i = n + 1, #ctx_dump_parts do ctx_dump_parts[i] = nil end
+            table_sort(ctx_dump_parts)
+            msg = table_concat(ctx_dump_parts, " ")
+         end
+         AddDebugLogLine(format("[%.1fs] [%s CTX] %s", now, playstyle:upper(), msg))
+      end
+   end
 
    for _, strategy in ipairs(strategies) do
       if not context.on_gcd or strategy.is_gcd_gated == false then

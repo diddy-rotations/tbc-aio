@@ -35,7 +35,6 @@ local Player = A.Player
 local Unit = A.Unit
 local GetToggle = A.GetToggle
 
-NS.A_base = A       -- base Action table (before class metatable)
 NS.Player = Player
 NS.Unit = Unit
 NS.GetToggle = GetToggle
@@ -249,8 +248,6 @@ local function update_setting(key, value, changed_list, debug_mode)
       changed_list[#changed_list + 1] = key .. ": " .. tostring(old_value) .. " -> " .. tostring(value)
    end
 end
-
-NS.update_setting = update_setting
 
 -- ============================================================================
 -- SPELL VALIDATION SYSTEM
@@ -928,23 +925,6 @@ function rotation_registry:get_playstyle_state(playstyle, context)
    local config = self.playstyle_config[playstyle]
    if config and config.context_builder then
       return config.context_builder(context)
-   end
-   return nil
-end
-
-function rotation_registry:run_strategy_list(strategies, icon, context, config)
-   local state = nil
-   local config_prereqs = config and config.check_prerequisites
-   if config and config.context_builder then
-      state = config.context_builder(context)
-   end
-   for _, strategy in ipairs(strategies) do
-      if self:check_prerequisites(strategy, context)
-         and (not config_prereqs or config_prereqs(strategy, context))
-         and (not strategy.matches or strategy.matches(context, state)) then
-         local result, log_msg = strategy.execute(icon, context, state)
-         if result then return result, log_msg end
-      end
    end
    return nil
 end

@@ -76,7 +76,7 @@ do
    -- Hold GCD for Mangle: sim explicitly waits for Mangle rather than
    -- wasting a 1.5s GCD on filler when Mangle is almost ready.
    -- Returns true if filler abilities should yield.
-   local MANGLE_HOLD_WINDOW = 1.0  -- seconds; don't waste GCD if Mangle ready within this
+   local MANGLE_HOLD_WINDOW = 0.5  -- seconds; only hold when Mangle is truly imminent
    local function should_hold_for_mangle()
       if not is_spell_available(A.MangleBear) then return false end
       local cd = A.MangleBear:GetCooldown()
@@ -454,14 +454,24 @@ do
       nearby_trash = 0,
       last_target_guid = nil,    -- GUID of last-seen target (for manual target detection)
       manual_target_time = 0,    -- GetTime() when player last manually changed targets
+      last_demo_roar_cast = 0,   -- GetTime() of last Demo Roar cast (throttle tab-target spam)
+      last_ff_cast = 0,          -- GetTime() of last Faerie Fire cast (throttle tab-target spam)
+      last_swipe_aoe_cast = 0,   -- GetTime() of last AoE Swipe (Mangle weave: open with Swipe, then yield)
    }
 
-   -- Rage costs (cached at load time, must be before CLEU handler)
-   local RAGE_COST_MAUL = get_spell_rage_cost(A.Maul) or 15
-   local RAGE_COST_MANGLE = get_spell_rage_cost(A.MangleBear) or 20
-   local RAGE_COST_SWIPE = get_spell_rage_cost(A.Swipe) or 15
-   local RAGE_COST_LACERATE = get_spell_rage_cost(A.Lacerate) or 10
-   local RAGE_COST_DEMO_ROAR = get_spell_rage_cost(A.DemoralizingRoar) or 10
+   -- Rage costs (untalented base fallbacks; refreshed dynamically in get_bear_state)
+   local RAGE_COST_MAUL = 15
+   local RAGE_COST_MANGLE = 20
+   local RAGE_COST_SWIPE = 15
+   local RAGE_COST_LACERATE = 13
+   local RAGE_COST_DEMO_ROAR = 10
+
+   -- Throttle: prevent Demo Roar / FF from spamming GCDs on tab-target packs.
+   -- Demo Roar is PBAoE (hits all nearby), so one cast covers the pack.
+   -- FF is single-target, but burning GCDs on every tab-target hurts DPS.
+   local DEMO_ROAR_THROTTLE = 10  -- seconds between casts (PBAoE covers pack)
+   local FF_THROTTLE = 6          -- seconds between casts (short enough for new pulls)
+   local LACERATE_BUILD_REFRESH = 6  -- reapply Lacerate when duration drops below this while building stacks
 
    -- =========================================================================
    -- BEAR CLEU TRACKER (swing-event Maul suppression)
@@ -543,8 +553,6 @@ do
             bear_state.maul_confirmed = true
             AddDebugLogLine(format("[%.3fs] [MAUL] Confirmed by IsSpellCurrent", GetTime()))
          elseif bear_state.maul_confirmed and not isc then
-            --bear_state.maul_queued = false
-            --bear_state.maul_confirmed = false
             -- Log once, not every frame (CLEU will clear state authoritatively)
             if not bear_state.maul_dequeue_logged then
                bear_state.maul_dequeue_logged = true
@@ -552,6 +560,23 @@ do
             end
          end
       end
+
+      -- Refresh rage costs (items/talents may modify base costs)
+      local cost
+      cost = get_spell_rage_cost(A.Maul)
+      if cost > 0 then RAGE_COST_MAUL = cost end
+      cost = get_spell_rage_cost(A.MangleBear)
+      if cost > 0 then RAGE_COST_MANGLE = cost end
+      cost = get_spell_rage_cost(A.Swipe)
+      if cost > 0 then RAGE_COST_SWIPE = cost end
+      cost = get_spell_rage_cost(A.Lacerate)
+      if cost > 0 then RAGE_COST_LACERATE = cost end
+      cost = get_spell_rage_cost(A.DemoralizingRoar)
+      if cost > 0 then RAGE_COST_DEMO_ROAR = cost end
+
+      -- Cached debuff/buff lookups (avoids repeated queries in matches/execute)
+      context.has_frenzied_regen = (Unit(PLAYER_UNIT):HasBuffs(A.FrenziedRegeneration.ID) or 0) > 0
+      context.cc_nearby = context.settings.swipe_cc_check ~= false and has_breakable_cc_nearby() or false
 
       bear_state.lacerate_stacks, bear_state.lacerate_duration = get_lacerate_info()
       -- Classification breakdown at melee range (5yd) for Swipe/Maul/Lacerate decisions
@@ -637,13 +662,11 @@ do
          -- Exception: allow if Frenzied Regen is active (Enrage feeds rage to FR for healing)
          -- Boss hits generate enough rage naturally; not worth the armor loss
          if Unit(TARGET_UNIT):IsBoss() then
-            local fr_active = (Unit(PLAYER_UNIT):HasBuffs(A.FrenziedRegeneration.ID) or 0) > 0
-            if not fr_active then return false end
+            if not context.has_frenzied_regen then return false end
          end
          -- HP safety: armor reduction is dangerous when low HP (any target)
          if context.hp < Constants.BEAR.ENRAGE_HP_SAFETY then
-            local fr_active = (Unit(PLAYER_UNIT):HasBuffs(A.FrenziedRegeneration.ID) or 0) > 0
-            if not fr_active then return false end
+            if not context.has_frenzied_regen then return false end
          end
          -- Fight ending: don't reduce armor when last mob is dying
          if context.enemy_count <= 1 and context.ttd > 0 and context.ttd < 8 then
@@ -652,8 +675,7 @@ do
          return true
       end,
       execute = function(icon, context)
-         local fr_active = (Unit(PLAYER_UNIT):HasBuffs(A.FrenziedRegeneration.ID) or 0) > 0
-         local note = fr_active and " [FR active]" or ""
+         local note = context.has_frenzied_regen and " [FR active]" or ""
          return try_cast_fmt(A.Enrage, icon, PLAYER_UNIT, "[P3]", "Enrage", "Rage: %d, HP: %.0f%%%s", context.rage, context.hp, note)
       end,
    }
@@ -677,7 +699,18 @@ do
    }
 
    -- [8] Faerie Fire debuff maintenance
+   -- Wrap factory result with bear-specific throttle to prevent tab-target GCD spam
    local Bear_FaerieFire = create_faerie_fire_strategy()
+   local _ff_base_matches = Bear_FaerieFire.matches
+   local _ff_base_execute = Bear_FaerieFire.execute
+   Bear_FaerieFire.matches = function(context)
+      if (GetTime() - bear_state.last_ff_cast) < FF_THROTTLE then return false end
+      return _ff_base_matches(context)
+   end
+   Bear_FaerieFire.execute = function(icon, context)
+      bear_state.last_ff_cast = GetTime()
+      return _ff_base_execute(icon, context)
+   end
 
    -- [5] Growl (single-target taunt when losing aggro - PvE only)
    -- Threat-level-aware:
@@ -764,7 +797,6 @@ do
    local Bear_TabTarget = {
       is_gcd_gated = false,
       requires_combat = true,
-      requires_enemy = true,
       setting_key = "enable_tab_targeting",
       matches = function(context, state)
          return should_tab_target(context, state)
@@ -792,8 +824,15 @@ do
       spell = A.DemoralizingRoar,
       spell_target = PLAYER_UNIT,
       matches = function(context)
-         if would_starve_maul(context, RAGE_COST_DEMO_ROAR) then return false end
-         if would_starve_mangle(context, RAGE_COST_DEMO_ROAR) then return false end
+         -- Throttle: Demo Roar is PBAoE — one cast hits all nearby mobs.
+         -- Don't burn another GCD just because tab-target switched to a mob without it.
+         if (GetTime() - bear_state.last_demo_roar_cast) < DEMO_ROAR_THROTTLE then return false end
+         -- Demo Roar is cheap (10 rage) on a 30s debuff. On boss fights, rage income
+         -- from boss melee easily absorbs this — skip starvation checks.
+         if not Unit(TARGET_UNIT):IsBoss() then
+            if would_starve_maul(context, RAGE_COST_DEMO_ROAR) then return false end
+            if would_starve_mangle(context, RAGE_COST_DEMO_ROAR) then return false end
+         end
          -- Only worth using with enough nearby enemies to justify the rage
          local demo_range = context.settings.demo_roar_range or Constants.BEAR.DEFAULT_DEMO_ROAR_RANGE
          local elites, bosses, trash = count_nearby_enemies(demo_range, false)
@@ -814,6 +853,7 @@ do
          return true
       end,
       execute = function(icon, context)
+         bear_state.last_demo_roar_cast = GetTime()
          local demo_range = context.settings.demo_roar_range or Constants.BEAR.DEFAULT_DEMO_ROAR_RANGE
          local elites, bosses, trash = count_nearby_enemies(demo_range, false)
          local cc_str = context.has_clearcasting and " [CC]" or ""
@@ -823,9 +863,9 @@ do
       end,
    }
 
-   -- [8] Swipe AoE (priority above Mangle when multiple targets)
-   -- Sim: SwipeSpam mode replaces Mangle entirely in AoE.
-   -- With 3+ targets, total Swipe damage > Mangle single-target damage.
+   -- [8] Swipe AoE (fills every GCD between Mangle CDs in AoE)
+   -- Mangle fires first via array priority [8]; SwipeAoE [9] fills remaining GCDs.
+   -- No yield/hold checks needed — Mangle wins by position when off CD.
    local Bear_SwipeAoE = {
       requires_combat = true,
       requires_enemy = true,
@@ -834,27 +874,24 @@ do
       matches = function(context, state)
          local aoe_threshold = get_aoe_threshold(context, state)
          if context.enemy_count < aoe_threshold then return false end
-         -- Yield to Mangle: let it fire on CD even during AoE (maintains 30% bleed debuff)
-         if is_spell_available(A.MangleBear) and A.MangleBear:GetCooldown() <= 0
-            and (context.has_clearcasting or context.rage >= RAGE_COST_MANGLE) then
-            return false
-         end
-         -- Hold for Mangle: don't waste a 1.5s GCD when Mangle is almost ready
-         if should_hold_for_mangle() then return false end
-         -- CC safety
-         if context.settings.swipe_cc_check ~= false then
-            if has_breakable_cc_nearby() then return false end
-         end
+         -- Yield to Mangle after we've already opened with Swipe on this pack
+         -- First Swipe fires (opener), then Mangle weaves in on CD, Swipe fills the rest
+         -- After 8s without AoE Swipe (new pack), opens with Swipe again
+         if is_spell_available(A.MangleBear) and A.MangleBear:GetCooldown() == 0
+            and not context.target_phys_immune
+            and (GetTime() - bear_state.last_swipe_aoe_cast) < 8 then return false end
+         -- CC safety (cached in get_bear_state)
+         if context.cc_nearby then return false end
          if not context.has_clearcasting then
             local swipe_threshold = context.settings.swipe_rage_threshold or Constants.BEAR.DEFAULT_SWIPE_RAGE
             if context.rage < swipe_threshold then return false end
             if would_starve_maul(context, RAGE_COST_SWIPE) then return false end
-            if would_starve_mangle(context, RAGE_COST_SWIPE) then return false end
          end
          return true
       end,
       execute = function(icon, context)
-         return try_cast_fmt(A.Swipe, icon, TARGET_UNIT, "[P8]", "Swipe (AoE)", "Rage: %d, Targets: %d%s", context.rage, context.enemy_count, context.has_clearcasting and " [CC]" or "")
+         bear_state.last_swipe_aoe_cast = GetTime()
+         return try_cast_fmt(A.Swipe, icon, TARGET_UNIT, "[P9]", "Swipe (AoE)", "Rage: %d, Targets: %d%s", context.rage, context.enemy_count, context.has_clearcasting and " [CC]" or "")
       end,
    }
 
@@ -877,8 +914,9 @@ do
       end
    })
 
-   -- [10] Swipe single-target filler (below Mangle — used when Lacerate maintained)
-   -- Sim: conditional Swipe fires when 5 Lac stacks, >3s duration, AP threshold met.
+   -- [10] Swipe single-target filler (primary GCD filler between Mangle CDs)
+   -- WCL data: top bears Swipe ~13.5 CPM vs Lacerate ~8.4 CPM. Swipe is the default filler.
+   -- LacerateUrgent [5] handles urgent refreshes; LacerateBuild [12] handles stack building.
    local Bear_Swipe = {
       requires_combat = true,
       requires_enemy = true,
@@ -892,30 +930,16 @@ do
          -- Hold for Mangle: don't waste a 1.5s GCD when Mangle is almost ready
          if should_hold_for_mangle() then return false end
 
-         -- CC safety
-         if context.settings.swipe_cc_check ~= false then
-            if has_breakable_cc_nearby() then return false end
-         end
+         -- CC safety (cached in get_bear_state)
+         if context.cc_nearby then return false end
 
          if not context.has_clearcasting then
             local swipe_threshold = context.settings.swipe_rage_threshold or Constants.BEAR.DEFAULT_SWIPE_RAGE
             if context.rage < swipe_threshold then return false end
             if would_starve_maul(context, RAGE_COST_SWIPE) then return false end
-            if would_starve_mangle(context, RAGE_COST_SWIPE) then return false end
          end
 
-         -- Not maintaining Lacerate on this target → Swipe is the filler
-         if not should_maintain_lacerate(context) then
-            return true
-         end
-
-         -- Sim: only Swipe as filler when Lacerate at 5 stacks with >3s remaining
-         local stacks, duration = state.lacerate_stacks, state.lacerate_duration
-         if stacks >= Constants.BEAR.LACERATE_MAX_STACKS and duration > Constants.BEAR.LACERATE_SWIPE_THRESHOLD then
-            return true
-         end
-
-         return false
+         return true
       end,
       execute = function(icon, context)
          return try_cast_fmt(A.Swipe, icon, TARGET_UNIT, "[P10]", "Swipe", "Rage: %d%s", context.rage, context.has_clearcasting and " [CC]" or "")
@@ -923,7 +947,7 @@ do
    }
 
    -- [11] Lacerate Build (building/maintaining stacks) - skip if target has physical immunity
-   -- Lacerate costs 10 rage. Used as lowest-priority filler (matches sim).
+   -- Used as lowest-priority filler (matches sim).
    local Bear_LacerateBuild = {
       requires_combat = true,
       requires_enemy = true,
@@ -942,15 +966,10 @@ do
 
          local stacks, duration = state.lacerate_stacks, state.lacerate_duration
 
-         -- Still building stacks → require Mangle debuff first (30% bleed bonus)
-         -- Mangle fires higher priority, so this naturally sequences: Mangle → Lacerate
-         -- If Mangle not available (not talented), skip the check and Lacerate freely
+         -- Building stacks: apply immediately at 0, then reapply when duration dips below threshold
+         -- Swipe fills GCDs in between; stacks build gradually over the fight
          if stacks < Constants.BEAR.LACERATE_MAX_STACKS then
-            if is_spell_available(A.MangleBear) then
-               local mangle_debuff = (Unit(TARGET_UNIT):HasDeBuffs(MANGLE_DEBUFF_IDS) or 0) > 0
-               return mangle_debuff
-            end
-            return true
+            return stacks == 0 or duration <= LACERATE_BUILD_REFRESH
          end
 
          -- At 5 stacks, refreshing as filler — hold for Mangle if it's almost ready
@@ -1008,14 +1027,40 @@ do
       named("LacerateUrgent",   Bear_LacerateUrgent),    -- [5]  GCD — urgent refresh
       named("TabTarget",        Bear_TabTarget),         -- [6]  off-GCD tab targeting
       named("FaerieFire",       Bear_FaerieFire),        -- [7]  GCD — debuff maintenance
-      named("Mangle",           Bear_Mangle),            -- [8]  GCD — main ST damage/threat
-      named("SwipeAoE",         Bear_SwipeAoE),          -- [9]  GCD — AoE priority (above filler)
-      named("DemoRoar",         Bear_DemoRoar),          -- [10] GCD — AP reduction (defensive)
-      named("Swipe",            Bear_Swipe),             -- [11] GCD — ST filler
-      named("LacerateBuild",    Bear_LacerateBuild),     -- [12] GCD — stack builder
       named("Maul",             Bear_Maul),              -- [13] off-GCD swing queue (fires during GCD)
+      named("SwipeAoE",         Bear_SwipeAoE),          -- [8]  GCD — AoE opener (fires before Mangle on packs)
+      named("Mangle",           Bear_Mangle),            -- [9]  GCD — main ST damage/threat
+      named("DemoRoar",         Bear_DemoRoar),          -- [10] GCD — AP reduction (defensive)
+      named("LacerateBuild",    Bear_LacerateBuild),     -- [11] GCD — boss stack builder (throttled, ~1 per 4.5s)
+      named("Swipe",            Bear_Swipe),             -- [12] GCD — ST filler
    }, {
       context_builder = get_bear_state,
+      format_context_log = function(ctx, state)
+         local s = ctx.settings
+         local mangle_cd = A.MangleBear:GetCooldown()
+         local target_class = _G.UnitClassification(TARGET_UNIT) or "?"
+
+         -- Combat state
+         local combat = format("rage=%d hp=%.0f enemies=%d(%dB/%dE/%dT)",
+            ctx.rage, ctx.hp, ctx.enemy_count, state.nearby_bosses, state.nearby_elites, state.nearby_trash)
+
+         -- Target & ability state
+         local abilities = format("target=%s isBoss=%s cc=%s fr=%s mangle_cd=%.1f lac=%d/5(%.1f) maul_q=%s gcd=%.1f",
+            target_class, tostring(ctx.is_boss), tostring(ctx.cc_nearby), tostring(ctx.has_frenzied_regen),
+            mangle_cd, state.lacerate_stacks, state.lacerate_duration,
+            tostring(state.maul_queued), ctx.gcd_remaining)
+
+         -- Settings
+         local settings = format("lac_boss=%s m_lac=%s cc_chk=%s demo=%s aoe=%s",
+            tostring(s.lacerate_boss_only), tostring(s.maintain_lacerate), tostring(s.swipe_cc_check),
+            tostring(s.maintain_demo_roar), tostring(s.aoe_threshold))
+
+         -- Rage costs (maul/mangle/swipe/lac/demo)
+         local costs = format("costs=%d/%d/%d/%d/%d",
+            RAGE_COST_MAUL, RAGE_COST_MANGLE, RAGE_COST_SWIPE, RAGE_COST_LACERATE, RAGE_COST_DEMO_ROAR)
+
+         return combat .. " " .. abilities .. " | " .. settings .. " | " .. costs
+      end,
    })
 
 end  -- End Bear strategies do...end block

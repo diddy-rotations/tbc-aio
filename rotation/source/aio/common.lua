@@ -31,6 +31,8 @@ _G.FluxAIO_SECTIONS = {
               tooltip = "Print rotation debug messages." },
             { type = "checkbox", key = "debug_system", default = false, label = "Debug System (Advanced)",
               tooltip = "Print system debug messages (middleware, strategies)." },
+            { type = "checkbox", key = "log_context", default = false, label = "Log Context",
+              tooltip = "Print full context state to debug log every 2s during combat." },
         }}
     end,
 

@@ -469,7 +469,7 @@ rotation_registry:register_middleware({
             if notKickAble then return nil end
 
             -- PvP: Verify target isn't immune to physical interrupts
-            if is_pvp_mode and not A.Pummel:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForInterrupt) then
+            if is_pvp_mode and not A.Pummel:AbsentImun(TARGET_UNIT, Constants.PVP.AuraForInterrupt) then
                 return nil
             end
 
@@ -497,7 +497,7 @@ rotation_registry:register_middleware({
             -- Concussion Blow (stun, Prot talent) — check stun immunity
             if context.in_melee_range
                 and A.ConcussionBlow:IsReady(TARGET_UNIT)
-                and A.ConcussionBlow:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForStun)
+                and A.ConcussionBlow:AbsentImun(TARGET_UNIT, Constants.PVP.AuraForStun)
                 and Unit(TARGET_UNIT):IsControlAble("stun")
             then
                 return A.ConcussionBlow:Show(icon), format("[MW] Concussion Blow (interrupt) - Cast: %.1fs", castLeft)
@@ -506,7 +506,7 @@ rotation_registry:register_middleware({
             -- Intimidating Shout (fear) — check fear immunity
             if context.in_melee_range
                 and A.IntimidatingShout:IsReady(TARGET_UNIT)
-                and A.IntimidatingShout:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForFear)
+                and A.IntimidatingShout:AbsentImun(TARGET_UNIT, Constants.PVP.AuraForFear)
                 and Unit(TARGET_UNIT):IsControlAble("fear")
             then
                 return A.IntimidatingShout:Show(icon), format("[MW] Intimidating Shout (interrupt) - Cast: %.1fs", castLeft)
@@ -515,7 +515,7 @@ rotation_registry:register_middleware({
             -- War Stomp (Tauren racial, PBAoE stun) — check stun immunity
             if context.in_melee_range
                 and A.WarStomp:IsReady(PLAYER_UNIT)
-                and A.WarStomp:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForStun)
+                and A.WarStomp:AbsentImun(TARGET_UNIT, Constants.PVP.AuraForStun)
             then
                 return A.WarStomp:Show(icon), format("[MW] War Stomp (interrupt) - Cast: %.1fs", castLeft)
             end
@@ -732,7 +732,7 @@ rotation_registry:register_middleware({
         if context.is_pvp and context.settings.pvp_enabled and context.target_is_player then
             local cc_remain = Unit(TARGET_UNIT):InCC() or 0
             if cc_remain > 2 then return false end
-            if not A.DeathWish:AbsentImun(TARGET_UNIT, Constants.Temp.AttackTypes) then return false end
+            if not A.DeathWish:AbsentImun(TARGET_UNIT, Constants.PVP.AttackTypes) then return false end
         end
         return true
     end,
@@ -768,7 +768,7 @@ rotation_registry:register_middleware({
         if context.is_pvp and context.settings.pvp_enabled and context.target_is_player then
             local cc_remain = Unit(TARGET_UNIT):InCC() or 0
             if cc_remain > 2 then return false end
-            if not A.Recklessness:AbsentImun(TARGET_UNIT, Constants.Temp.AttackTypes) then return false end
+            if not A.Recklessness:AbsentImun(TARGET_UNIT, Constants.PVP.AttackTypes) then return false end
         end
         return true
     end,
@@ -860,7 +860,7 @@ rotation_registry:register_middleware({
         end
 
         -- Check disarm immunity
-        if not A.Disarm:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForDisarm) then return false end
+        if not A.Disarm:AbsentImun(TARGET_UNIT, Constants.PVP.AuraForDisarm) then return false end
 
         -- Check DR on disarm category
         if not Unit(TARGET_UNIT):IsControlAble("disarm") then return false end
@@ -990,7 +990,7 @@ rotation_registry:register_middleware({
         if not context.target_is_player then return false end
         if not context.in_melee_range then return false end
         -- Check slow immunity (Freedom, FAP, CCTotalImun)
-        if not A.Hamstring:AbsentImun(TARGET_UNIT, Constants.Temp.AuraForSlow) then return false end
+        if not A.Hamstring:AbsentImun(TARGET_UNIT, Constants.PVP.AuraForSlow) then return false end
         -- Skip if Hamstring already active (> 1s remaining for refresh window)
         local hamstring_dur = Unit(TARGET_UNIT):HasDeBuffs(A.Hamstring.ID, true) or 0
         if hamstring_dur > 1 then return false end
@@ -1063,7 +1063,7 @@ rotation_registry:register_middleware({
         local rend_dur = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.REND, true) or 0
         if rend_dur > 2 then return false end
         -- Check immunity
-        if not A.Rend:AbsentImun(TARGET_UNIT, Constants.Temp.AttackTypes) then return false end
+        if not A.Rend:AbsentImun(TARGET_UNIT, Constants.PVP.AttackTypes) then return false end
         return true
     end,
 
@@ -1386,7 +1386,11 @@ rotation_registry:register_middleware({
         if not context.settings.use_auto_tab then return false end
         if A.IsInPvP then return false end
         if context.is_mounted then return false end
-        if not context.in_combat then return false end
+        if not context.in_combat then
+            tab_state.desired_unit = nil
+            tab_state.attempts = 0
+            return false
+        end
         -- Grace period: don't override manual targeting in the first 3s of combat
         if context.combat_time < 3 then return false end
 

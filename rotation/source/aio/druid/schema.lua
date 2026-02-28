@@ -83,39 +83,34 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 
     -- Tab 2: Cat (Feral DPS)
     [2] = { name = "Cat", sections = {
-        { header = "Powershift", settings = {
-            { type = "checkbox", key = "auto_powershift", default = true, label = "Auto Powershift", tooltip = "Shift out/in for energy. Wolfshead Helm auto-detected." },
-            { type = "slider", key = "powershift_min_mana", default = 25, min = 10, max = 90, label = "Min Mana for Powershift (%)", tooltip = "Minimum mana % to powershift.", format = "%d%%" },
-            { type = "checkbox", key = "use_super_sapper", default = false, label = "Use Super Sapper Charge", tooltip = "Use Super Sapper when shifting vs 3+ enemies or bosses. Requires DMH addon installed." },
-            { type = "checkbox", key = "use_goblin_sapper", default = false, label = "Use Goblin Sapper Charge", tooltip = "Use Goblin Sapper when shifting vs 3+ enemies or bosses. Requires DMH addon installed." },
-        }},
-        { header = "Rip", settings = {
+        { header = "Bleeds", settings = {
             { type = "checkbox", key = "maintain_rip", default = true, label = "Maintain Rip", tooltip = "Keep Rip bleed DoT active." },
             { type = "checkbox", key = "rip_only_elites", default = false, label = "Rip Only Elites/Bosses", tooltip = "Only Rip elite or boss targets." },
             { type = "slider", key = "rip_min_cp", default = 4, min = 4, max = 5, label = "Rip Min Combo Points", tooltip = "Minimum combo points for Rip.", format = "%d" },
             { type = "slider", key = "rip_refresh", default = 0, min = 0, max = 5, label = "Rip Refresh (sec)", tooltip = "Prepare refresh this many seconds before expiry.", format = "%d sec" },
             { type = "slider", key = "rip_min_ttd", default = 12, min = 8, max = 20, label = "Rip Min TTD (sec)", tooltip = "Only Rip if target lives at least this long.", format = "%d sec" },
-        }},
-        { header = "Rake", settings = {
             { type = "checkbox", key = "maintain_rake", default = true, label = "Maintain Rake", tooltip = "Keep Rake bleed active." },
             { type = "slider", key = "rake_refresh", default = 0, min = 0, max = 4, label = "Rake Refresh (sec)", tooltip = "Refresh Rake with this many seconds remaining.", format = "%d sec" },
         }},
-        { header = "Tiger's Fury", settings = {
-            { type = "checkbox", key = "use_tigers_fury", default = false, label = "Use Tiger's Fury", tooltip = "Normally not worth using rotationally. Enable for casual play." },
-            { type = "slider", key = "tigers_fury_energy", default = 100, min = 30, max = 100, label = "Tiger's Fury Min Energy", tooltip = "Only use above this energy.", format = "%d" },
-        }},
-        { header = "Ferocious Bite", settings = {
+        { header = "Finishers", settings = {
             { type = "slider", key = "fb_min_energy", default = 35, min = 35, max = 70, label = "FB Min Energy", tooltip = "Only Bite above this energy. 35 is optimal.", format = "%d" },
             { type = "slider", key = "fb_min_rip_duration", default = 6, min = 0, max = 12, label = "FB Min Rip Duration (sec)", tooltip = "Only Bite when Rip has more than this remaining.", format = "%d sec" },
-        }},
-        { header = "Execute", settings = {
             { type = "slider", key = "bite_execute_hp", default = 25, min = 10, max = 35, label = "Bite Execute HP (%)", tooltip = "Bite aggressively when target HP below this.", format = "%d%%" },
             { type = "slider", key = "bite_execute_ttd", default = 6, min = 4, max = 12, label = "Bite Execute TTD (sec)", tooltip = "Use Bite instead of Rip when target dies within this.", format = "%d sec" },
         }},
-        { header = "Opener", settings = {
+        { header = "Opener & Stealth", settings = {
             { type = "checkbox", key = "use_opener", default = true, label = "Use Combat Opener", tooltip = "Optimal opener from stealth (Ravage behind, Shred otherwise)." },
             { type = "checkbox", key = "use_mangle_opener", default = false, label = "Mangle Fallback Opener", tooltip = "Use Mangle as opener when not behind target." },
-            { type = "checkbox", key = "use_rake_trick", default = true, label = "Use Energy Tricks", tooltip = "Rake/Bite trick at 35-39 energy before powershift." },
+            { type = "checkbox", key = "focus_prowl", default = true, label = "Prowl on Focus", tooltip = "Auto-Prowl when focus target is nearby." },
+            { type = "slider", key = "prowl_distance", default = 30, min = 10, max = 50, label = "Prowl Distance (yards)", tooltip = "Only Prowl within this distance.", format = "%d yd" },
+        }},
+        { header = "Energy Management", settings = {
+            { type = "checkbox", key = "auto_powershift", default = true, label = "Auto Powershift", tooltip = "Shift out/in for energy. Wolfshead Helm auto-detected." },
+            { type = "slider", key = "powershift_min_mana", default = 25, min = 10, max = 90, label = "Min Mana for Powershift (%)", tooltip = "Minimum mana % to powershift.", format = "%d%%" },
+            { type = "checkbox", key = "use_super_sapper", default = false, label = "Use Super Sapper Charge", tooltip = "Use Super Sapper when shifting vs 3+ enemies or bosses. Requires DMH addon installed." },
+            { type = "checkbox", key = "use_goblin_sapper", default = false, label = "Use Goblin Sapper Charge", tooltip = "Use Goblin Sapper when shifting vs 3+ enemies or bosses. Requires DMH addon installed." },
+            { type = "checkbox", key = "use_tigers_fury", default = false, label = "Use Tiger's Fury", tooltip = "Normally not worth using rotationally. Enable for casual play." },
+            { type = "slider", key = "tigers_fury_energy", default = 100, min = 30, max = 100, label = "Tiger's Fury Min Energy", tooltip = "Only use above this energy.", format = "%d" },
         }},
         { header = "AoE", settings = {
             { type = "checkbox", key = "enable_aoe", default = true, label = "Enable AoE", tooltip = "Enable AoE rotation when multiple enemies detected." },
@@ -123,9 +118,11 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "spread_rake", default = true, label = "Spread Rake", tooltip = "Apply Rake to multiple targets in AoE." },
             { type = "slider", key = "max_rake_targets", default = 4, min = 2, max = 6, label = "Max Rake Targets", tooltip = "Maximum targets to maintain Rake on.", format = "%d" },
         }},
-        { header = "Focus & Prowl", settings = {
-            { type = "checkbox", key = "focus_prowl", default = true, label = "Prowl on Focus", tooltip = "Auto-Prowl when focus target is nearby." },
-            { type = "slider", key = "prowl_distance", default = 30, min = 10, max = 50, label = "Prowl Distance (yards)", tooltip = "Only Prowl within this distance.", format = "%d yd" },
+        { header = "Advanced", settings = {
+            { type = "checkbox", key = "use_bite_trick", default = true, label = "Use Bite Trick", tooltip = "Low-energy Ferocious Bite dump at 35-39 energy to avoid wasting combo points before powershift." },
+            { type = "checkbox", key = "use_rake_trick", default = true, label = "Use Rake Trick", tooltip = "Low-energy Rake filler below Mangle cost to squeeze in damage before powershift." },
+            { type = "checkbox", key = "cat_tick_optimization", default = false, label = "Mangle Over Shred (Tick Opt)",
+              tooltip = "When enabled, uses Mangle instead of Shred at 60-61 energy if an energy tick is imminent. Two Mangles can fit where one Shred + dead GCD would. Off = always Shred when behind." },
         }},
     }},
 
@@ -164,10 +161,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "tab_spread_lacerate", default = true, label = "Spread Lacerate", tooltip = "Switch targets to spread Lacerate stacks on 2-3 target packs for DPS optimization." },
         }},
         { header = "Rage Management", settings = {
-            { type = "slider", key = "maul_rage_threshold", default = 40, min = 15, max = 80, label = "Maul Rage Threshold", tooltip = "Queue Maul above this rage. Lower = more DPS but drains rage faster. 40 recommended.", format = "%d" },
+            { type = "slider", key = "maul_rage_threshold", default = 25, min = 15, max = 80, label = "Maul Rage Threshold", tooltip = "Queue Maul above this rage. Lower = more Maul casts and threat. Higher = preserve rage for GCD abilities. 25 recommended for boss fights.", format = "%d" },
             { type = "slider", key = "mangle_rage_threshold", default = 15, min = 15, max = 80, label = "Mangle Rage Threshold", tooltip = "Mangle is your highest-damage ability. 15 = on cooldown (recommended). Raise only if rage-starved.", format = "%d" },
             { type = "slider", key = "swipe_rage_threshold", default = 15, min = 15, max = 80, label = "Swipe Rage Threshold", tooltip = "Only Swipe above this rage. 15 = on cooldown (minimum cost). Raise to preserve rage for higher-priority abilities.", format = "%d" },
-            { type = "slider", key = "swipe_min_targets", default = 2, min = 1, max = 4, label = "Swipe AoE Threshold", tooltip = "At this many enemies, Swipe takes priority over Mangle (AoE mode). Below this, Swipe is only used as filler when Lacerate is maintained.", format = "%d" },
+            { type = "slider", key = "swipe_min_targets", default = 2, min = 1, max = 4, label = "Swipe AoE Threshold", tooltip = "At this many enemies, Swipe takes priority over Mangle (AoE mode). Below this, Swipe is used as primary GCD filler between Mangle cooldowns.", format = "%d" },
             { type = "checkbox", key = "swipe_cc_check", default = true, label = "Swipe CC Safety", tooltip = "Skip Swipe when a nearby mob has breakable CC (Polymorph, Trap, Sap, etc). Prevents breaking crowd control." },
         }},
         { header = "Emergency Abilities", settings = {

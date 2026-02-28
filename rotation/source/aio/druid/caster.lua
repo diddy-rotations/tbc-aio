@@ -259,7 +259,7 @@ do
 
    -- [6-8] Self-buffs (OOC only)
    local Caster_MotW = create_self_buff_strategy(A.SelfMarkOfTheWild, "Mark of the Wild", MOTW_GOTW_BUFF_IDS, "use_motw", true)
-   local Caster_Thorns = create_self_buff_strategy(A.SelfThorns, "Thorns", nil, "use_thorns")
+   local Caster_Thorns = create_self_buff_strategy(A.SelfThorns, "Thorns", NS.THORNS_BUFF_IDS, "use_thorns")
    local Caster_OoC = create_self_buff_strategy(A.SelfOmenOfClarity, "Omen of Clarity", nil, "use_ooc")
 
    -- Register all caster strategies (array order = execution priority)

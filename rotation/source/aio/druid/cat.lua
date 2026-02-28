@@ -327,7 +327,8 @@ local function get_cat_state(context)
    -- Tick optimization: prefer Mangle over Shred when energy is in the dead zone
    -- and a tick arrives within 1s (avoids a dead GCD after Shred + tick)
    -- Note: no is_behind gate — when not behind, MangleBuilder fires anyway via its own check
-   cat_state.prefer_mangle_for_tick = energy >= TICK_OPT_MANGLE_LOW and energy <= TICK_OPT_MANGLE_HIGH
+   cat_state.prefer_mangle_for_tick = settings.cat_tick_optimization
+      and energy >= TICK_OPT_MANGLE_LOW and energy <= TICK_OPT_MANGLE_HIGH
       and energy_tick.confident and energy_tick:time_until_next_tick() < TICK_OPT_THRESHOLD
 
    -- mangle_now: should we refresh Mangle debuff?
@@ -761,7 +762,7 @@ local Cat_BiteTrick = {
    min_energy = ENERGY_COST_BITE,
    min_cp = 3,
    spell = A.FerociousBite,
-   setting_key = "use_rake_trick",
+   setting_key = "use_bite_trick",
    matches = function(context, state)
       if state.pooling then return false end
       if state.rip_needs_refresh_soon then return false end
