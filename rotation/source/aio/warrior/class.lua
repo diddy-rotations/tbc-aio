@@ -83,6 +83,19 @@ Action[A.PlayerClass] = {
     Pummel             = Create({ Type = "Spell", ID = 6552 }),
     ShieldBash         = Create({ Type = "Spell", ID = 72, useMaxRank = true }),
 
+    -- PvP CC / Utility
+    Disarm             = Create({ Type = "Spell", ID = 676, Click = { macrobefore = "/stopcasting" } }),
+    IntimidatingShout  = Create({ Type = "Spell", ID = 5246, Click = { macrobefore = "/stopcasting" } }),
+    ConcussionBlow     = Create({ Type = "Spell", ID = 12809, isTalent = true, Click = { macrobefore = "/stopcasting" } }),
+    PiercingHowl       = Create({ Type = "Spell", ID = 12323, isTalent = true }),
+    Intervene          = Create({ Type = "Spell", ID = 3411 }),
+    Perception         = Create({ Type = "Spell", ID = 20600, Click = { unit = "player", type = "spell", spell = 20600 } }),
+
+    -- PvP tracking (hidden, for buff/debuff condition checks)
+    Evasion            = Create({ Type = "Spell", ID = 26669, Hidden = true }),
+    Deterrence         = Create({ Type = "Spell", ID = 19263, Hidden = true }),
+    FreeActionPotion   = Create({ Type = "Spell", ID = 6615, Hidden = true }),
+
     -- Talents (hidden, for rank queries)
     TacticalMastery    = Create({ Type = "Spell", ID = 12295, Hidden = true, isTalent = true }),
 
@@ -90,26 +103,26 @@ Action[A.PlayerClass] = {
     PowerWordShield    = Create({ Type = "Spell", ID = 17,   Click = { type = "cancelaura" } }),
     BlessingOfProtection = Create({ Type = "Spell", ID = 1022, Click = { type = "cancelaura" } }),
 
-    -- Items
-    SuperHealingPotion = Create({ Type = "Item", ID = 22829, Click = { unit = "player", type = "item", item = 22829 } }),
-    MajorHealingPotion = Create({ Type = "Item", ID = 13446, Click = { unit = "player", type = "item", item = 13446 } }),
+    -- Items (No Click table — MetaEngine auto-generates secure bindings)
+    SuperHealingPotion = Create({ Type = "Potion", ID = 22829, QueueForbidden = true }),
+    MajorHealingPotion = Create({ Type = "Potion", ID = 13446, QueueForbidden = true }),
     -- Healthstones
-    HealthstoneMaster  = Create({ Type = "Item", ID = 22105, Click = { unit = "player", type = "item", item = 22105 } }),
-    HealthstoneMajor   = Create({ Type = "Item", ID = 22104, Click = { unit = "player", type = "item", item = 22104 } }),
+    HealthstoneMaster  = Create({ Type = "Item", ID = 22105, QueueForbidden = true }),
+    HealthstoneMajor   = Create({ Type = "Item", ID = 22104, QueueForbidden = true }),
 
     -- Bandages (descending quality for DetermineUsableObject)
-    HeavyNetherweaveBandage = Create({ Type = "Item", ID = 21991, Click = { unit = "player", type = "item", item = 21991 } }),
-    NetherweaveBandage      = Create({ Type = "Item", ID = 21990, Click = { unit = "player", type = "item", item = 21990 } }),
-    HeavyRuneclothBandage   = Create({ Type = "Item", ID = 14530, Click = { unit = "player", type = "item", item = 14530 } }),
-    RuneclothBandage        = Create({ Type = "Item", ID = 14529, Click = { unit = "player", type = "item", item = 14529 } }),
-    HeavyMageweaveBandage   = Create({ Type = "Item", ID = 8545,  Click = { unit = "player", type = "item", item = 8545 } }),
-    MageweaveBandage        = Create({ Type = "Item", ID = 8544,  Click = { unit = "player", type = "item", item = 8544 } }),
-    HeavySilkBandage        = Create({ Type = "Item", ID = 6451,  Click = { unit = "player", type = "item", item = 6451 } }),
-    SilkBandage             = Create({ Type = "Item", ID = 6450,  Click = { unit = "player", type = "item", item = 6450 } }),
-    HeavyWoolBandage        = Create({ Type = "Item", ID = 3531,  Click = { unit = "player", type = "item", item = 3531 } }),
-    WoolBandage             = Create({ Type = "Item", ID = 3530,  Click = { unit = "player", type = "item", item = 3530 } }),
-    HeavyLinenBandage       = Create({ Type = "Item", ID = 2581,  Click = { unit = "player", type = "item", item = 2581 } }),
-    LinenBandage            = Create({ Type = "Item", ID = 1251,  Click = { unit = "player", type = "item", item = 1251 } }),
+    HeavyNetherweaveBandage = Create({ Type = "Item", ID = 21991, QueueForbidden = true }),
+    NetherweaveBandage      = Create({ Type = "Item", ID = 21990, QueueForbidden = true }),
+    HeavyRuneclothBandage   = Create({ Type = "Item", ID = 14530, QueueForbidden = true }),
+    RuneclothBandage        = Create({ Type = "Item", ID = 14529, QueueForbidden = true }),
+    HeavyMageweaveBandage   = Create({ Type = "Item", ID = 8545,  QueueForbidden = true }),
+    MageweaveBandage        = Create({ Type = "Item", ID = 8544,  QueueForbidden = true }),
+    HeavySilkBandage        = Create({ Type = "Item", ID = 6451,  QueueForbidden = true }),
+    SilkBandage             = Create({ Type = "Item", ID = 6450,  QueueForbidden = true }),
+    HeavyWoolBandage        = Create({ Type = "Item", ID = 3531,  QueueForbidden = true }),
+    WoolBandage             = Create({ Type = "Item", ID = 3530,  QueueForbidden = true }),
+    HeavyLinenBandage       = Create({ Type = "Item", ID = 2581,  QueueForbidden = true }),
+    LinenBandage            = Create({ Type = "Item", ID = 1251,  QueueForbidden = true }),
 }
 
 -- ============================================================================
@@ -173,6 +186,17 @@ local Constants = {
     SUNDER_REFRESH_WINDOW    = 3,
     TC_REFRESH_WINDOW        = 2,
     RAMPAGE_MAX_STACKS       = 5,
+
+    -- PvP immunity check tables (for AbsentImun calls)
+    -- Keys match AuraList categories in the framework
+    Temp = {
+        AttackTypes       = { "TotalImun", "DamagePhysImun" },
+        AuraForInterrupt  = { "TotalImun", "DamagePhysImun", "KickImun" },
+        AuraForFear       = { "TotalImun", "DamagePhysImun", "FearImun" },
+        AuraForStun       = { "TotalImun", "DamagePhysImun", "CCTotalImun", "StunImun" },
+        AuraForSlow       = { "TotalImun", "DamagePhysImun", "CCTotalImun", "Freedom" },
+        AuraForDisarm     = { "TotalImun", "DamagePhysImun", "CCTotalImun" },
+    },
 
     -- Taunt thresholds (matching Druid Growl/Challenging Roar pattern)
     TAUNT = {
@@ -243,6 +267,32 @@ rotation_registry:register_class({
         ctx.stance = Player:GetStance()
         ctx.rage = Player:Rage()
         ctx.enemy_count = MultiUnits:GetByRangeInCombat(8) or 0
+
+        -- Sync framework AutoTarget with our use_auto_tab setting:
+        -- When our smart Auto Tab is enabled, disable the native one (we manage targeting).
+        -- When ours is off, let the framework handle auto-targeting.
+        local our_auto_tab = ctx.settings.use_auto_tab
+        local native_auto_target = A.GetToggle(1, "AutoTarget")
+        if our_auto_tab and native_auto_target then
+            A.SetToggle({1, "AutoTarget"}, false)
+        elseif not our_auto_tab and not native_auto_target then
+            A.SetToggle({1, "AutoTarget"}, true)
+        end
+
+        -- PvP state (framework-managed, auto-detects BG/arena/flagged)
+        ctx.is_pvp = A.IsInPvP or false
+        ctx.is_arena = A.Zone == "arena"
+        ctx.is_battleground = A.Zone == "pvp"
+        ctx.target_is_player = ctx.target_exists and _G.UnitIsPlayer("target") or false
+
+        -- PvP: CC break prevention flag — true if any nearby enemy has breakable CC
+        -- Strategies check this before firing AoE (WW, Cleave, TC, Demo Shout)
+        if ctx.is_pvp then
+            local ok = A.EnemyTeam(nil):IsBreakAble(8)
+            ctx.has_breakable_cc_nearby = ok or false
+        else
+            ctx.has_breakable_cc_nearby = false
+        end
 
         -- Buff tracking
         ctx.has_battle_shout = (Unit("player"):HasBuffs(Constants.BUFF_ID.BATTLE_SHOUT) or 0) > 0

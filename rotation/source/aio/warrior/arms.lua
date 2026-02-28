@@ -172,6 +172,8 @@ local Arms_Whirlwind = {
     setting_key = "arms_use_whirlwind",
 
     matches = function(context, state)
+        -- PvP CC break prevention: WW is PBAoE, skip if breakable CC nearby
+        if context.has_breakable_cc_nearby and context.settings.pvp_cc_break_check then return false end
         -- During execute phase, check setting
         if state.target_below_20 and context.settings.arms_execute_phase then
             if not context.settings.arms_use_ww_execute then return false end
@@ -279,6 +281,8 @@ local Arms_ThunderClap = {
     setting_key = "maintain_thunder_clap",
 
     matches = function(context, state)
+        -- PvP CC break prevention: TC is PBAoE
+        if context.has_breakable_cc_nearby and context.settings.pvp_cc_break_check then return false end
         if state.thunder_clap_duration > 2 then return false end
         -- TC requires Battle or Defensive Stance (not Berserker)
         return A.ThunderClap:IsReady(TARGET_UNIT)
@@ -297,6 +301,8 @@ local Arms_DemoShout = {
     setting_key = "maintain_demo_shout",
 
     matches = function(context, state)
+        -- PvP CC break prevention: Demo Shout is PBAoE
+        if context.has_breakable_cc_nearby and context.settings.pvp_cc_break_check then return false end
         if state.demo_shout_duration > 3 then return false end
         return A.DemoralizingShout:IsReady(PLAYER_UNIT)
     end,
@@ -356,7 +362,9 @@ local Arms_HeroicStrike = {
     execute = function(icon, context, state)
         -- Auto Cleave/HS: use Cleave at threshold, HS otherwise
         local cleave_at = context.settings.aoe_threshold or 2
-        if cleave_at > 0 and context.enemy_count >= cleave_at and A.Cleave:IsReady(TARGET_UNIT) then
+        -- PvP CC break prevention: Cleave can hit CC'd target
+        local cc_safe = not (context.has_breakable_cc_nearby and context.settings.pvp_cc_break_check)
+        if cc_safe and cleave_at > 0 and context.enemy_count >= cleave_at and A.Cleave:IsReady(TARGET_UNIT) then
             return A.Cleave:Show(icon), format("[ARMS] Cleave - Rage: %d, Enemies: %d", context.rage, context.enemy_count)
         end
 
