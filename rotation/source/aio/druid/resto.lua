@@ -26,8 +26,6 @@ if not NS.scan_healing_targets then
    return
 end
 
-print("|cFFFFFF00[DIAG]|r Resto: starting imports...")
-
 -- Import commonly used references
 local A = NS.A
 local Constants = NS.Constants
@@ -51,8 +49,6 @@ local AuraIsValid = A.AuraIsValid
 -- Lua optimizations
 local named = NS.named
 local format = string.format
-
-print("|cFFFFFF00[DIAG]|r Resto: imports done, defining strategies...")
 
 -- Lifebloom spell ID (single rank in TBC)
 local LIFEBLOOM_ID = 33763

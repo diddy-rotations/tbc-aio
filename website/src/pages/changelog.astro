@@ -15,6 +15,20 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.8.1 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3>Druid &amp; Paladin Healing</h3>
+      <ul class="features">
+        <li><strong>Heal Prediction</strong> &mdash; New <code>predict_effective_deficit()</code> accounts for incoming heals, HoTs, absorbs, and incoming damage over the cast window. Healing targets now sorted by effective HP (predicted need) instead of raw HP, reducing overhealing.</li>
+        <li><strong>IsReady Fix</strong> &mdash; All heal rank checks now verify cooldown/mana against the caster (<code>"player"</code>) instead of the heal target, fixing false negatives on out-of-range targets.</li>
+        <li><strong>Resto Pre-Healing</strong> &mdash; Removed <code>requires_combat</code> from all Druid resto strategies (Swiftmend, Lifebloom, Rejuv, dispels, Tranquility) so healers can pre-heal before combat starts.</li>
+        <li><strong>Druid Form Detection</strong> &mdash; Tree of Life and Moonkin now detected via buff instead of hardcoded stance index, fixing misdetection when form bar positions vary per character.</li>
+        <li><strong>Shared Heal Cast Helpers</strong> &mdash; New <code>try_heal_cast</code> / <code>try_heal_cast_fmt</code> in core for consistent healing spell casting across classes.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.8.0 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-feature">Feature</span>
 

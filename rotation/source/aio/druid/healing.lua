@@ -22,8 +22,6 @@ if not NS.HEALING_TOUCH_RANKS then
    return
 end
 
-print("|cFFFFFF00[DIAG]|r Healing: starting imports...")
-
 -- Import commonly used references
 local A = NS.A
 local Constants = NS.Constants
@@ -40,8 +38,6 @@ local REGROWTH_RANKS = NS.REGROWTH_RANKS
 local REJUVENATION_RANKS = NS.REJUVENATION_RANKS
 local REJUVENATION_BUFF_IDS = NS.REJUVENATION_BUFF_IDS
 local REGROWTH_BUFF_IDS = NS.REGROWTH_BUFF_IDS
-
-print("|cFFFFFF00[DIAG]|r Healing: imports done, defining functions...")
 
 -- Lua optimizations
 local tsort = table.sort
@@ -353,8 +349,6 @@ local function cast_best_heal_rank(ranks, icon, target, context, context_msg, op
    end
    return nil, nil
 end
-
-print("|cFFFFFF00[DIAG]|r Healing: functions defined, exporting...")
 
 -- ============================================================================
 -- EXPORT TO NAMESPACE
