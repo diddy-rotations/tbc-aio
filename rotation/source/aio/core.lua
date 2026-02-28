@@ -715,6 +715,56 @@ end
 NS.try_cast = try_cast
 NS.try_cast_fmt = try_cast_fmt
 
+-- Healing variants: IsReady("player") + HE.SetTarget for party/raid targeting.
+-- scan_healing_targets() already handles range, so "player" check (CD + mana) is sufficient.
+local function try_heal_cast(spell, icon, target_unit, log_message)
+   if not is_spell_available(spell) then return nil end
+   if not spell:IsReady(PLAYER_UNIT) then return nil end
+   local result = safe_heal_cast(spell, icon, target_unit)
+   if result then return result, log_message end
+   return nil
+end
+
+local function try_heal_cast_fmt(spell, icon, target_unit, prefix, name, info_fmt, ...)
+   if not is_spell_available(spell) then return nil end
+   if not spell:IsReady(PLAYER_UNIT) then return nil end
+   local result = safe_heal_cast(spell, icon, target_unit)
+   if result then
+      if info_fmt then
+         return result, format("%s %s - " .. info_fmt, prefix, name, ...)
+      end
+      return result, format("%s %s", prefix, name)
+   end
+   return nil
+end
+
+NS.try_heal_cast = try_heal_cast
+NS.try_heal_cast_fmt = try_heal_cast_fmt
+
+-- ============================================================================
+-- HEAL PREDICTION
+-- Estimates effective health deficit accounting for incoming heals, HoTs,
+-- absorbs, and incoming damage over a cast-time window.
+-- Uses LibHealComm/framework APIs: GetIncomingHeals, GetHEAL, GetDMG, GetAbsorb.
+-- ============================================================================
+local function predict_effective_deficit(unitID, castTime)
+   castTime = castTime or 1.5
+   local deficit = Unit(unitID):HealthDeficit() or 0
+   if deficit <= 0 then return 0 end
+
+   local inc_heal = Unit(unitID):GetIncomingHeals(castTime) or 0
+   local hot_hps = Unit(unitID):GetHEAL() or 0
+   local hot_heal = hot_hps * castTime
+   local absorb = Unit(unitID):GetAbsorb() or 0
+   local inc_dmg_dps = Unit(unitID):GetDMG() or 0
+   local inc_dmg = inc_dmg_dps * castTime
+
+   local effective = deficit - inc_heal - hot_heal - absorb + inc_dmg
+   return effective > 0 and effective or 0
+end
+
+NS.predict_effective_deficit = predict_effective_deficit
+
 -- ============================================================================
 -- DEBUFF/BUFF HELPERS
 -- ============================================================================

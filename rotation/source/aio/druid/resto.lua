@@ -26,12 +26,15 @@ if not NS.scan_healing_targets then
    return
 end
 
+print("|cFFFFFF00[DIAG]|r Resto: starting imports...")
+
 -- Import commonly used references
 local A = NS.A
 local Constants = NS.Constants
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local try_cast_fmt = NS.try_cast_fmt
+local try_heal_cast_fmt = NS.try_heal_cast_fmt
 local is_spell_available = NS.is_spell_available
 local cast_best_heal_rank = NS.cast_best_heal_rank
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
@@ -48,6 +51,8 @@ local AuraIsValid = A.AuraIsValid
 -- Lua optimizations
 local named = NS.named
 local format = string.format
+
+print("|cFFFFFF00[DIAG]|r Resto: imports done, defining strategies...")
 
 -- Lifebloom spell ID (single rank in TBC)
 local LIFEBLOOM_ID = 33763
@@ -102,8 +107,8 @@ local function get_resto_state(context)
             resto_state.lowest = entry
          end
 
-         -- Emergency count
-         if entry.hp < emergency_hp then
+         -- Emergency count (use effective_hp to avoid overcounting when heals are incoming)
+         if entry.effective_hp < emergency_hp then
             resto_state.emergency_count = resto_state.emergency_count + 1
          end
 
@@ -142,24 +147,22 @@ end
 do
    -- [1] Emergency Swiftmend (instant burst on critically low target with HoT)
    local Resto_EmergencySwiftmend = {
-      requires_combat = true,
       matches = function(context, state)
          if state.emergency_count == 0 then return false end
          if not is_spell_available(A.Swiftmend) then return false end
          local target = get_lowest_hp_target(context.settings.resto_emergency_hp or Constants.RESTO.EMERGENCY_HP)
-         return target and (target.has_rejuv or target.has_regrowth) and A.Swiftmend:IsReady(target.unit)
+         return target and (target.has_rejuv or target.has_regrowth) and A.Swiftmend:IsReady(PLAYER_UNIT)
       end,
       execute = function(icon, context, state)
          local target = get_lowest_hp_target(context.settings.resto_emergency_hp or Constants.RESTO.EMERGENCY_HP)
          if not target then return nil end
-         return try_cast_fmt(A.Swiftmend, icon, target.unit, "[P15]", "EMERGENCY Swiftmend",
+         return try_heal_cast_fmt(A.Swiftmend, icon, target.unit, "[P15]", "EMERGENCY Swiftmend",
                              "on %s (%.0f%%)", target.unit, target.hp)
       end,
    }
 
    -- [2] Emergency NS + Regrowth (instant big heal, both castable in Tree form)
    local Resto_EmergencyNSRegrowth = {
-      requires_combat = true,
       matches = function(context, state)
          if state.emergency_count == 0 then return false end
          if not is_spell_available(A.NaturesSwiftness) then return false end
@@ -170,7 +173,7 @@ do
          if not target then return nil end
          -- Fire NS (self-buff), then max-rank Regrowth will be instant next frame
          A.NaturesSwiftness:Show(icon)
-         return try_cast_fmt(A.Regrowth10, icon, target.unit, "[P14]", "EMERGENCY NS+Regrowth",
+         return try_heal_cast_fmt(A.Regrowth10, icon, target.unit, "[P14]", "EMERGENCY NS+Regrowth",
                              "on %s (%.0f%%)", target.unit, target.hp)
       end,
    }
@@ -191,7 +194,6 @@ do
 
    -- [4] Lifebloom Tank (core Tree mechanic: maintain 3-stack rolling on tank)
    local Resto_LifebloomTank = {
-      requires_combat = true,
       matches = function(context, state)
          if not state.tank then return false end
          if not is_spell_available(A.Lifebloom) then return false end
@@ -206,10 +208,10 @@ do
       end,
       execute = function(icon, context, state)
          local tank = state.tank
-         if not tank or not A.Lifebloom:IsReady(tank.unit) then return nil end
+         if not tank or not A.Lifebloom:IsReady(PLAYER_UNIT) then return nil end
          local action = (state.tank_lb_stacks >= 3) and "Refresh"
             or format("Stack %d->%d", state.tank_lb_stacks, state.tank_lb_stacks + 1)
-         return try_cast_fmt(A.Lifebloom, icon, tank.unit, "[P10]", "Tank Lifebloom",
+         return try_heal_cast_fmt(A.Lifebloom, icon, tank.unit, "[P10]", "Tank Lifebloom",
                              "%s on %s (%.0f%%) [%.0fs left]",
                              action, tank.unit, tank.hp, state.tank_lb_duration)
       end,
@@ -217,25 +219,23 @@ do
 
    -- [5] Swiftmend Urgent (burst heal on moderate-low target with HoT)
    local Resto_SwiftmendUrgent = {
-      requires_combat = true,
       matches = function(context, state)
          if not is_spell_available(A.Swiftmend) then return false end
          local threshold = context.settings.resto_swiftmend_hp or Constants.RESTO.SWIFTMEND_HP
          local target = get_lowest_hp_target(threshold)
-         return target and (target.has_rejuv or target.has_regrowth) and A.Swiftmend:IsReady(target.unit)
+         return target and (target.has_rejuv or target.has_regrowth) and A.Swiftmend:IsReady(PLAYER_UNIT)
       end,
       execute = function(icon, context, state)
          local threshold = context.settings.resto_swiftmend_hp or Constants.RESTO.SWIFTMEND_HP
          local target = get_lowest_hp_target(threshold)
          if not target then return nil end
-         return try_cast_fmt(A.Swiftmend, icon, target.unit, "[P8]", "Swiftmend",
+         return try_heal_cast_fmt(A.Swiftmend, icon, target.unit, "[P8]", "Swiftmend",
                              "on %s (%.0f%%)", target.unit, target.hp)
       end,
    }
 
    -- [6] Rejuvenation on Tank (keep HoT up for Swiftmend and steady healing)
    local Resto_RejuvTank = {
-      requires_combat = true,
       matches = function(context, state)
          if not state.tank then return false end
          if not context.settings.resto_prioritize_tank then return false end
@@ -243,15 +243,14 @@ do
       end,
       execute = function(icon, context, state)
          local tank = state.tank
-         if not tank or not A.Rejuvenation13:IsReady(tank.unit) then return nil end
-         return try_cast_fmt(A.Rejuvenation13, icon, tank.unit, "[P7]", "Tank Rejuv",
+         if not tank or not A.Rejuvenation13:IsReady(PLAYER_UNIT) then return nil end
+         return try_heal_cast_fmt(A.Rejuvenation13, icon, tank.unit, "[P7]", "Tank Rejuv",
                              "on %s (%.0f%%)", tank.unit, tank.hp)
       end,
    }
 
    -- [7] Regrowth on low HP targets (direct heal + HoT, mana-gated)
    local Resto_RegrowthLow = {
-      requires_combat = true,
       matches = function(context, state)
          local threshold = context.settings.resto_standard_heal_hp or Constants.RESTO.STANDARD_HEAL_HP
          local mana_conserve = context.settings.resto_mana_conserve or 40
@@ -273,13 +272,12 @@ do
 
    -- [8] Rejuvenation spread (HoT blanketing on injured members)
    local Resto_RejuvSpread = {
-      requires_combat = true,
       matches = function(context, state)
          local threshold = context.settings.resto_proactive_hp or Constants.RESTO.PROACTIVE_HP
          local targets, count = scan_healing_targets()
          for i = 1, count do
             local entry = targets[i]
-            if entry and entry.hp < threshold and not entry.has_rejuv then
+            if entry and entry.effective_hp < threshold and not entry.has_rejuv then
                return true
             end
          end
@@ -290,9 +288,9 @@ do
          local targets, count = scan_healing_targets()
          for i = 1, count do
             local entry = targets[i]
-            if entry and entry.hp < threshold and not entry.has_rejuv then
-               if A.Rejuvenation13:IsReady(entry.unit) then
-                  return try_cast_fmt(A.Rejuvenation13, icon, entry.unit, "[P4]", "Rejuv Spread",
+            if entry and entry.effective_hp < threshold and not entry.has_rejuv then
+               if A.Rejuvenation13:IsReady(PLAYER_UNIT) then
+                  return try_heal_cast_fmt(A.Rejuvenation13, icon, entry.unit, "[P4]", "Rejuv Spread",
                                       "on %s (%.0f%%)", entry.unit, entry.hp)
                end
             end
@@ -303,35 +301,32 @@ do
 
    -- [9] Remove Curse (party-wide, castable in Tree form)
    local Resto_DispelCurse = {
-      requires_combat = true,
       matches = function(context, state)
-         return state.cursed_target ~= nil and A.RemoveCurse:IsReady(state.cursed_target.unit)
+         return state.cursed_target ~= nil and A.RemoveCurse:IsReady(PLAYER_UNIT)
       end,
       execute = function(icon, context, state)
          local target = state.cursed_target
          if not target then return nil end
-         return try_cast_fmt(A.RemoveCurse, icon, target.unit, "[P3]", "Remove Curse",
+         return try_heal_cast_fmt(A.RemoveCurse, icon, target.unit, "[P3]", "Remove Curse",
                              "on %s (%.0f%%)", target.unit, target.hp)
       end,
    }
 
    -- [10] Abolish Poison (party-wide, castable in Tree form)
    local Resto_DispelPoison = {
-      requires_combat = true,
       matches = function(context, state)
-         return state.poisoned_target ~= nil and A.AbolishPoison:IsReady(state.poisoned_target.unit)
+         return state.poisoned_target ~= nil and A.AbolishPoison:IsReady(PLAYER_UNIT)
       end,
       execute = function(icon, context, state)
          local target = state.poisoned_target
          if not target then return nil end
-         return try_cast_fmt(A.AbolishPoison, icon, target.unit, "[P2]", "Abolish Poison",
+         return try_heal_cast_fmt(A.AbolishPoison, icon, target.unit, "[P2]", "Abolish Poison",
                              "on %s (%.0f%%)", target.unit, target.hp)
       end,
    }
 
    -- [11] Tranquility (emergency AoE heal, 10min CD, castable in Tree form)
    local Resto_Tranquility = {
-      requires_combat = true,
       matches = function(context, state)
          if state.emergency_count < 3 then return false end
          if not is_spell_available(A.Tranquility) then return false end

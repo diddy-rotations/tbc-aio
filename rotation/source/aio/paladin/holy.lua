@@ -79,10 +79,10 @@ local function get_holy_state(context)
         if entry then
             if not holy_state.lowest then
                 holy_lowest_entry.unit = entry.unit
-                holy_lowest_entry.hp   = entry.hp
+                holy_lowest_entry.hp   = entry.effective_hp
                 holy_state.lowest = holy_lowest_entry
             end
-            if entry.hp < 40 then
+            if entry.effective_hp < 40 then
                 holy_state.emergency_count = holy_state.emergency_count + 1
             end
             if not holy_state.cleanse_target and entry.needs_cleanse then

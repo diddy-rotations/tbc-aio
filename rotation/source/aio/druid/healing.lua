@@ -22,6 +22,8 @@ if not NS.HEALING_TOUCH_RANKS then
    return
 end
 
+print("|cFFFFFF00[DIAG]|r Healing: starting imports...")
+
 -- Import commonly used references
 local A = NS.A
 local Constants = NS.Constants
@@ -29,14 +31,17 @@ local Unit = NS.Unit
 local cached_settings = NS.cached_settings
 local debug_print = NS.debug_print
 local round_half = NS.round_half
-local safe_ability_cast = NS.safe_ability_cast
+local safe_heal_cast = NS.safe_heal_cast
 local get_spell_mana_cost = NS.get_spell_mana_cost
+local predict_effective_deficit = NS.predict_effective_deficit
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local HEALING_TOUCH_RANKS = NS.HEALING_TOUCH_RANKS
 local REGROWTH_RANKS = NS.REGROWTH_RANKS
 local REJUVENATION_RANKS = NS.REJUVENATION_RANKS
 local REJUVENATION_BUFF_IDS = NS.REJUVENATION_BUFF_IDS
 local REGROWTH_BUFF_IDS = NS.REGROWTH_BUFF_IDS
+
+print("|cFFFFFF00[DIAG]|r Healing: imports done, defining functions...")
 
 -- Lua optimizations
 local tsort = table.sort
@@ -168,11 +173,16 @@ local function scan_healing_targets()
 
             local entry = healing_targets[idx]
             entry.unit = unit
-            entry.hp = _G.UnitHealth(unit) / _G.UnitHealthMax(unit) * 100
+            local max_hp = _G.UnitHealthMax(unit)
+            entry.hp = _G.UnitHealth(unit) / max_hp * 100
             entry.is_player = (unit == "player")
             entry.has_aggro = unit_has_aggro(unit)
             entry.has_rejuv = has_any_rejuv(unit)
             entry.has_regrowth = has_any_regrowth(unit)
+
+            -- Effective HP accounts for incoming heals, HoTs, absorbs, and damage
+            local eff_deficit = predict_effective_deficit(unit, 1.5)
+            entry.effective_hp = max_hp > 0 and (100 - (eff_deficit / max_hp) * 100) or entry.hp
 
             local role = _G.UnitGroupRolesAssigned and _G.UnitGroupRolesAssigned(unit)
             entry.is_tank = entry.has_aggro or (role == "TANK")
@@ -182,9 +192,9 @@ local function scan_healing_targets()
 
    if healing_targets_count > 1 then
       tsort(healing_targets, function(a, b)
-         if not a or not a.hp then return false end
-         if not b or not b.hp then return true end
-         return a.hp < b.hp
+         if not a or not a.effective_hp then return false end
+         if not b or not b.effective_hp then return true end
+         return a.effective_hp < b.effective_hp
       end)
    end
 
@@ -210,7 +220,7 @@ local function get_lowest_hp_target(threshold)
 
    for i = 1, healing_targets_count do
       local entry = healing_targets[i]
-      if entry and entry.hp < threshold then
+      if entry and entry.effective_hp < threshold then
          return entry
       end
    end
@@ -223,7 +233,7 @@ local function all_members_above_hp(threshold)
 
    for i = 1, healing_targets_count do
       local entry = healing_targets[i]
-      if entry and entry.hp < threshold then
+      if entry and entry.effective_hp < threshold then
          return false
       end
    end
@@ -238,10 +248,15 @@ end
 local function cast_best_heal_rank(ranks, icon, target, context, context_msg, options)
    options = options or {}
    local max_hp = Unit(target):HealthMax()
-   local hp_deficit = max_hp - (max_hp * (Unit(target):HealthPercent() / 100))
+   local hp_deficit = predict_effective_deficit(target, options.cast_time or 1.5)
+   -- Fallback: if prediction says fully covered but target is visibly injured, use raw deficit
+   if hp_deficit <= 0 then
+      local raw = Unit(target):HealthDeficit() or 0
+      if raw > max_hp * 0.05 then hp_deficit = raw end
+   end
    local overheal_threshold = options.overheal_threshold or 1.2
    local mana_floor = options.mana_floor or 0
-   local cast_fn = options.cast_fn or safe_ability_cast
+   local cast_fn = options.cast_fn or safe_heal_cast
    local num_ranks = #ranks
    local debug_mode = cached_settings.debug_mode
 
@@ -263,7 +278,7 @@ local function cast_best_heal_rank(ranks, icon, target, context, context_msg, op
       local rank_num = num_ranks + 1 - i
       local viable = is_viable(rank_data)
       local affordable = can_afford(rank_data)
-      local ready = rank_data.spell:IsReady(target)
+      local ready = rank_data.spell:IsReady("player")
       if not (viable and affordable and ready) then
          debug_print("[HEAL CHECK]", spell_name, "R" .. rank_num,
                      "viable:", viable, "affordable:", affordable, "ready:", ready)
@@ -287,7 +302,7 @@ local function cast_best_heal_rank(ranks, icon, target, context, context_msg, op
          local rank_data = ranks[i]
          if is_viable(rank_data) then
             fallback_i, fallback_data = i, rank_data
-            if can_afford(rank_data) and rank_data.spell:IsReady(target) then
+            if can_afford(rank_data) and rank_data.spell:IsReady("player") then
                return try_cast(i, rank_data)
             end
          end
@@ -300,7 +315,7 @@ local function cast_best_heal_rank(ranks, icon, target, context, context_msg, op
       local best_eff, best_i, best_data = 0, nil, nil
       for i = 1, num_ranks do
          local rank_data = ranks[i]
-         if is_viable(rank_data) and can_afford(rank_data) and rank_data.spell:IsReady(target) then
+         if is_viable(rank_data) and can_afford(rank_data) and rank_data.spell:IsReady("player") then
             local eff = rank_data.heal / get_spell_mana_cost(rank_data.spell)
             if eff > best_eff then
                best_eff, best_i, best_data = eff, i, rank_data
@@ -313,7 +328,7 @@ local function cast_best_heal_rank(ranks, icon, target, context, context_msg, op
 
    for i = num_ranks, 1, -1 do
       local rank_data = ranks[i]
-      if is_viable(rank_data) and can_afford(rank_data) and rank_data.spell:IsReady(target) then
+      if is_viable(rank_data) and can_afford(rank_data) and rank_data.spell:IsReady("player") then
          if rank_data.heal >= hp_deficit * 0.8 then
             return try_cast(i, rank_data)
          end
@@ -324,7 +339,7 @@ local function cast_best_heal_rank(ranks, icon, target, context, context_msg, op
    for i = num_ranks, 1, -1 do
       local rank_data = ranks[i]
       debug_rank_check(i, rank_data, context_msg)
-      if is_viable(rank_data) and can_afford(rank_data) and rank_data.spell:IsReady(target) then
+      if is_viable(rank_data) and can_afford(rank_data) and rank_data.spell:IsReady("player") then
          local eff = rank_data.heal / get_spell_mana_cost(rank_data.spell)
          if eff > best_eff then
             best_eff, best_i, best_data = eff, i, rank_data
@@ -338,6 +353,8 @@ local function cast_best_heal_rank(ranks, icon, target, context, context_msg, op
    end
    return nil, nil
 end
+
+print("|cFFFFFF00[DIAG]|r Healing: functions defined, exporting...")
 
 -- ============================================================================
 -- EXPORT TO NAMESPACE
