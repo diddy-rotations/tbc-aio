@@ -40,6 +40,18 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Automatically Cleanse poison, disease, and magic (if talented) from yourself." },
             { type = "checkbox", key = "use_hammer_of_justice", default = false, label = "Hammer of Justice",
               tooltip = "Use Hammer of Justice to interrupt enemy casts (stun, may break CC)." },
+            { type = "checkbox", key = "interrupt_priority_only", default = false, label = "Priority Casts Only",
+              tooltip = "Only interrupt dangerous casts (heals, CC, big damage). Skip filler casts." },
+            { type = "dropdown", key = "interrupt_scope", default = "all", label = "Interrupt Scope",
+              tooltip = "Which targets to interrupt based on classification.",
+              options = {
+                  { text = "All Targets", value = "all" },
+                  { text = "Elites + Bosses", value = "elite" },
+                  { text = "Bosses Only", value = "boss" },
+              },
+            },
+            { type = "slider", key = "interrupt_delay", default = 0, min = 0, max = 1, step = 0.1, label = "Interrupt Delay",
+              tooltip = "Seconds to wait before interrupting (0 = instant). Prevents wasting kicks on short casts.", format = "%.1fs" },
         }},
         { header = "Cooldown Management", settings = {
             { type = "slider", key = "cd_min_ttd", default = 0, min = 0, max = 60, label = "CD Min TTD (sec)",

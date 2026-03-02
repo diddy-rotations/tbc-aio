@@ -38,6 +38,18 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "Utility", settings = {
             { type = "checkbox", key = "use_kick", default = true, label = "Auto Kick",
               tooltip = "Interrupt enemy casts with Kick." },
+            { type = "checkbox", key = "interrupt_priority_only", default = false, label = "Priority Casts Only",
+              tooltip = "Only interrupt dangerous casts (heals, CC, big damage). Skip filler casts." },
+            { type = "dropdown", key = "interrupt_scope", default = "all", label = "Interrupt Scope",
+              tooltip = "Which targets to interrupt based on classification.",
+              options = {
+                  { text = "All Targets", value = "all" },
+                  { text = "Elites + Bosses", value = "elite" },
+                  { text = "Bosses Only", value = "boss" },
+              },
+            },
+            { type = "slider", key = "interrupt_delay", default = 0, min = 0, max = 1, step = 0.1, label = "Interrupt Delay",
+              tooltip = "Seconds to wait before interrupting (0 = instant). Prevents wasting kicks on short casts.", format = "%.1fs" },
             { type = "checkbox", key = "use_feint", default = false, label = "Auto Feint",
               tooltip = "Use Feint when tanking the target (threat reduction)." },
             { type = "checkbox", key = "use_expose_armor", default = false, label = "Expose Armor",

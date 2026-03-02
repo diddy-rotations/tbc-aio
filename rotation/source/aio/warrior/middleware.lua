@@ -402,6 +402,9 @@ rotation_registry:register_middleware({
         if not context.in_combat then return false end
         if not context.settings.use_interrupt then return false end
         if not context.has_valid_enemy_target then return false end
+        local decision = NS.should_interrupt(context)
+        if not decision then return false end
+        if decision == "normal" and context.settings.interrupt_priority_only then return false end
         return true
     end,
 
@@ -479,6 +482,16 @@ rotation_registry:register_middleware({
             end
         end
 
+        return nil
+    end,
+})
+
+NS.register_interrupt_capability("Warrior", {
+    supports_tab_target = false,
+    resolve_spell = function(context)
+        if context.stance == Constants.STANCE.BERSERKER then return A.Pummel end
+        if context.stance == Constants.STANCE.DEFENSIVE then return A.ShieldBash end
+        if (A.Pummel:GetCooldown() or 0) <= 0 then return A.Pummel end
         return nil
     end,
 })
