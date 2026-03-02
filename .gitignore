@@ -9,6 +9,9 @@ fix-vscode-claude.sh
 # Claude session data
 .claude/
 
+# Git worktrees
+.worktrees/
+
 # Temp files
 nul
 *.tmp
