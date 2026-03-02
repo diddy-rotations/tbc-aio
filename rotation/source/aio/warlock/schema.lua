@@ -59,10 +59,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "cd_min_ttd", default = 0, min = 0, max = 60, label = "CD Min TTD (sec)",
               tooltip = "Don't use major CDs (trinkets, racial) if target dies sooner than this. Set to 0 to disable.", format = "%d sec" },
         }},
-        { header = "Utility", settings = {
-            { type = "checkbox", key = "use_soulshatter", default = true, label = "Auto Soulshatter",
-              tooltip = "Use Soulshatter when threat is high (costs 1 Soul Shard)." },
-        }},
         { header = "Recovery Items", settings = {
             { type = "slider", key = "healthstone_hp", default = 35, min = 0, max = 100, label = "Healthstone HP (%)",
               tooltip = "Use Healthstone when HP drops below this. Set to 0 to disable.", format = "%d%%" },
