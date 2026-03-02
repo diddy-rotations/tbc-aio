@@ -56,29 +56,11 @@ NS.register_recovery_middleware("Warlock", {
     dark_rune = { default_pct = 30, priority_offset = -10 },
 })
 
--- ============================================================================
--- SOULSHATTER (Threat reduction)
--- ============================================================================
-rotation_registry:register_middleware({
-    name = "Warlock_Soulshatter",
-    priority = Priority.MIDDLEWARE.DISPEL_CURSE,
-    is_defensive = true,
-
-    matches = function(context)
-        if not context.settings.use_soulshatter then return false end
-        if not context.in_combat then return false end
-        if context.soul_shards < 1 then return false end
-        return true
-    end,
-
-    execute = function(icon, context)
-        -- Use when we're the tank target or about to pull aggro
-        -- IsTanking returns true when we're highest on threat — use as trigger
-        local isTanking = Unit(PLAYER_UNIT):IsTanking(TARGET_UNIT)
-        if isTanking and A.Soulshatter:IsReady(PLAYER_UNIT) then
-            return A.Soulshatter:Show(icon), "[MW] Soulshatter (threat)"
-        end
-        return nil
+-- Shared threat middleware (Soulshatter dump, soul shard gated)
+NS.register_threat_middleware("Warlock", {
+    dump_spell = A.Soulshatter,
+    dump_ready_check = function(context)
+        return context.soul_shards >= 1
     end,
 })
 

@@ -25,30 +25,6 @@ local GetNumGroupMembers = _G.GetNumGroupMembers
 
 local PLAYER_UNIT = "player"
 local TARGET_UNIT = "target"
-local MultiUnits = A.MultiUnits
-local UnitExists = _G.UnitExists
-local UnitIsUnit = _G.UnitIsUnit
-
--- Count enemies targeting the player by classification (nameplate scan)
-local UnitClassification = _G.UnitClassification
-local function count_mobs_targeting_me()
-    local plates = MultiUnits:GetActiveUnitPlates()
-    local bosses, elites, trash = 0, 0, 0
-    for unitID in pairs(plates) do
-        local tt = unitID .. "target"
-        if UnitExists(tt) and UnitIsUnit(tt, PLAYER_UNIT) then
-            local class = UnitClassification(unitID)
-            if class == "worldboss" then
-                bosses = bosses + 1
-            elseif class == "elite" or class == "rareelite" then
-                elites = elites + 1
-            else
-                trash = trash + 1
-            end
-        end
-    end
-    return bosses, elites, trash
-end
 
 -- ============================================================================
 -- DESPERATE PRAYER (Emergency self-heal — highest priority)
@@ -69,35 +45,6 @@ rotation_registry:register_middleware({
     execute = function(icon, context)
         if is_spell_available(A.DesperatePrayer) and A.DesperatePrayer:IsReady(PLAYER_UNIT) then
             return A.DesperatePrayer:Show(icon), format("[MW] Desperate Prayer - HP: %.0f%%", context.hp)
-        end
-        return nil
-    end,
-})
-
--- ============================================================================
--- FADE (Threat reduction)
--- ============================================================================
-rotation_registry:register_middleware({
-    name = "Priest_Fade",
-    priority = Priority.MIDDLEWARE.EMERGENCY_HEAL - 10,
-    is_defensive = true,
-
-    matches = function(context)
-        if not context.in_combat then return false end
-        if not context.settings.use_fade then return false end
-        -- Group-only: solo Fade is pointless (mob comes right back)
-        if context.settings.fade_group_only and (GetNumGroupMembers() or 0) == 0 then return false end
-        -- Nameplate scan: count mobs targeting us by classification
-        local bosses, elites, trash = count_mobs_targeting_me()
-        if bosses >= (context.settings.fade_min_bosses or 1) then return true end
-        if elites >= (context.settings.fade_min_elites or 1) then return true end
-        if trash >= (context.settings.fade_min_trash or 3) then return true end
-        return false
-    end,
-
-    execute = function(icon, context)
-        if A.Fade:IsReady(PLAYER_UNIT) then
-            return A.Fade:Show(icon), "[MW] Fade - threat reduction"
         end
         return nil
     end,
@@ -212,6 +159,11 @@ NS.register_recovery_middleware("Priest", {
     healing_potion = true,
     mana_potion = true,
     dark_rune = true,
+})
+
+-- Shared threat middleware (Fade dump, configurable mode/scope)
+NS.register_threat_middleware("Priest", {
+    dump_spell = A.Fade,
 })
 
 -- ============================================================================

@@ -133,29 +133,11 @@ NS.register_recovery_middleware("Rogue", {
     healing_potion = true,
 })
 
--- ============================================================================
--- FEINT (Threat reduction)
--- ============================================================================
-rotation_registry:register_middleware({
-    name = "Rogue_Feint",
-    priority = 280,
-
-    matches = function(context)
-        if not context.in_combat then return false end
-        if not context.settings.use_feint then return false end
-        if not context.has_valid_enemy_target then return false end
-        if context.energy < Constants.ENERGY.FEINT then return false end
-        -- Only use when we have significant threat (tanking the target)
-        local isTanking = Unit(PLAYER_UNIT):IsTanking(TARGET_UNIT)
-        if not isTanking then return false end
-        return true
-    end,
-
-    execute = function(icon, context)
-        if A.Feint:IsReady(TARGET_UNIT) then
-            return A.Feint:Show(icon), "[MW] Feint - Threat reduction"
-        end
-        return nil
+-- Shared threat middleware (Feint dump, energy gated)
+NS.register_threat_middleware("Rogue", {
+    dump_spell = A.Feint,
+    dump_ready_check = function(context)
+        return context.energy >= Constants.ENERGY.FEINT
     end,
 })
 

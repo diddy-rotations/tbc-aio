@@ -83,6 +83,9 @@ NS.register_recovery_middleware("Paladin", {
     dark_rune = { default_pct = 40 },
 })
 
+-- Shared threat middleware (no dump spell)
+NS.register_threat_middleware("Paladin", {})
+
 -- ============================================================================
 -- SEAL OF WISDOM (Low mana seal swap)
 -- ============================================================================
