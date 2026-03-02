@@ -22,7 +22,6 @@ local rotation_registry = NS.rotation_registry
 local Priority = NS.Priority
 local Constants = NS.Constants
 local debug_print = NS.debug_print
-local DetermineUsableObject = A.DetermineUsableObject
 local LoC = A.LossOfControl
 
 local PLAYER_UNIT = "player"
@@ -378,55 +377,11 @@ rotation_registry:register_middleware({
 })
 
 -- ============================================================================
--- HEALTHSTONE (Recovery)
+-- SHARED RECOVERY ITEMS (Healthstone, Healing Potion)
 -- ============================================================================
-rotation_registry:register_middleware({
-    name = "Warrior_Healthstone",
-    priority = Priority.MIDDLEWARE.RECOVERY_ITEMS,
-
-    matches = function(context)
-        if not context.in_combat then return false end
-        local threshold = context.settings.healthstone_hp or 0
-        if threshold <= 0 then return false end
-        if context.hp > threshold then return false end
-        return true
-    end,
-
-    execute = function(icon, context)
-        local HealthStoneObject = DetermineUsableObject(PLAYER_UNIT, true, nil, true, nil,
-            A.HealthstoneMaster, A.HealthstoneMajor)
-        if HealthStoneObject then
-            return HealthStoneObject:Show(icon), format("[MW] Healthstone - HP: %.0f%%", context.hp)
-        end
-        return nil
-    end,
-})
-
--- ============================================================================
--- HEALING POTION (Recovery)
--- ============================================================================
-rotation_registry:register_middleware({
-    name = "Warrior_HealingPotion",
-    priority = Priority.MIDDLEWARE.RECOVERY_ITEMS - 5,
-
-    matches = function(context)
-        if not context.settings.use_healing_potion then return false end
-        if not context.in_combat then return false end
-        if context.combat_time < 2 then return false end
-        local threshold = context.settings.healing_potion_hp or 25
-        if context.hp > threshold then return false end
-        return true
-    end,
-
-    execute = function(icon, context)
-        if A.SuperHealingPotion:IsReady(PLAYER_UNIT) then
-            return A.SuperHealingPotion:Show(icon), format("[MW] Super Healing Potion - HP: %.0f%%", context.hp)
-        end
-        if A.MajorHealingPotion:IsReady(PLAYER_UNIT) then
-            return A.MajorHealingPotion:Show(icon), format("[MW] Major Healing Potion - HP: %.0f%%", context.hp)
-        end
-        return nil
-    end,
+NS.register_recovery_middleware("Warrior", {
+    healthstone = true,
+    healing_potion = true,
 })
 
 -- ============================================================================
