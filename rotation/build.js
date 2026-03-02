@@ -82,6 +82,9 @@ const ORDER_MAP = {
   'class.lua':      5,
   'healing.lua':    6,
   'settings.lua':   6,
+  'recovery.lua':   6,   // shared recovery item factories
+  'threat.lua':     6,   // shared threat awareness
+  'interrupt.lua':  6,   // shared interrupt decisions
   'middleware.lua':  7,
   'dashboard.lua':  8,
   'main.lua':       9,
@@ -96,6 +99,9 @@ const LOAD_ORDER = [
   { slot: 'class', source: 'class.lua' },
   { slot: 'class', source: 'healing.lua' },
   { slot: 'shared', source: 'settings.lua' },
+  { slot: 'shared', source: 'recovery.lua' },   // shared recovery item factories
+  { slot: 'shared', source: 'threat.lua' },      // shared threat awareness
+  { slot: 'shared', source: 'interrupt.lua' },   // shared interrupt decisions
   { slot: 'class', source: 'middleware.lua' },
   // ... remaining class files (Order 7) inserted here alphabetically ...
   { slot: 'shared', source: 'dashboard.lua' }, // shared combat dashboard
