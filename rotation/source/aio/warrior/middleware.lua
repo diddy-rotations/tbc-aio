@@ -384,6 +384,9 @@ NS.register_recovery_middleware("Warrior", {
     healing_potion = true,
 })
 
+-- Shared threat middleware (no dump spell for DPS specs)
+NS.register_threat_middleware("Warrior", {})
+
 -- ============================================================================
 -- INTERRUPT (Pummel / Shield Bash — with stance dancing + PvP CC fallbacks)
 -- ============================================================================

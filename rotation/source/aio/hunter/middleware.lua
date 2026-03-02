@@ -36,27 +36,9 @@ NS.register_recovery_middleware("Hunter", {
     },
 })
 
--- ============================================================================
--- FEIGN DEATH (Threat management)
--- ============================================================================
-rotation_registry:register_middleware({
-    name = "Hunter_FeignDeath",
-    priority = Priority.MIDDLEWARE.DISPEL_CURSE,
-    is_defensive = true,
-    setting_key = "use_feign_death",
-
-    matches = function(context)
-        if not context.in_combat then return false end
-        if not context.has_valid_enemy_target then return false end
-        if not A.FeignDeath:IsReady(PLAYER_UNIT) then return false end
-        -- Only feign when we have aggro
-        local is_tanking = _G.UnitIsUnit("targettarget", PLAYER_UNIT)
-        return is_tanking
-    end,
-
-    execute = function(icon, context)
-        return A.FeignDeath:Show(icon), "[MW] Feign Death (threat)"
-    end,
+-- Shared threat middleware (Feign Death dump, configurable mode/scope)
+NS.register_threat_middleware("Hunter", {
+    dump_spell = A.FeignDeath,
 })
 
 -- Shared trinket middleware (burst + defensive, schema-driven)

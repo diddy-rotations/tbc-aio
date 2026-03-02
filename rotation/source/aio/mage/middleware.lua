@@ -134,6 +134,9 @@ NS.register_recovery_middleware("Mage", {
     dark_rune = true,
 })
 
+-- Shared threat middleware (no dump spell)
+NS.register_threat_middleware("Mage", {})
+
 -- ============================================================================
 -- MANA GEM (Mana recovery — separate from potion CD)
 -- ============================================================================

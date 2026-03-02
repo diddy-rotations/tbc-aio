@@ -245,6 +245,9 @@ NS.register_recovery_middleware("Shaman", {
     dark_rune = true,
 })
 
+-- Shared threat middleware (no dump spell)
+NS.register_threat_middleware("Shaman", {})
+
 -- ============================================================================
 -- SHIELD MAINTENANCE (Water Shield for Ele/Resto, Lightning Shield for Enh)
 -- ============================================================================

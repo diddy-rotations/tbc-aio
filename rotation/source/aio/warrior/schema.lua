@@ -99,6 +99,24 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "healing_potion_hp", default = 25, min = 10, max = 50, label = "Healing Potion HP (%)",
               tooltip = "Use Healing Potion when HP drops below this.", format = "%d%%" },
         }},
+        { header = "Threat Management", settings = {
+            { type = "dropdown", key = "threat_mode", default = "dump", label = "Threat Mode",
+              tooltip = "How to handle threat. Dump uses class ability, Stop pauses DPS, Off ignores threat.",
+              options = {
+                  { text = "Dump + Stop", value = "dump" },
+                  { text = "Stop DPS Only", value = "stop" },
+                  { text = "Off", value = "off" },
+              },
+            },
+            { type = "dropdown", key = "threat_scope", default = "elite", label = "Threat Scope",
+              tooltip = "Which targets to manage threat on. Elite includes bosses and elites.",
+              options = {
+                  { text = "All Targets", value = "all" },
+                  { text = "Elites + Bosses", value = "elite" },
+                  { text = "Bosses Only", value = "boss" },
+              },
+            },
+        }},
         { header = "Out of Combat", settings = {
             { type = "checkbox", key = "use_auto_bandage", default = true, label = "Auto Bandage",
               tooltip = "Automatically use bandages out of combat when HP is low." },
