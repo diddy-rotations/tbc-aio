@@ -50,8 +50,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             },
             { type = "slider", key = "interrupt_delay", default = 0, min = 0, max = 1, step = 0.1, label = "Interrupt Delay",
               tooltip = "Seconds to wait before interrupting (0 = instant). Prevents wasting kicks on short casts.", format = "%.1fs" },
-            { type = "checkbox", key = "use_feint", default = false, label = "Auto Feint",
-              tooltip = "Use Feint when tanking the target (threat reduction)." },
             { type = "checkbox", key = "use_expose_armor", default = false, label = "Expose Armor",
               tooltip = "Use Expose Armor at 5 CP (disable if warrior provides Sunder)." },
             { type = "checkbox", key = "use_shiv", default = true, label = "Use Shiv",
