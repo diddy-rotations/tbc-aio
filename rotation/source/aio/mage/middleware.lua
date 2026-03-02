@@ -107,13 +107,27 @@ rotation_registry:register_middleware({
     priority = Priority.MIDDLEWARE.DISPEL_CURSE,
 
     matches = function(context)
-        if not context.in_combat then return false end
         if not context.settings.use_counterspell then return false end
+
+        -- Tab-target priority interrupt (30yd Counterspell range)
+        if NS.interrupt_tab_matches("Mage", context, A.Counterspell, 30) then
+            return true
+        end
+
+        -- Current-target interrupt
         if not context.has_valid_enemy_target then return false end
+        local decision = NS.should_interrupt(context)
+        if not decision then return false end
+        if decision == "normal" and context.settings.interrupt_priority_only then return false end
         return true
     end,
 
     execute = function(icon, context)
+        -- Tab-target flow
+        local tab_result, tab_log = NS.interrupt_tab_execute("Mage", icon, context, A.Counterspell)
+        if tab_result then return tab_result, tab_log end
+
+        -- Standard current-target interrupt
         local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
         if castLeft and castLeft > 0 and not notKickAble then
             if A.Counterspell:IsReady(TARGET_UNIT) then
@@ -122,6 +136,11 @@ rotation_registry:register_middleware({
         end
         return nil
     end,
+})
+
+NS.register_interrupt_capability("Mage", {
+    supports_tab_target = true,
+    resolve_spell = function() return A.Counterspell end,
 })
 
 -- ============================================================================

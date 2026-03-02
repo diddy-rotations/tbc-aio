@@ -111,6 +111,9 @@ rotation_registry:register_middleware({
         if not context.settings.use_kick then return false end
         if not context.has_valid_enemy_target then return false end
         if context.energy < Constants.ENERGY.KICK then return false end
+        local decision = NS.should_interrupt(context)
+        if not decision then return false end
+        if decision == "normal" and context.settings.interrupt_priority_only then return false end
         return true
     end,
 
@@ -123,6 +126,11 @@ rotation_registry:register_middleware({
         end
         return nil
     end,
+})
+
+NS.register_interrupt_capability("Rogue", {
+    supports_tab_target = false,
+    resolve_spell = function() return A.Kick end,
 })
 
 -- ============================================================================

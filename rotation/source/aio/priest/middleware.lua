@@ -58,19 +58,41 @@ rotation_registry:register_middleware({
     priority = Priority.MIDDLEWARE.DISPEL_CURSE,
 
     matches = function(context)
-        if not context.in_combat then return false end
         if not context.settings.shadow_use_silence then return false end
+
+        -- Tab-target priority interrupt (20yd Silence range)
+        if NS.interrupt_tab_matches("Priest", context, A.Silence, 20) then
+            return true
+        end
+
+        -- Current-target interrupt
         if not context.has_valid_enemy_target then return false end
+        local decision = NS.should_interrupt(context)
+        if not decision then return false end
+        if decision == "normal" and context.settings.interrupt_priority_only then return false end
         return true
     end,
 
     execute = function(icon, context)
+        -- Tab-target flow
+        local tab_result, tab_log = NS.interrupt_tab_execute("Priest", icon, context, A.Silence)
+        if tab_result then return tab_result, tab_log end
+
+        -- Standard current-target interrupt
         local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
         if castLeft and castLeft > 0 and not notKickAble then
             if is_spell_available(A.Silence) and A.Silence:IsReady(TARGET_UNIT) then
                 return A.Silence:Show(icon), format("[MW] Silence - Cast: %.1fs", castLeft)
             end
         end
+        return nil
+    end,
+})
+
+NS.register_interrupt_capability("Priest", {
+    supports_tab_target = true,
+    resolve_spell = function()
+        if is_spell_available(A.Silence) then return A.Silence end
         return nil
     end,
 })

@@ -18,220 +18,56 @@ local A = NS.A
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local Priority = NS.Priority
-local MultiUnits = A.MultiUnits
-local CONST = A.Const
-local GetTime = _G.GetTime
-local UnitGUID = _G.UnitGUID
-
 local PLAYER_UNIT = "player"
 local TARGET_UNIT = "target"
 
 -- ============================================================================
--- PRIORITY INTERRUPT SPELL LIST (dangerous NPC casts to prioritize interrupting)
--- Scanned on all visible nameplates within 20yds; triggers tab-target interrupt
--- ============================================================================
-local PRIORITY_INTERRUPT_SPELLS = {
-    -- Damage / AoE
-    [31472] = true,  -- Arcane Discharge
-    [29973] = true,  -- Arcane Explosion
-    [44644] = true,  -- Arcane Nova
-    [30616] = true,  -- Blast Nova
-    [15305] = true,  -- Chain Lightning
-    [45342] = true,  -- Conflagration
-    [46605] = true,  -- Darkness of a Thousand Souls
-    [31258] = true,  -- Death & Decay
-    [45737] = true,  -- Flame Dart
-    [30004] = true,  -- Flame Wreath
-    [44224] = true,  -- Gravity Lapse
-    [15785] = true,  -- Mana Burn
-    [38253] = true,  -- Poison Bolt
-    [36819] = true,  -- Pyroblast
-    [45248] = true,  -- Shadow Blades
-    [39005] = true,  -- Shadow Nova
-    [39193] = true,  -- Shadow Power
-    [46680] = true,  -- Shadow Spike
-    [38796] = true,  -- Sonic Boom
-    [41426] = true,  -- Spirit Shock
-    [29969] = true,  -- Summon Blizzard
-    -- Healing
-    [41455] = true,  -- Circle of Healing
-    [30528] = true,  -- Dark Mending
-    [30878] = true,  -- Eternal Affection
-    [17843] = true,  -- Flash Heal
-    [35096] = true,  -- Greater Heal
-    [33144] = true,  -- Heal
-    [38330] = true,  -- Healing Wave
-    [43451] = true,  -- Holy Light
-    [46181] = true,  -- Lesser Healing Wave
-    [33152] = true,  -- Prayer of Healing
-    [8362]  = true,  -- Renew
-    -- Crowd Control / Utility
-    [41410] = true,  -- Deaden
-    [37135] = true,  -- Domination
-    [40184] = true,  -- Paralyzing Screech
-    [39096] = true,  -- Polarity Shift
-    [13323] = true,  -- Polymorph
-    [38815] = true,  -- Sightless Touch
-    [32424] = true,  -- Summon Avatar
-}
-
--- Pre-allocated state for multi-frame interrupt target switching
-local interrupt_state = {
-    phase = "idle",       -- "idle" | "seeking" | "returning"
-    original_guid = nil,  -- GUID of target before we started tabbing
-    target_guid = nil,    -- GUID of the priority caster we want to interrupt
-    spell_name = nil,     -- Name of the priority spell (for logging)
-    timeout = 0,          -- GetTime() deadline for current phase
-}
-
-local INTERRUPT_SEEK_TIMEOUT = 1.0   -- max seconds to tab toward caster
-local INTERRUPT_RETURN_TIMEOUT = 1.0 -- max seconds to tab back to original
-
--- Scan visible nameplates for units casting a priority interrupt spell within 20yds.
--- Returns the GUID with the longest remaining cast (most time to reach it).
-local function find_priority_caster()
-    local plates = MultiUnits:GetActiveUnitPlates()
-    local best_guid = nil
-    local best_remaining = 0
-    local best_spell_name = nil
-
-    for unitID in pairs(plates) do
-        if Unit(unitID):GetRange() <= 20 then
-            local castLeft, _, spellID, spellName, notKickAble = Unit(unitID):IsCastingRemains()
-            if castLeft and castLeft > 0 and not notKickAble and spellID and PRIORITY_INTERRUPT_SPELLS[spellID] then
-                if castLeft > best_remaining then
-                    best_guid = UnitGUID(unitID)
-                    best_remaining = castLeft
-                    best_spell_name = spellName
-                end
-            end
-        end
-    end
-
-    return best_guid, best_remaining, best_spell_name
-end
-
--- ============================================================================
 -- EARTH SHOCK INTERRUPT (highest priority — TBC's ONLY shaman interrupt!)
--- Supports: current-target interrupt + priority nameplate scan with tab-targeting
+-- Delegates to shared interrupt awareness system for priority scanning + tab-targeting
 -- ============================================================================
 rotation_registry:register_middleware({
     name = "Shaman_Interrupt",
-    priority = Priority.MIDDLEWARE.FORM_RESHIFT,  -- 500 (highest — TBC's only shaman interrupt)
+    priority = Priority.MIDDLEWARE.FORM_RESHIFT,  -- 500
 
     matches = function(context)
-        -- Reset state when not in combat or interrupt disabled
-        if not context.in_combat or not context.settings.use_interrupt then
-            interrupt_state.phase = "idle"
-            return false
-        end
+        if not context.settings.use_interrupt then return false end
 
-        local phase = interrupt_state.phase
-        local now = GetTime()
-
-        -- RETURNING phase: tabbing back to original target
-        if phase == "returning" then
-            if now > interrupt_state.timeout then
-                interrupt_state.phase = "idle"
-                return false
-            end
-            -- No original target to return to (had no target before seeking)
-            if not interrupt_state.original_guid then
-                interrupt_state.phase = "idle"
-                return false
-            end
-            -- Back on original target — done
-            if UnitGUID(TARGET_UNIT) == interrupt_state.original_guid then
-                interrupt_state.phase = "idle"
-                return false
-            end
+        -- Check tab-target priority interrupt first (replaces old state machine)
+        local spell = context.settings.interrupt_rank1 and A.EarthShockR1 or A.EarthShock
+        if NS.interrupt_tab_matches("Shaman", context, spell, 20) then
             return true
         end
 
-        -- SEEKING phase: tabbing toward priority caster
-        if phase == "seeking" then
-            if now > interrupt_state.timeout then
-                -- Gave up seeking → try to return to original
-                interrupt_state.phase = "returning"
-                interrupt_state.timeout = now + INTERRUPT_RETURN_TIMEOUT
-                return true
-            end
-            return true
-        end
-
-        -- IDLE phase: scan for interrupt targets
-
-        -- 1. Priority interrupt scan (nameplates within 20yds for priority spells)
-        if context.settings.use_priority_interrupt then
-            local spell = context.settings.interrupt_rank1 and A.EarthShockR1 or A.EarthShock
-            if spell:GetCooldown() <= 0 then
-                local caster_guid, _, spell_name = find_priority_caster()
-                if caster_guid then
-                    local current_guid = UnitGUID(TARGET_UNIT)
-                    if caster_guid == current_guid then
-                        -- Priority caster IS current target → interrupt immediately
-                        return true
-                    end
-                    -- Different unit → start seeking
-                    interrupt_state.phase = "seeking"
-                    interrupt_state.original_guid = current_guid
-                    interrupt_state.target_guid = caster_guid
-                    interrupt_state.spell_name = spell_name
-                    interrupt_state.timeout = now + INTERRUPT_SEEK_TIMEOUT
-                    return true
-                end
-            end
-        end
-
-        -- 2. Fallback: interrupt any kickable cast on current target
+        -- Fallback: current-target interrupt
         if not context.has_valid_enemy_target then return false end
-        local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
-        if castLeft and castLeft > 0 and not notKickAble then
-            return true
-        end
-
-        return false
+        local decision = NS.should_interrupt(context)
+        if not decision then return false end
+        if decision == "normal" and context.settings.interrupt_priority_only then return false end
+        return true
     end,
 
     execute = function(icon, context)
-        local phase = interrupt_state.phase
+        local spell = context.settings.interrupt_rank1 and A.EarthShockR1 or A.EarthShock
 
-        -- SEEKING: tab toward caster, or interrupt if we've arrived
-        if phase == "seeking" then
-            if UnitGUID(TARGET_UNIT) == interrupt_state.target_guid then
-                -- Landed on the caster — try to interrupt
-                local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
-                if castLeft and castLeft > 0 and not notKickAble then
-                    local spell = context.settings.interrupt_rank1 and A.EarthShockR1 or A.EarthShock
-                    if spell:IsReady(TARGET_UNIT) then
-                        interrupt_state.phase = "returning"
-                        interrupt_state.timeout = GetTime() + INTERRUPT_RETURN_TIMEOUT
-                        return spell:Show(icon), format("[MW] PRIORITY Interrupt (%s) - %.1fs", interrupt_state.spell_name or "?", castLeft)
-                    end
-                end
-                -- Can't interrupt (stopped casting or not ready) → return to original
-                interrupt_state.phase = "returning"
-                interrupt_state.timeout = GetTime() + INTERRUPT_RETURN_TIMEOUT
-                return A:Show(icon, CONST.AUTOTARGET), "[MW] Interrupt target done, returning"
-            end
-            -- Not on caster yet → tab
-            return A:Show(icon, CONST.AUTOTARGET), format("[MW] Seeking %s caster", interrupt_state.spell_name or "?")
-        end
+        -- Tab-target flow (seeking/returning phases)
+        local tab_result, tab_log = NS.interrupt_tab_execute("Shaman", icon, context, spell)
+        if tab_result then return tab_result, tab_log end
 
-        -- RETURNING: tab back toward original target
-        if phase == "returning" then
-            return A:Show(icon, CONST.AUTOTARGET), "[MW] Returning to original target"
-        end
-
-        -- IDLE: standard interrupt on current target
+        -- Standard current-target interrupt
         local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
         if castLeft and castLeft > 0 and not notKickAble then
-            local spell = context.settings.interrupt_rank1 and A.EarthShockR1 or A.EarthShock
             if spell:IsReady(TARGET_UNIT) then
                 return spell:Show(icon), format("[MW] Earth Shock Interrupt - Cast: %.1fs", castLeft)
             end
         end
         return nil
+    end,
+})
+
+NS.register_interrupt_capability("Shaman", {
+    supports_tab_target = true,
+    resolve_spell = function(context)
+        return context.settings.interrupt_rank1 and A.EarthShockR1 or A.EarthShock
     end,
 })
 

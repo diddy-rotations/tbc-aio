@@ -62,6 +62,18 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "Utility", settings = {
             { type = "checkbox", key = "use_interrupt", default = true, label = "Auto Interrupt",
               tooltip = "Interrupt enemy casts (Pummel in Berserker, Shield Bash in Defensive)." },
+            { type = "checkbox", key = "interrupt_priority_only", default = false, label = "Priority Casts Only",
+              tooltip = "Only interrupt dangerous casts (heals, CC, big damage). Skip filler casts." },
+            { type = "dropdown", key = "interrupt_scope", default = "all", label = "Interrupt Scope",
+              tooltip = "Which targets to interrupt based on classification.",
+              options = {
+                  { text = "All Targets", value = "all" },
+                  { text = "Elites + Bosses", value = "elite" },
+                  { text = "Bosses Only", value = "boss" },
+              },
+            },
+            { type = "slider", key = "interrupt_delay", default = 0, min = 0, max = 1, step = 0.1, label = "Interrupt Delay",
+              tooltip = "Seconds to wait before interrupting (0 = instant). Prevents wasting kicks on short casts.", format = "%.1fs" },
             { type = "checkbox", key = "use_bloodrage", default = true, label = "Auto Bloodrage",
               tooltip = "Use Bloodrage on cooldown for rage generation." },
             { type = "slider", key = "bloodrage_min_hp", default = 50, min = 20, max = 80, label = "Bloodrage Min HP (%)",
