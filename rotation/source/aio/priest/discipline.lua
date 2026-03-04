@@ -1,8 +1,8 @@
 -- Priest Discipline Healing Module
 -- Damage prevention with PW:S, Pain Suppression, Power Infusion
+-- HealingEngine integration via try_heal_cast_fmt
 
 local _G = _G
-local format = string.format
 local A = _G.Action
 
 if not A then return end
@@ -19,12 +19,12 @@ local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local Constants = NS.Constants
 local is_spell_available = NS.is_spell_available
-local try_cast = NS.try_cast
 local try_cast_fmt = NS.try_cast_fmt
+local try_heal_cast_fmt = NS.try_heal_cast_fmt
 local named = NS.named
 local scan_healing_targets = NS.scan_healing_targets
-local has_weakened_soul = NS.has_weakened_soul
-local has_renew = NS.has_renew
+local get_tank_target = NS.get_tank_target
+local count_below_hp = NS.count_below_hp
 
 local PLAYER_UNIT = "player"
 
@@ -32,11 +32,10 @@ local PLAYER_UNIT = "player"
 -- DISCIPLINE STATE (per-frame cache)
 -- ============================================================================
 local disc_state = {
-    lowest_unit = nil,
+    lowest = nil,           -- lowest HP entry (structured table)
     lowest_hp = 100,
-    tank_unit = nil,
+    tank = nil,             -- tank entry (structured table)
     group_damaged_count = 0,
-    tank_has_weakened_soul = false,
     inner_focus_ready = false,
     pain_suppression_ready = false,
     power_infusion_ready = false,
@@ -52,15 +51,12 @@ local function get_disc_state(context)
     disc_state.power_infusion_ready = is_spell_available(A.PowerInfusion) and (A.PowerInfusion:GetCooldown() or 0) < 0.5
     disc_state.pom_ready = is_spell_available(A.PrayerOfMending) and A.PrayerOfMending:IsReady(PLAYER_UNIT)
 
-    -- Scan healing targets
-    local _, lowest, lowest_hp, tank, _, group_dmg = scan_healing_targets(context)
-    disc_state.lowest_unit = lowest
-    disc_state.lowest_hp = lowest_hp or 100
-    disc_state.tank_unit = tank
-    disc_state.group_damaged_count = group_dmg
-
-    -- Check Weakened Soul on tank
-    disc_state.tank_has_weakened_soul = has_weakened_soul(tank)
+    -- Scan healing targets (structured entries sorted by effective_hp)
+    local targets, count = scan_healing_targets()
+    disc_state.lowest = (count > 0) and targets[1] or nil
+    disc_state.lowest_hp = disc_state.lowest and disc_state.lowest.effective_hp or 100
+    disc_state.tank = get_tank_target()
+    disc_state.group_damaged_count = count_below_hp(context.settings.disc_shield_hp or 90)
 
     return disc_state
 end
@@ -77,17 +73,15 @@ rotation_registry:register("discipline", {
             if not context.in_combat then return false end
             if not context.settings.disc_use_pain_suppression then return false end
             if not state.pain_suppression_ready then return false end
-            if not state.tank_unit then return false end
-            local tank_hp = Unit(state.tank_unit):HealthPercent() or 100
+            if not state.tank then return false end
             local threshold = context.settings.disc_pain_suppression_hp or 20
-            return tank_hp < threshold
+            return state.tank.effective_hp < threshold
         end,
         execute = function(icon, context, state)
-            if A.PainSuppression:IsReady(state.tank_unit) then
-                local tank_hp = Unit(state.tank_unit):HealthPercent() or 100
-                return A.PainSuppression:Show(icon), format("[DISC] Pain Suppression -> %s (%.0f%%)", state.tank_unit, tank_hp)
-            end
-            return nil
+            local target = state.tank
+            if not target then return nil end
+            return try_heal_cast_fmt(A.PainSuppression, icon, target.unit, "[P15]", "Pain Suppression",
+                "on %s (%.0f%%)", target.unit, target.effective_hp)
         end,
     }),
 
@@ -97,72 +91,74 @@ rotation_registry:register("discipline", {
             if not context.in_combat then return false end
             if context.is_moving then return false end
             local threshold = context.settings.disc_emergency_hp or 25
-            return state.lowest_hp < threshold and state.lowest_unit ~= nil
+            return state.lowest_hp < threshold and state.lowest ~= nil
         end,
         execute = function(icon, context, state)
-            if A.FlashHeal:IsReady(state.lowest_unit) then
-                return A.FlashHeal:Show(icon), format("[DISC] Emergency FH -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
-            end
-            return nil
+            local target = state.lowest
+            if not target then return nil end
+            return try_heal_cast_fmt(A.FlashHeal, icon, target.unit, "[P14]", "EMERGENCY FH",
+                "on %s (%.0f%%)", target.unit, target.effective_hp)
         end,
     }),
 
-    -- [2.5] Binding Heal (self + target both damaged)
+    -- [3] Binding Heal (self + target both damaged)
     named("BindingHeal", {
         matches = function(context, state)
             if not context.in_combat then return false end
             if context.is_moving then return false end
-            -- Need self damage
             if context.hp > 80 then return false end
-            -- Need a heal target that isn't self
-            if not state.lowest_unit then return false end
-            if state.lowest_unit == PLAYER_UNIT then return false end
+            if not state.lowest then return false end
+            if state.lowest.is_player then return false end
             return is_spell_available(A.BindingHeal)
         end,
         execute = function(icon, context, state)
-            if A.BindingHeal:IsReady(state.lowest_unit) then
-                return A.BindingHeal:Show(icon), format("[DISC] Binding Heal -> %s (self: %.0f%%)", state.lowest_unit, context.hp)
-            end
-            return nil
+            local target = state.lowest
+            if not target then return nil end
+            return try_heal_cast_fmt(A.BindingHeal, icon, target.unit, "[P13]", "Binding Heal",
+                "on %s (self: %.0f%%)", target.unit, context.hp)
         end,
     }),
 
-    -- [3] PW:S on tank (if no Weakened Soul)
+    -- [4] PW:S on tank (pre-pull capable)
     named("ShieldTank", {
         matches = function(context, state)
-            if not context.in_combat then return false end
-            if not state.tank_unit then return false end
-            if state.tank_has_weakened_soul then return false end
-            local tank_hp = Unit(state.tank_unit):HealthPercent() or 100
+            if not state.tank then return false end
+            -- Pre-pull: gate OOC usage on setting
+            if not context.in_combat then
+                if not context.settings.disc_prepull_shield then return false end
+            end
+            if state.tank.has_weakened_soul then return false end
             local threshold = context.settings.disc_shield_hp or 90
-            return tank_hp < threshold
+            if state.tank.effective_hp > threshold then
+                -- Pre-pull: always shield tank regardless of HP
+                if context.in_combat then return false end
+            end
+            return A.PowerWordShield:IsReady(PLAYER_UNIT)
         end,
         execute = function(icon, context, state)
-            if A.PowerWordShield:IsReady(state.tank_unit) then
-                local tank_hp = Unit(state.tank_unit):HealthPercent() or 100
-                return A.PowerWordShield:Show(icon), format("[DISC] PW:S -> %s (tank, %.0f%%)", state.tank_unit, tank_hp)
-            end
-            return nil
+            local target = state.tank
+            if not target then return nil end
+            return try_heal_cast_fmt(A.PowerWordShield, icon, target.unit, "[P12]", "PW:S (tank)",
+                "on %s (%.0f%%)", target.unit, target.effective_hp)
         end,
     }),
 
-    -- [4] Prayer of Mending (instant, 10s CD)
+    -- [5] Prayer of Mending (instant, 10s CD)
     named("PrayerOfMending", {
         matches = function(context, state)
             if not context.in_combat then return false end
             if not state.pom_ready then return false end
-            return state.tank_unit ~= nil or state.lowest_unit ~= nil
+            return state.tank ~= nil or state.lowest ~= nil
         end,
         execute = function(icon, context, state)
-            local target = state.tank_unit or state.lowest_unit
-            if target and A.PrayerOfMending:IsReady(target) then
-                return A.PrayerOfMending:Show(icon), format("[DISC] Prayer of Mending -> %s", target)
-            end
-            return nil
+            local target = state.tank or state.lowest
+            if not target then return nil end
+            return try_heal_cast_fmt(A.PrayerOfMending, icon, target.unit, "[P11]", "Prayer of Mending",
+                "on %s (%.0f%%)", target.unit, target.effective_hp)
         end,
     }),
 
-    -- [5] Inner Focus + Greater Heal (off-GCD trigger + free GH)
+    -- [6] Inner Focus + Greater Heal (off-GCD trigger + free GH)
     named("InnerFocusGreaterHeal", {
         is_gcd_gated = false,
         is_burst = true,
@@ -171,19 +167,16 @@ rotation_registry:register("discipline", {
             if not context.settings.disc_use_inner_focus then return false end
             if not state.inner_focus_ready then return false end
             if context.has_inner_focus then return false end
-            -- Only if someone needs healing
-            if not state.lowest_unit then return false end
+            if not state.lowest then return false end
             return state.lowest_hp < 80
         end,
         execute = function(icon, context, state)
-            if A.InnerFocus:IsReady(PLAYER_UNIT) then
-                return A.InnerFocus:Show(icon), "[DISC] Inner Focus (+ Greater Heal)"
-            end
-            return nil
+            return try_cast_fmt(A.InnerFocus, icon, PLAYER_UNIT, "[P10]", "Inner Focus",
+                "(+ Greater Heal)")
         end,
     }),
 
-    -- [6] Power Infusion (off-GCD, self or focus)
+    -- [7] Power Infusion (off-GCD, self)
     named("PowerInfusion", {
         is_gcd_gated = false,
         is_burst = true,
@@ -195,15 +188,12 @@ rotation_registry:register("discipline", {
             return true
         end,
         execute = function(icon, context, state)
-            -- Cast on self for healing throughput
-            if A.PowerInfusion:IsReady(PLAYER_UNIT) then
-                return A.PowerInfusion:Show(icon), "[DISC] Power Infusion (self)"
-            end
-            return nil
+            return try_cast_fmt(A.PowerInfusion, icon, PLAYER_UNIT, "[P9]", "Power Infusion",
+                "(self)")
         end,
     }),
 
-    -- [7] Racial (off-GCD)
+    -- [8] Racial (off-GCD)
     named("Racial", {
         is_gcd_gated = false,
         setting_key = "use_racial",
@@ -229,38 +219,41 @@ rotation_registry:register("discipline", {
         matches = function(context, state)
             if not context.in_combat then return false end
             if context.settings.disc_shield_tank_only then return false end
-            if not state.lowest_unit then return false end
-            -- Don't re-shield tank (handled above)
-            if state.lowest_unit == state.tank_unit then return false end
-            if has_weakened_soul(state.lowest_unit) then return false end
+            if not state.lowest then return false end
+            if state.tank and state.lowest.unit == state.tank.unit then return false end
+            if state.lowest.has_weakened_soul then return false end
             local threshold = context.settings.disc_shield_hp or 90
             return state.lowest_hp < threshold
         end,
         execute = function(icon, context, state)
-            if A.PowerWordShield:IsReady(state.lowest_unit) then
-                return A.PowerWordShield:Show(icon), format("[DISC] PW:S -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
-            end
-            return nil
+            local target = state.lowest
+            if not target then return nil end
+            return try_heal_cast_fmt(A.PowerWordShield, icon, target.unit, "[P8]", "PW:S",
+                "on %s (%.0f%%)", target.unit, target.effective_hp)
         end,
     }),
 
-    -- [10] Renew on tank (maintain HoT)
+    -- [10] Renew on tank (pre-pull capable)
     named("RenewTank", {
         matches = function(context, state)
-            if not context.in_combat then return false end
-            if not state.tank_unit then return false end
-            if Unit(state.tank_unit):IsDead() then return false end
-            local tank_hp = Unit(state.tank_unit):HealthPercent() or 100
+            if not state.tank then return false end
+            -- Pre-pull: gate OOC usage on setting
+            if not context.in_combat then
+                if not context.settings.disc_prepull_renew then return false end
+            end
+            if Unit(state.tank.unit):IsDead() then return false end
             local threshold = context.settings.disc_renew_hp or 85
-            if tank_hp > threshold then return false end
-            if has_renew(state.tank_unit) then return false end
+            if state.tank.effective_hp > threshold then
+                if context.in_combat then return false end
+            end
+            if state.tank.has_renew then return false end
             return true
         end,
         execute = function(icon, context, state)
-            if A.Renew:IsReady(state.tank_unit) then
-                return A.Renew:Show(icon), format("[DISC] Renew -> %s (tank)", state.tank_unit)
-            end
-            return nil
+            local target = state.tank
+            if not target then return nil end
+            return try_heal_cast_fmt(A.Renew, icon, target.unit, "[P7]", "Renew (tank)",
+                "on %s (%.0f%%)", target.unit, target.effective_hp)
         end,
     }),
 
@@ -269,15 +262,15 @@ rotation_registry:register("discipline", {
         matches = function(context, state)
             if not context.in_combat then return false end
             if context.is_moving then return false end
-            if not state.lowest_unit then return false end
+            if not state.lowest then return false end
             local flash_hp = context.settings.disc_flash_heal_hp or 50
             return state.lowest_hp < (context.settings.disc_renew_hp or 85) and state.lowest_hp >= flash_hp
         end,
         execute = function(icon, context, state)
-            if A.GreaterHeal:IsReady(state.lowest_unit) then
-                return A.GreaterHeal:Show(icon), format("[DISC] Greater Heal -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
-            end
-            return nil
+            local target = state.lowest
+            if not target then return nil end
+            return try_heal_cast_fmt(A.GreaterHeal, icon, target.unit, "[P6]", "Greater Heal",
+                "on %s (%.0f%%)", target.unit, target.effective_hp)
         end,
     }),
 
@@ -286,15 +279,15 @@ rotation_registry:register("discipline", {
         matches = function(context, state)
             if not context.in_combat then return false end
             if context.is_moving then return false end
-            if not state.lowest_unit then return false end
+            if not state.lowest then return false end
             local flash_hp = context.settings.disc_flash_heal_hp or 50
             return state.lowest_hp < flash_hp
         end,
         execute = function(icon, context, state)
-            if A.FlashHeal:IsReady(state.lowest_unit) then
-                return A.FlashHeal:Show(icon), format("[DISC] Flash Heal -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
-            end
-            return nil
+            local target = state.lowest
+            if not target then return nil end
+            return try_heal_cast_fmt(A.FlashHeal, icon, target.unit, "[P5]", "Flash Heal",
+                "on %s (%.0f%%)", target.unit, target.effective_hp)
         end,
     }),
 
@@ -302,17 +295,17 @@ rotation_registry:register("discipline", {
     named("RenewSpread", {
         matches = function(context, state)
             if not context.in_combat then return false end
-            if not state.lowest_unit then return false end
+            if not state.lowest then return false end
             local threshold = context.settings.disc_renew_hp or 85
             if state.lowest_hp > threshold then return false end
-            if has_renew(state.lowest_unit) then return false end
+            if state.lowest.has_renew then return false end
             return true
         end,
         execute = function(icon, context, state)
-            if A.Renew:IsReady(state.lowest_unit) then
-                return A.Renew:Show(icon), format("[DISC] Renew -> %s (%.0f%%)", state.lowest_unit, state.lowest_hp)
-            end
-            return nil
+            local target = state.lowest
+            if not target then return nil end
+            return try_heal_cast_fmt(A.Renew, icon, target.unit, "[P4]", "Renew",
+                "on %s (%.0f%%)", target.unit, target.effective_hp)
         end,
     }),
 
@@ -325,7 +318,8 @@ rotation_registry:register("discipline", {
         end,
         execute = function(icon, context, state)
             if is_spell_available(A.PrayerOfHealing) and A.PrayerOfHealing:IsReady(PLAYER_UNIT) then
-                return A.PrayerOfHealing:Show(icon), format("[DISC] Prayer of Healing (%d hurt)", state.group_damaged_count)
+                return try_cast_fmt(A.PrayerOfHealing, icon, PLAYER_UNIT, "[P3]", "Prayer of Healing",
+                    "%d hurt", state.group_damaged_count)
             end
             return nil
         end,

@@ -17,136 +17,179 @@ end
 local A = NS.A
 local Unit = NS.Unit
 local Constants = NS.Constants
+local predict_effective_deficit = NS.predict_effective_deficit
 
-local PLAYER_UNIT = "player"
-local GetNumGroupMembers = _G.GetNumGroupMembers
-
--- ============================================================================
--- HEALING TARGET SCANNING
--- ============================================================================
--- Pre-allocated scan results (no inline table creation in combat)
-local scan_results = {}
-local MAX_SCAN = 40
-
--- Pre-allocate scan entry slots
-for i = 1, MAX_SCAN do
-    scan_results[i] = { unit = nil, hp = 100, is_tank = false }
-end
-
-local scan_count = 0
-
--- Determine if a unit is likely the tank (focus target, or has most threat)
-local function is_tank_unit(unit)
-    -- If we have a focus target and the unit matches it, consider it the tank
-    if _G.UnitExists("focus") and _G.UnitIsUnit(unit, "focus") then
-        return true
-    end
-    return false
-end
-
---- Scan party/raid for healing targets
---- Populates scan_results with unit, hp, is_tank sorted by HP ascending
---- Returns: count, lowest_unit, lowest_hp, tank_unit, emergency_count, group_damaged_count
-local function scan_healing_targets(context)
-    scan_count = 0
-
-    local emergency_hp = context.settings.holy_emergency_hp or context.settings.disc_emergency_hp or 30
-    local aoe_hp = context.settings.holy_aoe_hp or 80
-    local emergency_count = 0
-    local group_damaged_count = 0
-    local lowest_unit = nil
-    local lowest_hp = 100
-    local tank_unit = nil
-
-    -- Always include self
-    local self_hp = context.hp
-    if self_hp and self_hp < 100 then
-        scan_count = scan_count + 1
-        local entry = scan_results[scan_count]
-        entry.unit = PLAYER_UNIT
-        entry.hp = self_hp
-        entry.is_tank = false
-        if self_hp < lowest_hp then
-            lowest_hp = self_hp
-            lowest_unit = PLAYER_UNIT
-        end
-        if self_hp < emergency_hp then emergency_count = emergency_count + 1 end
-        if self_hp < aoe_hp then group_damaged_count = group_damaged_count + 1 end
-    end
-
-    local members = GetNumGroupMembers() or 0
-    if members > 0 then
-        local prefix = members > 5 and "raid" or "party"
-        local count = members > 5 and members or (members - 1)
-        for i = 1, count do
-            if scan_count >= MAX_SCAN then break end
-            local unit = prefix .. i
-            if _G.UnitExists(unit) and not Unit(unit):IsDead() and Unit(unit):IsConnected() then
-                local range = Unit(unit):GetRange()
-                if range and range <= 40 then
-                    local hp = Unit(unit):HealthPercent()
-                    if hp and hp < 100 then
-                        scan_count = scan_count + 1
-                        local entry = scan_results[scan_count]
-                        entry.unit = unit
-                        entry.hp = hp
-                        entry.is_tank = is_tank_unit(unit)
-
-                        if entry.is_tank then
-                            tank_unit = unit
-                        end
-                        if hp < lowest_hp then
-                            lowest_hp = hp
-                            lowest_unit = unit
-                        end
-                        if hp < emergency_hp then emergency_count = emergency_count + 1 end
-                        if hp < aoe_hp then group_damaged_count = group_damaged_count + 1 end
-                    else
-                        -- Full HP but might be tank
-                        if is_tank_unit(unit) then
-                            tank_unit = unit
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    -- If no tank found via focus, use lowest HP melee or self
-    if not tank_unit then
-        tank_unit = "focus"
-        if not _G.UnitExists("focus") or Unit("focus"):IsDead() then
-            tank_unit = PLAYER_UNIT
-        end
-    end
-
-    return scan_count, lowest_unit, lowest_hp, tank_unit, emergency_count, group_damaged_count
-end
-
-NS.scan_healing_targets = scan_healing_targets
+-- Lua optimizations
+local tsort = table.sort
 
 -- ============================================================================
--- WEAKENED SOUL CHECK
+-- HOT / DEBUFF DETECTION UTILITIES
 -- ============================================================================
+
 local function has_weakened_soul(unit)
     if not unit or not _G.UnitExists(unit) then return true end
     return (Unit(unit):HasDeBuffs(Constants.DEBUFF_ID.WEAKENED_SOUL) or 0) > 0
 end
 
-NS.has_weakened_soul = has_weakened_soul
-
--- ============================================================================
--- HAS RENEW CHECK
--- ============================================================================
 local function has_renew(unit)
     if not unit or not _G.UnitExists(unit) then return false end
-    -- Check for Renew buff (base ID 139, max rank 25222)
     return (Unit(unit):HasBuffs(A.Renew.ID, "player") or 0) > 0
 end
 
-NS.has_renew = has_renew
+local function has_pws(unit)
+    if not unit or not _G.UnitExists(unit) then return false end
+    return (Unit(unit):HasBuffs(Constants.BUFF_ID.POWER_WORD_SHIELD, nil, true) or 0) > 0
+end
 
 -- ============================================================================
--- MODULE LOADED
+-- PARTY/RAID HEALING SYSTEM (druid/paladin pattern)
 -- ============================================================================
+
+local PARTY_UNITS = {"player", "party1", "party2", "party3", "party4"}
+local RAID_UNITS = {}
+for i = 1, 40 do RAID_UNITS[i] = "raid" .. i end
+
+local healing_targets = {}
+local healing_targets_count = 0
+
+-- Pre-allocate 40 entry tables
+for i = 1, 40 do
+    healing_targets[i] = {}
+end
+
+local function unit_has_aggro(unit_id)
+    local threat = _G.UnitThreatSituation(unit_id)
+    return threat and threat >= 2
+end
+
+local function is_in_raid()
+    return _G.IsInRaid and _G.IsInRaid() or false
+end
+
+local function is_in_party()
+    if is_in_raid() then return false end
+    return _G.IsInGroup and _G.IsInGroup() or false
+end
+
+local function scan_healing_targets()
+    healing_targets_count = 0
+
+    local in_raid = is_in_raid()
+    local units_to_scan = in_raid and RAID_UNITS or PARTY_UNITS
+    local max_units = in_raid and 40 or 5
+
+    for i = 1, max_units do
+        local unit = units_to_scan[i]
+        if unit and _G.UnitExists(unit) and not _G.UnitIsDead(unit) and _G.UnitIsConnected(unit) and _G.UnitCanAssist("player", unit) then
+            local in_range = false
+            if _G.UnitIsUnit(unit, "player") then
+                in_range = true
+            else
+                local spell_range = _G.IsSpellInRange("Flash Heal", unit)
+                if spell_range == 1 then
+                    in_range = true
+                elseif spell_range == 0 then
+                    in_range = false
+                else
+                    local _, unit_in_range = _G.UnitInRange(unit)
+                    in_range = (unit_in_range == true)
+                end
+            end
+
+            if in_range then
+                healing_targets_count = healing_targets_count + 1
+                local idx = healing_targets_count
+
+                if not healing_targets[idx] then
+                    healing_targets[idx] = {}
+                end
+
+                local entry = healing_targets[idx]
+                entry.unit = unit
+                local max_hp = _G.UnitHealthMax(unit)
+                entry.hp = _G.UnitHealth(unit) / max_hp * 100
+                entry.is_player = _G.UnitIsUnit(unit, "player")
+                entry.has_aggro = unit_has_aggro(unit)
+                entry.has_renew = has_renew(unit)
+                entry.has_pws = has_pws(unit)
+                entry.has_weakened_soul = has_weakened_soul(unit)
+
+                -- Effective HP accounts for incoming heals, HoTs, absorbs, and damage
+                local eff_deficit = predict_effective_deficit(unit, 1.5)
+                entry.effective_hp = max_hp > 0 and (100 - (eff_deficit / max_hp) * 100) or entry.hp
+
+                local role = _G.UnitGroupRolesAssigned and _G.UnitGroupRolesAssigned(unit)
+                entry.is_tank = entry.has_aggro or (role == "TANK")
+            end
+        end
+    end
+
+    if healing_targets_count > 1 then
+        tsort(healing_targets, function(a, b)
+            if not a or not a.effective_hp then return false end
+            if not b or not b.effective_hp then return true end
+            return a.effective_hp < b.effective_hp
+        end)
+    end
+
+    return healing_targets, healing_targets_count
+end
+
+local function get_tank_target()
+    scan_healing_targets()
+
+    for i = 1, healing_targets_count do
+        local entry = healing_targets[i]
+        if entry and entry.is_tank then
+            return entry
+        end
+    end
+
+    return nil
+end
+
+local function get_lowest_hp_target(threshold)
+    threshold = threshold or 100
+    scan_healing_targets()
+
+    for i = 1, healing_targets_count do
+        local entry = healing_targets[i]
+        if entry and entry.effective_hp < threshold then
+            return entry
+        end
+    end
+
+    return nil
+end
+
+local function count_below_hp(threshold)
+    threshold = threshold or 100
+    local count = 0
+    for i = 1, healing_targets_count do
+        local entry = healing_targets[i]
+        if entry and entry.effective_hp < threshold then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+-- ============================================================================
+-- EXPORT TO NAMESPACE
+-- ============================================================================
+
+NS.has_weakened_soul = has_weakened_soul
+NS.has_renew = has_renew
+NS.has_pws = has_pws
+
+NS.is_in_raid = is_in_raid
+NS.is_in_party = is_in_party
+NS.scan_healing_targets = scan_healing_targets
+NS.get_tank_target = get_tank_target
+NS.get_lowest_hp_target = get_lowest_hp_target
+NS.count_below_hp = count_below_hp
+
+NS.PARTY_UNITS = PARTY_UNITS
+NS.RAID_UNITS = RAID_UNITS
+
 print("|cFF00FF00[Flux AIO Priest]|r Healing utilities loaded")
