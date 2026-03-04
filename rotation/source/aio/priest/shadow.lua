@@ -336,30 +336,6 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [12] Mind Flay (filler — yields to LowManaMode when mana below threshold)
-   named("MindFlay", {
-      matches = function(context, state)
-         if not context.in_combat then
-            return false
-         end
-         if not context.has_valid_enemy_target then
-            return false
-         end
-         if context.is_moving then
-            return false
-         end
-         -- Yield to LowManaMode: don't waste mana on MF when conserving
-         local threshold = context.settings.shadow_low_mana_pct or 50
-         if context.mana_pct <= threshold and state.swp_active and state.vt_remaining >= 1.8 then
-            return false
-         end
-         return true
-      end,
-      execute = function(icon, context, state)
-         return try_cast(A.MindFlay, icon, TARGET_UNIT, "[SHADOW] Mind Flay")
-      end,
-   }),
-
    -- [11] AoE SW:P Spread (blanket enemies with SW:P)
    named("AoESWPSpread", {
       matches = function(context, state)
@@ -410,6 +386,30 @@ rotation_registry:register("shadow", {
             end
          end
          return nil
+      end,
+   }),
+
+   -- [13] Mind Flay (filler — yields to LowManaMode when mana below threshold)
+   named("MindFlay", {
+      matches = function(context, state)
+         if not context.in_combat then
+            return false
+         end
+         if not context.has_valid_enemy_target then
+            return false
+         end
+         if context.is_moving then
+            return false
+         end
+         -- Yield to LowManaMode: don't waste mana on MF when conserving
+         local threshold = context.settings.shadow_low_mana_pct or 50
+         if context.mana_pct <= threshold and state.swp_active and state.vt_remaining >= 1.8 then
+            return false
+         end
+         return true
+      end,
+      execute = function(icon, context, state)
+         return try_cast(A.MindFlay, icon, TARGET_UNIT, "[SHADOW] Mind Flay")
       end,
    }),
 

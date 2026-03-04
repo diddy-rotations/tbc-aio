@@ -71,7 +71,16 @@ local function is_in_party()
     return _G.IsInGroup and _G.IsInGroup() or false
 end
 
+local scan_frame = 0
+
 local function scan_healing_targets()
+    -- Once-per-frame cache: TMW.time is updated each frame
+    local now = _G.TMW and _G.TMW.time or 0
+    if now == scan_frame and healing_targets_count > 0 then
+        return healing_targets, healing_targets_count
+    end
+    scan_frame = now
+
     healing_targets_count = 0
 
     local in_raid = is_in_raid()
@@ -136,8 +145,6 @@ local function scan_healing_targets()
 end
 
 local function get_tank_target()
-    scan_healing_targets()
-
     for i = 1, healing_targets_count do
         local entry = healing_targets[i]
         if entry and entry.is_tank then
@@ -150,7 +157,6 @@ end
 
 local function get_lowest_hp_target(threshold)
     threshold = threshold or 100
-    scan_healing_targets()
 
     for i = 1, healing_targets_count do
         local entry = healing_targets[i]
