@@ -227,16 +227,18 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
     -- Tab 6: Resto (Tree of Life Healer)
     [6] = { name = "Resto", sections = {
         { header = "Tree of Life Healing", settings = {
-            { type = "slider", key = "resto_emergency_hp", default = 20, min = 10, max = 35, label = "Emergency HP (%)", tooltip = "Triggers emergency healing (Swiftmend > NS+Regrowth).", format = "%d%%" },
+            { type = "slider", key = "resto_emergency_hp", default = 30, min = 15, max = 50, label = "Emergency HP (%)", tooltip = "Triggers emergency healing (Swiftmend > NS+HT/Regrowth).", format = "%d%%" },
+            { type = "checkbox", key = "resto_ns_healing_touch", default = true, label = "NS + Healing Touch",
+              tooltip = "Emergency: leave Tree for NS + max rank Healing Touch (bigger heal, leaves Tree briefly). Disable for NS + Regrowth (stays in Tree)." },
             { type = "slider", key = "resto_tank_heal_hp", default = 50, min = 30, max = 70, label = "Tank Heal HP (%)", tooltip = "Prioritize tank healing below this HP.", format = "%d%%" },
-            { type = "slider", key = "resto_standard_heal_hp", default = 70, min = 50, max = 85, label = "Standard Heal HP (%)", tooltip = "Apply Regrowth on targets below this HP.", format = "%d%%" },
-            { type = "slider", key = "resto_proactive_hp", default = 85, min = 70, max = 95, label = "Proactive HP (%)", tooltip = "Spread Rejuvenation on targets below this HP.", format = "%d%%" },
+            { type = "slider", key = "resto_standard_heal_hp", default = 80, min = 50, max = 95, label = "Standard Heal HP (%)", tooltip = "Apply Regrowth on targets below this HP.", format = "%d%%" },
+            { type = "slider", key = "resto_proactive_hp", default = 90, min = 70, max = 100, label = "Proactive HP (%)", tooltip = "Spread Rejuvenation on targets below this HP.", format = "%d%%" },
         }},
         { header = "Lifebloom", settings = {
             { type = "slider", key = "resto_lifebloom_refresh", default = 2, min = 1, max = 4, label = "Lifebloom Refresh (sec)", tooltip = "Refresh 3-stack Lifebloom when this many seconds remain.", format = "%d sec" },
         }},
         { header = "Swiftmend", settings = {
-            { type = "slider", key = "resto_swiftmend_hp", default = 40, min = 20, max = 60, label = "Swiftmend HP (%)", tooltip = "Use Swiftmend for burst healing below this HP (requires Rejuv or Regrowth on target).", format = "%d%%" },
+            { type = "slider", key = "resto_swiftmend_hp", default = 50, min = 25, max = 70, label = "Swiftmend HP (%)", tooltip = "Use Swiftmend for burst healing below this HP (requires Rejuv or Regrowth on target).", format = "%d%%" },
         }},
         { header = "Tank & Mana", settings = {
             { type = "checkbox", key = "resto_prioritize_tank", default = true, label = "Prioritize Tank", tooltip = "Maintain Lifebloom 3-stack and HoTs on tank." },
