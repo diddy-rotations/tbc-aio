@@ -18,7 +18,6 @@ if not NS then
 end
 
 local A = NS.A
-local Player = NS.Player
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local Constants = NS.Constants
@@ -27,9 +26,13 @@ local try_cast = NS.try_cast
 local try_cast_fmt = NS.try_cast_fmt
 local named = NS.named
 
+local has_pws = NS.has_pws
+local has_weakened_soul = NS.has_weakened_soul
+local MultiUnits = A.MultiUnits
+local UnitExists = _G.UnitExists
+
 local PLAYER_UNIT = "player"
 local TARGET_UNIT = "target"
-local CONST = A.Const
 
 -- ============================================================================
 -- SHADOW STATE (per-frame cache)
@@ -50,10 +53,11 @@ local function get_shadow_state(context)
    end
    context._shadow_valid = true
 
-   -- Use max rank debuff IDs for reliable detection (consistent with smite.lua)
-   shadow_state.vt_remaining = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.VAMPIRIC_TOUCH, "player", true) or 0
-   shadow_state.swp_active = (Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.SHADOW_WORD_PAIN, "player", true) or 0) > 0
-   shadow_state.ve_remaining = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.VAMPIRIC_EMBRACE, "player", true) or 0
+   -- VT: use spell ID to detect correct rank (useMaxRank = true means ID changes per rank)
+   shadow_state.vt_remaining = Unit(TARGET_UNIT):HasDeBuffs(A.VampiricTouch.ID, "player", true) or 0
+   shadow_state.swp_active = (Unit(TARGET_UNIT):HasDeBuffs(A.ShadowWordPain.ID, "player", true) or 0) > 0
+   -- VE: use spell ID (15286) not party buff ID (15290) for target debuff check
+   shadow_state.ve_remaining = Unit(TARGET_UNIT):HasDeBuffs(A.VampiricEmbrace.ID, "player", true) or 0
    shadow_state.mb_ready = is_spell_available(A.MindBlast) and A.MindBlast:IsReady(TARGET_UNIT)
    shadow_state.swd_ready = is_spell_available(A.ShadowWordDeath) and A.ShadowWordDeath:IsReady(TARGET_UNIT)
    shadow_state.swd_safe = context.hp > (context.settings.shadow_swd_hp or 40)
@@ -100,6 +104,10 @@ rotation_registry:register("shadow", {
          end
          -- Only pull if we have a valid enemy and are in range
          if not A.VampiricTouch:IsInRange(TARGET_UNIT) then
+            return false
+         end
+         -- Don't re-pull if VT already on target (cast completed but combat hasn't started)
+         if state.vt_remaining > 0 then
             return false
          end
          return true
@@ -162,8 +170,9 @@ rotation_registry:register("shadow", {
          if context.ttd and context.ttd > 0 and context.ttd < 5 then
             return false
          end
-         -- Refresh when remaining <= 1.5s (cast time)
-         return state.vt_remaining < 1.8
+         -- Refresh when: VT missing entirely OR (VT expiring AND MB on CD)
+         if state.vt_remaining == 0 then return true end
+         return state.vt_remaining < 1.8 and not state.mb_ready
       end,
       execute = function(icon, context, state)
          return try_cast_fmt(A.VampiricTouch, icon, TARGET_UNIT, "[SHADOW]", "VT", "rem: %.1fs", state.vt_remaining)
@@ -184,6 +193,10 @@ rotation_registry:register("shadow", {
          end
          -- Don't apply if target will die soon
          if context.ttd < 6 then
+            return false
+         end
+         -- Only apply when MB on CD (don't waste GCD when MB is ready)
+         if state.mb_ready then
             return false
          end
          return true
@@ -306,7 +319,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [10] Racial (off-GCD)
+   -- [10] Racial (off-GCD, Berserking only — Arcane Torrent is a silence, handled by middleware)
    named("Racial", {
       is_gcd_gated = false,
       matches = function(context, state)
@@ -316,20 +329,14 @@ rotation_registry:register("shadow", {
          if not context.settings.use_racial then
             return false
          end
-         return true
+         return is_spell_available(A.Berserking) and A.Berserking:IsReady(PLAYER_UNIT)
       end,
       execute = function(icon, context, state)
-         if is_spell_available(A.Berserking) and A.Berserking:IsReady(PLAYER_UNIT) then
-            return A.Berserking:Show(icon), "[SHADOW] Berserking"
-         end
-         if is_spell_available(A.ArcaneTorrent) and A.ArcaneTorrent:IsReady(PLAYER_UNIT) then
-            return A.ArcaneTorrent:Show(icon), "[SHADOW] Arcane Torrent"
-         end
-         return nil
+         return A.Berserking:Show(icon), "[SHADOW] Berserking"
       end,
    }),
 
-   -- [12] Mind Flay (filler)
+   -- [12] Mind Flay (filler — yields to LowManaMode when mana below threshold)
    named("MindFlay", {
       matches = function(context, state)
          if not context.in_combat then
@@ -341,6 +348,11 @@ rotation_registry:register("shadow", {
          if context.is_moving then
             return false
          end
+         -- Yield to LowManaMode: don't waste mana on MF when conserving
+         local threshold = context.settings.shadow_low_mana_pct or 50
+         if context.mana_pct <= threshold and state.swp_active and state.vt_remaining >= 1.8 then
+            return false
+         end
          return true
       end,
       execute = function(icon, context, state)
@@ -348,9 +360,61 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [13] Wand / Auto Attack (movement filler, last resort)
-   named("WandAutoAttack", {
-      is_gcd_gated = false,
+   -- [11] AoE SW:P Spread (blanket enemies with SW:P)
+   named("AoESWPSpread", {
+      matches = function(context, state)
+         if not context.in_combat then
+            return false
+         end
+         if context.enemy_count < (context.settings.shadow_aoe_count or 4) then
+            return false
+         end
+         return true
+      end,
+      execute = function(icon, context, state)
+         local plates = MultiUnits:GetActiveUnitPlates()
+         for unitID in pairs(plates) do
+            if UnitExists(unitID) and not Unit(unitID):IsDead() then
+               local swp = (Unit(unitID):HasDeBuffs(A.ShadowWordPain.ID, "player", true) or 0)
+               if swp == 0 and A.ShadowWordPain:IsReady(unitID) then
+                  return try_cast_fmt(A.ShadowWordPain, icon, unitID, "[SHADOW]", "AoE SW:P", "on %s", unitID)
+               end
+            end
+         end
+         return nil
+      end,
+   }),
+
+   -- [12] AoE VT Spread (blanket enemies with VT)
+   named("AoEVTSpread", {
+      matches = function(context, state)
+         if not context.in_combat then
+            return false
+         end
+         if context.is_moving then
+            return false
+         end
+         if context.enemy_count < (context.settings.shadow_aoe_count or 4) then
+            return false
+         end
+         return true
+      end,
+      execute = function(icon, context, state)
+         local plates = MultiUnits:GetActiveUnitPlates()
+         for unitID in pairs(plates) do
+            if UnitExists(unitID) and not Unit(unitID):IsDead() then
+               local vt = (Unit(unitID):HasDeBuffs(A.VampiricTouch.ID, "player", true) or 0)
+               if vt == 0 and A.VampiricTouch:IsReady(unitID) then
+                  return try_cast_fmt(A.VampiricTouch, icon, unitID, "[SHADOW]", "AoE VT", "on %s", unitID)
+               end
+            end
+         end
+         return nil
+      end,
+   }),
+
+   -- [14] Low Mana PW:S (shield self when conserving mana, wand handled by framework AutoShoot)
+   named("LowManaPWS", {
       matches = function(context, state)
          if not context.in_combat then
             return false
@@ -358,19 +422,30 @@ rotation_registry:register("shadow", {
          if not context.has_valid_enemy_target then
             return false
          end
-         -- Use wand when moving or when we can't cast anything else
-         if not context.is_moving and not context.on_gcd then
+         local threshold = context.settings.shadow_low_mana_pct or 50
+         if context.mana_pct > threshold then
             return false
          end
-         if not Player:IsAttacking() then
-            return true
+         -- Only activate if DoTs are already up (higher-priority strategies handle reapply)
+         if not state.swp_active then
+            return false
          end
-         return false
+         if state.vt_remaining < 1.8 then
+            return false
+         end
+         -- Only if we can actually shield
+         if has_pws(PLAYER_UNIT) or has_weakened_soul(PLAYER_UNIT) then
+            return false
+         end
+         return A.PowerWordShield:IsReady(PLAYER_UNIT)
       end,
       execute = function(icon, context, state)
-         return A:Show(icon, CONST.AUTOATTACK), "[SHADOW] Auto Attack / Wand"
+         return try_cast(A.PowerWordShield, icon, PLAYER_UNIT, "[SHADOW] Low Mana: PW:S")
       end,
    }),
+
+   -- Wand: framework AutoShoot handles wand automatically when no strategy matches
+   -- (moving = all cast strategies skip, low mana = MindFlay yields → framework wands)
 }, {
    context_builder = get_shadow_state,
 })

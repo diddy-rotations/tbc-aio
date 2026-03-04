@@ -101,6 +101,14 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "shadow_use_devouring_plague", default = true, label = "Devouring Plague",
               tooltip = "Use Devouring Plague if Undead (off cooldown)." },
         }},
+        { header = "AoE", settings = {
+            { type = "slider", key = "shadow_aoe_count", default = 4, min = 2, max = 8, label = "AoE Target Count",
+              tooltip = "Spread DoTs on multiple targets when this many enemies in combat.", format = "%d" },
+        }},
+        { header = "Mana Conservation", settings = {
+            { type = "slider", key = "shadow_low_mana_pct", default = 50, min = 20, max = 80, label = "Low Mana Wand%",
+              tooltip = "Below this mana%: maintain DoTs, PW:S self, then wand instead of Mind Flay.", format = "%d%%" },
+        }},
         { header = "Utility", settings = {
             { type = "checkbox", key = "shadow_use_silence", default = true, label = "Auto Silence",
               tooltip = "Interrupt enemy casts with Silence (if talented)." },
