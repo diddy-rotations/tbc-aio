@@ -80,6 +80,10 @@ Action[A.PlayerClass] = {
    TreeOfLifeForm = Create({ Type = "Spell", ID = 33891 }),
    Tranquility = Create({ Type = "Spell", ID = 740, useMaxRank = true }),
 
+   -- NS + Healing Touch combo (cancelform macro for Tree of Life emergency)
+   NSHealingTouch13 = Create({ Type = "Spell", ID = 26979, Desc = "NS + Healing Touch",
+      Click = { macrobefore = "/cast Nature's Swiftness\n/cancelform\n" } }),
+
    -- Healing Touch ranks (13 total, high to low)
    HealingTouch13 = Create({ Type = "Spell", ID = 26979, Desc = "Healing Touch" }),
    HealingTouch12 = Create({ Type = "Spell", ID = 26978, Desc = "Healing Touch" }),
@@ -326,12 +330,12 @@ local Constants = {
    },
 
    RESTO = {
-      EMERGENCY_HP = 20,
+      EMERGENCY_HP = 30,
       TANK_HEAL_HP = 50,
-      STANDARD_HEAL_HP = 70,
-      PROACTIVE_HP = 85,
+      STANDARD_HEAL_HP = 80,
+      PROACTIVE_HP = 90,
       LIFEBLOOM_REFRESH = 2,
-      SWIFTMEND_HP = 40,
+      SWIFTMEND_HP = 50,
    },
 }
 
