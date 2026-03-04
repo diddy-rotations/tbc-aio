@@ -80,7 +80,7 @@ Action[A.PlayerClass] = {
     Retaliation        = Create({ Type = "Spell", ID = 20230 }),
 
     -- Interrupts
-    Pummel             = Create({ Type = "Spell", ID = 6552 }),
+    Pummel             = Create({ Type = "Spell", ID = 6552, useMaxRank = true }),
     ShieldBash         = Create({ Type = "Spell", ID = 72, useMaxRank = true }),
 
     -- PvP CC / Utility
