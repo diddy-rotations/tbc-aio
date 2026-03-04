@@ -29,6 +29,7 @@ end
 -- Import commonly used references
 local A = NS.A
 local Constants = NS.Constants
+local Priority = NS.Priority
 local Unit = NS.Unit
 local rotation_registry = NS.rotation_registry
 local try_cast_fmt = NS.try_cast_fmt
@@ -138,6 +139,34 @@ local function get_resto_state(context)
 end
 
 -- ============================================================================
+-- TREE RESHIFT MIDDLEWARE (NS+HT leaves Tree; this gets us back)
+-- ============================================================================
+local pending_tree_reshift = false
+
+rotation_registry:register_middleware({
+   name = "Resto_TreeReshift",
+   priority = Priority.MIDDLEWARE.FORM_RESHIFT,
+
+   matches = function(context)
+      if not pending_tree_reshift then return false end
+      -- Already back in a form (or never left)? Clear flag
+      if context.stance ~= Constants.STANCE.CASTER then
+         pending_tree_reshift = false
+         return false
+      end
+      return true
+   end,
+
+   execute = function(icon, context)
+      if A.TreeOfLifeForm:IsReady(PLAYER_UNIT) then
+         pending_tree_reshift = false
+         return A.TreeOfLifeForm:Show(icon), "[RESTO] Reshifting to Tree of Life"
+      end
+      return nil
+   end,
+})
+
+-- ============================================================================
 -- TREE OF LIFE RESTORATION STRATEGIES
 -- ============================================================================
 do
@@ -157,7 +186,30 @@ do
       end,
    }
 
-   -- [2] Emergency NS + Regrowth (instant big heal, both castable in Tree form)
+   -- [2] Emergency NS + Healing Touch (leave Tree for biggest instant heal)
+   -- Macro: /cast NS (off-GCD) → /cancelform → Healing Touch (instant from NS). One frame.
+   -- TreeReshift middleware handles getting back to Tree on the next frame.
+   local Resto_EmergencyNSHealingTouch = {
+      matches = function(context, state)
+         if state.emergency_count == 0 then return false end
+         if not context.settings.resto_ns_healing_touch then return false end
+         if not is_spell_available(A.NaturesSwiftness) then return false end
+         return A.NaturesSwiftness:IsReady(PLAYER_UNIT)
+      end,
+      execute = function(icon, context, state)
+         local target = get_lowest_hp_target(context.settings.resto_emergency_hp or Constants.RESTO.EMERGENCY_HP)
+         if not target then return nil end
+         -- Flag reshift so middleware returns us to Tree next frame
+         pending_tree_reshift = true
+         -- Manual HE targeting (bypass safe_heal_cast IsReady — HT not usable in Tree,
+         -- but macrobefore handles /cancelform before the spell fires)
+         local HE = A.HealingEngine
+         if HE and HE.SetTarget then HE.SetTarget(target.unit) end
+         return A.NSHealingTouch13:Show(icon), format("[P14] EMERGENCY NS+HT on %s (%.0f%%)", target.unit, target.hp)
+      end,
+   }
+
+   -- [3] Emergency NS + Regrowth (instant big heal, both castable in Tree form)
    local Resto_EmergencyNSRegrowth = {
       matches = function(context, state)
          if state.emergency_count == 0 then return false end
@@ -245,7 +297,25 @@ do
       end,
    }
 
-   -- [7] Regrowth on low HP targets (direct heal + HoT, mana-gated)
+   -- [8] Regrowth on Tank (maintain max rank Regrowth HoT per TBC guide)
+   local Resto_RegrowthTank = {
+      matches = function(context, state)
+         if not state.tank then return false end
+         if not context.settings.resto_prioritize_tank then return false end
+         if state.tank.has_regrowth then return false end
+         local mana_conserve = context.settings.resto_mana_conserve or 40
+         if context.mana_pct < mana_conserve then return false end
+         return A.Regrowth10:IsReady(PLAYER_UNIT)
+      end,
+      execute = function(icon, context, state)
+         local tank = state.tank
+         if not tank then return nil end
+         return try_heal_cast_fmt(A.Regrowth10, icon, tank.unit, "[P6]", "Tank Regrowth",
+                             "on %s (%.0f%%)", tank.unit, tank.hp)
+      end,
+   }
+
+   -- [9] Regrowth on low HP targets (direct heal + HoT, mana-gated)
    local Resto_RegrowthLow = {
       matches = function(context, state)
          local threshold = context.settings.resto_standard_heal_hp or Constants.RESTO.STANDARD_HEAL_HP
@@ -336,19 +406,21 @@ do
 
    -- Register all Resto strategies (array order = execution priority)
    rotation_registry:register("resto", {
-      named("EmergencySwiftmend",  Resto_EmergencySwiftmend),  -- [1]  Instant emergency burst (consumes HoT)
-      named("EmergencyNSRegrowth", Resto_EmergencyNSRegrowth), -- [2]  NS + Regrowth instant combo
-      named("EmergencyBarkskin",   Resto_EmergencyBarkskin),   -- [3]  Self-defense (off-GCD)
-      named("LifebloomTank",       Resto_LifebloomTank),       -- [4]  Core mechanic: roll 3-stack on tank
-      named("SwiftmendUrgent",     Resto_SwiftmendUrgent),     -- [5]  Burst heal on moderate-low targets
-      named("RejuvTank",           Resto_RejuvTank),           -- [6]  Keep Rejuv on tank for Swiftmend
-      named("RegrowthLow",         Resto_RegrowthLow),         -- [7]  Regrowth on injured (mana-gated)
-      named("RejuvSpread",         Resto_RejuvSpread),         -- [8]  HoT blanketing
-      named("DispelCurse",         Resto_DispelCurse),         -- [9]  Party curse removal
-      named("DispelPoison",        Resto_DispelPoison),        -- [10] Party poison removal
-      named("Tranquility",         Resto_Tranquility),         -- [11] Emergency AoE heal (long CD)
+      named("EmergencySwiftmend",      Resto_EmergencySwiftmend),      -- [1]  Instant emergency burst (consumes HoT)
+      named("EmergencyNSHealingTouch", Resto_EmergencyNSHealingTouch), -- [2]  NS+HT (leaves Tree briefly)
+      named("EmergencyNSRegrowth",     Resto_EmergencyNSRegrowth),     -- [3]  NS+Regrowth fallback (stays in Tree)
+      named("EmergencyBarkskin",       Resto_EmergencyBarkskin),       -- [4]  Self-defense (off-GCD)
+      named("LifebloomTank",           Resto_LifebloomTank),           -- [5]  Core mechanic: roll 3-stack on tank
+      named("SwiftmendUrgent",         Resto_SwiftmendUrgent),         -- [6]  Burst heal on moderate-low targets
+      named("RejuvTank",               Resto_RejuvTank),               -- [7]  Keep Rejuv on tank for Swiftmend
+      named("RegrowthTank",            Resto_RegrowthTank),            -- [8]  Keep Regrowth on tank (TBC guide)
+      named("RegrowthLow",             Resto_RegrowthLow),             -- [9]  Regrowth on injured (mana-gated)
+      named("RejuvSpread",             Resto_RejuvSpread),             -- [10] HoT blanketing
+      named("DispelCurse",             Resto_DispelCurse),             -- [11] Party curse removal
+      named("DispelPoison",            Resto_DispelPoison),            -- [12] Party poison removal
+      named("Tranquility",             Resto_Tranquility),             -- [13] Emergency AoE heal (long CD)
    }, { context_builder = get_resto_state })
 
 end  -- End Resto strategies do...end block
 
-print("|cFF00FF00[Flux AIO Resto]|r 11 Tree of Life strategies registered.")
+print("|cFF00FF00[Flux AIO Resto]|r 13 Tree of Life strategies + 1 middleware registered.")
