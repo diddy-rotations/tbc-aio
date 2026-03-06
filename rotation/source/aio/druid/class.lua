@@ -579,13 +579,16 @@ rotation_registry:register_class({
 
    get_active_playstyle = function(context)
       local stance = context.stance
-      -- Detect Tree of Life and Moonkin via buff rather than hardcoded stance index,
-      -- because GetShapeshiftForm() returns bar position which varies per character.
+      -- Bear(1) and Cat(3) have reliable fixed stance indices
+      local known = STANCE_PLAYSTYLE[stance]
+      if known then return known end
+      -- Moonkin and Tree share a stance slot; use IsSpellKnown to differentiate
+      -- (mutually exclusive 41pt talents, avoids detecting another druid's aura)
       if stance > 0 then
-         if (Unit("player"):HasBuffs(33891) or 0) > 0 then return "resto" end
-         if (Unit("player"):HasBuffs(24858) or 0) > 0 then return "balance" end
+         if _G.IsSpellKnown(24858) then return "balance" end
+         if _G.IsSpellKnown(33891) then return "resto" end
       end
-      return STANCE_PLAYSTYLE[stance]
+      return nil
    end,
 
    get_idle_playstyle = function(context)
