@@ -101,6 +101,14 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "shadow_use_devouring_plague", default = true, label = "Devouring Plague",
               tooltip = "Use Devouring Plague if Undead (off cooldown)." },
         }},
+        { header = "AoE", settings = {
+            { type = "slider", key = "shadow_aoe_count", default = 4, min = 2, max = 8, label = "AoE Target Count",
+              tooltip = "Spread DoTs on multiple targets when this many enemies in combat.", format = "%d" },
+        }},
+        { header = "Mana Conservation", settings = {
+            { type = "slider", key = "shadow_low_mana_pct", default = 50, min = 20, max = 80, label = "Low Mana Wand%",
+              tooltip = "Below this mana%: maintain DoTs, PW:S self, then wand instead of Mind Flay.", format = "%d%%" },
+        }},
         { header = "Utility", settings = {
             { type = "checkbox", key = "shadow_use_silence", default = true, label = "Auto Silence",
               tooltip = "Interrupt enemy casts with Silence (if talented)." },
@@ -145,6 +153,12 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "holy_aoe_count", default = 3, min = 2, max = 5, label = "AoE Heal Count",
               tooltip = "Minimum damaged members for AoE heal.", format = "%d" },
         }},
+        { header = "Emergency", settings = {
+            { type = "checkbox", key = "holy_use_pws", default = true, label = "PW:S Emergency",
+              tooltip = "Use Power Word: Shield on critically low targets (no Weakened Soul)." },
+            { type = "slider", key = "holy_pws_hp", default = 30, min = 15, max = 50, label = "PW:S HP%",
+              tooltip = "Apply PW:S below this HP%.", format = "%d%%" },
+        }},
         { header = "Abilities", settings = {
             { type = "checkbox", key = "holy_use_coh", default = true, label = "Circle of Healing",
               tooltip = "Use CoH on CD during group damage (if talented)." },
@@ -156,6 +170,16 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Prayer of Healing for group damage." },
             { type = "checkbox", key = "holy_use_inner_focus", default = true, label = "Inner Focus",
               tooltip = "Use Inner Focus before Greater Heal for free cast + 25% crit." },
+        }},
+        { header = "Pre-Pull & Idle", settings = {
+            { type = "checkbox", key = "holy_prepull_pom", default = true, label = "Pre-Pull PoM",
+              tooltip = "Cast Prayer of Mending on tank before pull. Disable if PoM bounce generates unwanted threat." },
+            { type = "checkbox", key = "holy_prepull_renew", default = true, label = "Pre-Pull Renew",
+              tooltip = "Cast Renew on tank before pull (between pulls)." },
+            { type = "checkbox", key = "holy_dps_when_idle", default = false, label = "DPS When Idle",
+              tooltip = "Cast damage spells when everyone is healthy and mana is above floor." },
+            { type = "slider", key = "holy_dps_mana_floor", default = 70, min = 40, max = 90, label = "DPS Mana Floor%",
+              tooltip = "Only DPS when mana above this%.", format = "%d%%" },
         }},
     }},
 
@@ -190,6 +214,12 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "AoE Healing", settings = {
             { type = "slider", key = "disc_aoe_count", default = 3, min = 2, max = 5, label = "PoH Min Count",
               tooltip = "Minimum injured group members to use Prayer of Healing.", format = "%d" },
+        }},
+        { header = "Pre-Pull", settings = {
+            { type = "checkbox", key = "disc_prepull_shield", default = true, label = "Pre-Pull PW:S",
+              tooltip = "Cast PW:S on tank before pull (between pulls)." },
+            { type = "checkbox", key = "disc_prepull_renew", default = true, label = "Pre-Pull Renew",
+              tooltip = "Cast Renew on tank before pull (between pulls)." },
         }},
     }},
 
