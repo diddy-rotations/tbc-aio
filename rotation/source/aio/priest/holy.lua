@@ -158,7 +158,7 @@ rotation_registry:register("holy", {
     }),
 
     -- [6] Clearcasting Greater Heal (free heal from Holy Concentration)
-    named("ClearcastingGH", {
+    named("ClearcastingGreaterHeal", {
         matches = function(context, state)
             if not context.in_combat then return false end
             if context.is_moving then return false end
