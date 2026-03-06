@@ -15,6 +15,20 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.8.4 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3>Priest</h3>
+      <ul class="features">
+        <li><strong>Healing Engine</strong> &mdash; Holy and Discipline now use the shared HealingEngine with structured healing targets, effective HP sorting, and <code>try_heal_cast_fmt</code> for consistent heal casting. Pre-pull capabilities added (PoM, Renew, PW:S on tank before combat).</li>
+        <li><strong>Holy Idle DPS</strong> &mdash; Holy spec now casts SW:P, Holy Fire, and Smite when the group is healthy, with a configurable mana floor.</li>
+        <li><strong>Shadow Auto-Shoot Fix</strong> &mdash; Fixed wand auto-shooting on low mana. Replaced broken manual WandAutoAttack strategy with framework-native AutoShoot and a new LowManaPWS self-shield.</li>
+        <li><strong>Shadow Opener</strong> &mdash; Arcane Torrent no longer fires as part of the Shadow Priest opener, preserving the GCD for damage.</li>
+        <li><strong>Vampiric ID Fix</strong> &mdash; Fixed Vampiric Touch and Vampiric Embrace debuff detection using correct spell IDs.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.8.3 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 
