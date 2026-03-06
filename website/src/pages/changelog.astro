@@ -15,6 +15,16 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.8.2 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3>Druid</h3>
+      <ul class="features">
+        <li><strong>Resto Druid Aura Fix</strong> &mdash; Fixed a bug where having a resto druid (Tree of Life) in your group would hijack other druids&rsquo; playstyle detection, causing bear/cat druids to incorrectly enter the healing rotation and cast Lifebloom. Playstyle detection now uses <code>IsSpellKnown</code> instead of <code>HasBuffs</code> for Moonkin/Tree of Life, preventing cross-player aura contamination.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.8.1 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 
