@@ -29,6 +29,7 @@ local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
 local is_spell_available = NS.is_spell_available
+local debug_print = NS.debug_print
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
@@ -348,7 +349,7 @@ local Fury_SwingDesync = {
     matches = function(context, state)
         if not context.settings.fury_swing_desync then return false end
         -- Must be dual-wielding
-        if not Player:HasWeaponOffHand(true) then return false end
+        if not context.has_offhand then return false end
         -- Can't Slam while moving
         if context.is_moving then return false end
         -- Cooldown between desync attempts
@@ -386,13 +387,25 @@ local Fury_HeroicStrike = {
     setting_key = "fury_use_heroic_strike",
 
     matches = function(context, state)
+        -- Already queued — yield the icon so GCD abilities can show
+        if A.HeroicStrike:IsSpellCurrent() or A.Cleave:IsSpellCurrent() then return false end
         -- During execute phase, check setting
         if state.target_below_20 and context.settings.fury_execute_phase then
             if not context.settings.fury_hs_during_execute then return false end
         end
+        -- HS Trick: proactively queue when OH swing is imminent (before rage threshold)
+        if context.settings.hs_trick and context.has_offhand then
+            local oh_remaining = context.oh_remain or 0
+            local mh_remaining = context.mh_remain or 0
+            if oh_remaining > 0 and oh_remaining <= 0.4 then
+                if mh_remaining > oh_remaining + 0.3 then
+                    return true  -- queue HS now; dequeue middleware handles MH safety
+                end
+            end
+        end
         local threshold = context.settings.fury_hs_rage_threshold or 50
         -- HS Trick: lower threshold when dual-wielding (the dequeue middleware handles safety)
-        if context.settings.hs_trick and Player:HasWeaponOffHand(true) then
+        if context.settings.hs_trick and context.has_offhand then
             threshold = 30  -- keep enough for BT (30 rage) — dequeue middleware handles safety
         end
         if context.rage < threshold then return false end

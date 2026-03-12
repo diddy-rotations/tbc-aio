@@ -203,6 +203,30 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 				},
 			},
 			{
+				header = "Heroic Strike",
+				settings = {
+					{
+						type = "checkbox",
+						key = "hs_trick",
+						default = true,
+						label = "HS Queue Trick (DW)",
+						tooltip = "Dual-wield only. Queue HS before off-hand swings to convert them to yellow hits (no glancing blows). Auto-dequeues before main-hand lands if rage is low. Works for all specs.",
+					},
+				},
+			},
+			{
+				header = "AoE Safety",
+				settings = {
+					{
+						type = "checkbox",
+						key = "pvp_cc_break_check",
+						default = true,
+						label = "CC Break Prevention",
+						tooltip = "Prevent AoE abilities (WW, Cleave, TC, Demo Shout) from breaking CC on nearby enemies. Works in both PvP (arena/BG) and PvE (dungeon CC like Polymorph, Sap, Freezing Trap).",
+					},
+				},
+			},
+			{
 				header = "Cooldown Management",
 				settings = {
 					{
@@ -480,13 +504,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						label = "HS Rage Threshold",
 						tooltip = "Queue Heroic Strike above this rage.",
 						format = "%d",
-					},
-					{
-						type = "checkbox",
-						key = "hs_trick",
-						default = true,
-						label = "HS Queue Trick (DW)",
-						tooltip = "Dual-wield only. Queue HS to convert off-hand swings to yellow hits (no glancing blows). Auto-dequeues before main-hand lands if rage is low.",
 					},
 					{
 						type = "checkbox",
@@ -782,6 +799,21 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					},
 				},
 			},
+			{
+				header = "Threat Lead Gate",
+				settings = {
+					{
+						type = "slider",
+						key = "prot_threat_lead",
+						default = 0,
+						min = 0,
+						max = 200,
+						label = "Utility Threat Lead (%)",
+						tooltip = "Require this threat % lead before using Shield Block, Demo Shout, and Thunder Clap (single-target). 0 = disabled. Thunder Clap still fires on AoE pulls regardless.",
+						format = "%d%%",
+					},
+				},
+			},
 		},
 	},
 
@@ -963,18 +995,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						default = false,
 						label = "Auto Intervene",
 						tooltip = "Intervene to friendly party members below 40% HP (Defensive Stance).",
-					},
-				},
-			},
-			{
-				header = "AoE Safety",
-				settings = {
-					{
-						type = "checkbox",
-						key = "pvp_cc_break_check",
-						default = true,
-						label = "CC Break Prevention",
-						tooltip = "Prevent AoE abilities (WW, Cleave, TC, Demo Shout) from breaking CC on nearby enemies.",
 					},
 				},
 			},

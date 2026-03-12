@@ -29,6 +29,7 @@ local try_cast = NS.try_cast
 local named = NS.named
 local is_spell_available = NS.is_spell_available
 local is_stance_swap_safe = NS.is_stance_swap_safe
+local debug_print = NS.debug_print
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
@@ -117,6 +118,13 @@ local function get_target_threat(unitID)
         end
     end
     return threat
+end
+
+-- Threat lead check: gate utility abilities behind a configurable threat % lead
+-- threshold=0 disables the check; otherwise requires tanking (status>=3) + lead% >= threshold
+local function has_threat_lead(context, threshold)
+    if threshold <= 0 then return true end  -- 0 = disabled
+    return context.threat_status >= 3 and context.threat_percent >= threshold
 end
 
 -- Check if a mob is being tanked by another tank (not us)
@@ -407,6 +415,8 @@ local Prot_ShieldBlock = {
 
     matches = function(context, state)
         if context.shield_block_active then return false end
+        -- Threat lead gate: don't waste off-GCD on Shield Block when threat is thin
+        if not has_threat_lead(context, context.settings.prot_threat_lead or 0) then return false end
         -- Shield Block requires Defensive Stance — IsReady handles check
         return A.ShieldBlock:IsReady(PLAYER_UNIT)
     end,
@@ -497,6 +507,9 @@ local Prot_ThunderClap = {
         -- Min enemies threshold (always use on bosses)
         local tc_min = context.settings.prot_tc_min_mobs or 3
         if not context.is_boss and context.enemy_count < tc_min then return false end
+        -- Threat lead gate: bypass on AoE pulls (TC *is* the threat tool for multi-mob)
+        local is_aoe_pull = context.enemy_count >= tc_min or context.is_boss
+        if not is_aoe_pull and not has_threat_lead(context, context.settings.prot_threat_lead or 0) then return false end
         -- Only refresh when debuff is missing or about to expire
         if state.thunder_clap_debuff > Constants.TC_REFRESH_WINDOW then return false end
         -- TC requires Battle Stance — check if we have enough rage to cast TC
@@ -532,6 +545,8 @@ local Prot_DemoShout = {
         -- PvP CC break prevention: Demo Shout is PBAoE
         if context.has_breakable_cc_nearby and context.settings.pvp_cc_break_check then return false end
         if not context.in_melee_range then return false end
+        -- Threat lead gate: Demo Shout is utility, don't use when threat is thin
+        if not has_threat_lead(context, context.settings.prot_threat_lead or 0) then return false end
         -- Min enemies threshold (always use on bosses)
         local demo_min = context.settings.prot_demo_min_mobs or 6
         if not context.is_boss and context.enemy_count < demo_min then return false end
@@ -684,6 +699,18 @@ local Prot_HeroicStrike = {
     is_gcd_gated = false,
 
     matches = function(context, state)
+        -- Already queued — yield the icon so GCD abilities can show
+        if A.HeroicStrike:IsSpellCurrent() or A.Cleave:IsSpellCurrent() then return false end
+        -- HS Trick: proactively queue when OH swing is imminent (before rage threshold)
+        if context.settings.hs_trick and context.has_offhand then
+            local oh_remaining = context.oh_remain or 0
+            local mh_remaining = context.mh_remain or 0
+            if oh_remaining > 0 and oh_remaining <= 0.4 then
+                if mh_remaining > oh_remaining + 0.3 then
+                    return true  -- queue HS now; dequeue middleware handles MH safety
+                end
+            end
+        end
         local threshold = context.settings.prot_hs_rage_threshold or 60
         if context.rage < threshold then return false end
         return true

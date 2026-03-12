@@ -65,7 +65,7 @@ rotation_registry:register_middleware({
         if not context.settings.hs_trick then return false end
         if not context.has_valid_enemy_target then return false end
         -- Only meaningful when dual-wielding (Fury with OH weapon)
-        if not Player:HasWeaponOffHand(true) then return false end
+        if not context.has_offhand then return false end
         -- Check if HS or Cleave is currently queued
         return A.HeroicStrike:IsSpellCurrent() or A.Cleave:IsSpellCurrent()
     end,
@@ -80,7 +80,8 @@ rotation_registry:register_middleware({
         if mh_remaining > 0 and mh_remaining <= 0.4 then
             local hs_cost = 15  -- HS base cost in TBC
             if context.rage < hs_cost then
-                local oh_remaining = Player:GetSwing(2) or 999
+                local oh_remaining = context.oh_remain or 999
+                if oh_remaining <= 0 then oh_remaining = 999 end
                 -- Only dequeue if MH lands before OH (preserve yellow OH hit)
                 if mh_remaining <= oh_remaining then
                     should_dequeue = true
