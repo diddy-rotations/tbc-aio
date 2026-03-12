@@ -133,6 +133,19 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "prot_use_righteous_defense", default = true, label = "Auto Taunt",
               tooltip = "Auto-taunt elite/boss enemies off friendly targets with Righteous Defense. Only fires on elites/bosses, skips CC'd and dying mobs." },
         }},
+        { header = "Threat Tab Targeting", settings = {
+            { type = "checkbox", key = "use_auto_tab", default = true, label = "Auto Tab Target",
+              tooltip = "Automatically switch targets to pick up loose mobs and spread threat. Scans nameplates by threat level: picks up loose mobs first, stabilizes insecure threat, then equalizes across secure mobs." },
+            { type = "slider", key = "prot_tab_max_mobs", default = 4, min = 1, max = 8, label = "Max Mobs to Manage",
+              tooltip = "Max simultaneous mobs to actively tank. Won't pick up new mobs beyond this count unless they are completely loose (threat 0-1).", format = "%d" },
+            { type = "dropdown", key = "prot_tab_min_priority", default = "all", label = "Tab Target Priority",
+              tooltip = "Which mob types to tab-target. 'All' tabs to any mob, 'Elites+' only tabs to elites and bosses, 'Bosses' only tabs to bosses.",
+              options = {
+                  { value = "all", text = "All Mobs" },
+                  { value = "elites", text = "Elites+" },
+                  { value = "bosses", text = "Bosses Only" },
+              }},
+        }},
     }},
 
     -- Tab 4: Holy
