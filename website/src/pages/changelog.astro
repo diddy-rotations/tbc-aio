@@ -15,6 +15,38 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.8.6 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3>Core</h3>
+      <ul class="features">
+        <li><strong>Talent Spell Detection Fix</strong> &mdash; <code>is_spell_known</code> now falls through to the framework&rsquo;s <code>IsExists()</code> check when <code>IsSpellKnown</code> returns false, fixing talent-granted spells that were sometimes undetected.</li>
+      </ul>
+
+      <h3>Druid</h3>
+      <ul class="features">
+        <li><strong>Cat Sapper Fix</strong> &mdash; Added <code>IsReady</code> check on sapper charges themselves (not just the macro), preventing form-breaking when the item is on cooldown.</li>
+        <li><strong>Cat Energy Costs</strong> &mdash; Refactored energy cost initialization to use explicit fallback parameters instead of <code>or</code> chaining.</li>
+      </ul>
+
+      <h3>Paladin</h3>
+      <ul class="features">
+        <li><strong>Holy Healing Priority</strong> &mdash; Reworked healing rotation: Holy Light as primary heal, Flash of Light as fallback, Divine Favor used on cooldown.</li>
+        <li><strong>Protection</strong> &mdash; New prot paladin strategies with threat-aware tab targeting, Consecration, Holy Wrath, and full tanking rotation.</li>
+      </ul>
+
+      <h3>Warrior</h3>
+      <ul class="features">
+        <li><strong>Protection Overhaul</strong> &mdash; Complete prot warrior rewrite with threat-aware tab targeting, intelligent Thunder Clap/Demo Shout gating, and configurable threat lead settings.</li>
+        <li><strong>Arms Overpower</strong> &mdash; Smarter Overpower usage that evaluates rage economy and available abilities instead of a simple rage threshold.</li>
+        <li><strong>Fury Slam Desync</strong> &mdash; New optional Slam desync timing for fury warriors.</li>
+        <li><strong>HS/Cleave Queuing</strong> &mdash; Added <code>IsSpellCurrent</code> check to prevent double-queuing Heroic Strike and Cleave.</li>
+        <li><strong>Thunder Clap Fix</strong> &mdash; Fixed range check to use player (PBAoE) instead of target.</li>
+        <li><strong>CC Awareness</strong> &mdash; Prot warrior now detects nearby breakable CC and suppresses AoE abilities.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.8.5 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 

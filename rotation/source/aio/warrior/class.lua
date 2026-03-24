@@ -233,6 +233,7 @@ local BREAKABLE_CC_NAMES = {
 -- PvE CC scan: check nameplates within 10y for breakable CC debuffs
 local function has_pve_breakable_cc_nearby()
     local plates = MultiUnits:GetActiveUnitPlates()
+    if not plates then return false end
     for unitID in pairs(plates) do
         if Unit(unitID):GetRange() <= 10 then
             for i = 1, #BREAKABLE_CC_NAMES do
@@ -247,7 +248,7 @@ end
 
 rotation_registry:register_class({
     name = "Warrior",
-    version = "v1.8.1",
+    version = "v1.8.6",
     playstyles = { "arms", "fury", "protection" },
     idle_playstyle_name = nil,
 

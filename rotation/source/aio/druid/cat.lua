@@ -48,18 +48,19 @@ local floor = math.floor
 -- ============================================================================
 -- ENERGY COST INITIALIZATION
 -- ============================================================================
-local function get_spell_energy_cost(spell)
+local function get_spell_energy_cost(spell, fallback)
    local cost, power_type = spell:GetSpellPowerCostCache()
-   return (cost and cost > 0 and power_type == 3) and cost or 0
+   if cost and cost > 0 and power_type == 3 then return cost end
+   return fallback
 end
 
-local ENERGY_COST_RIP = get_spell_energy_cost(A.Rip) or 30
-local ENERGY_COST_RAKE = get_spell_energy_cost(A.Rake) or 35
-local ENERGY_COST_MANGLE = get_spell_energy_cost(A.MangleCat) or 40
-local ENERGY_COST_SHRED = get_spell_energy_cost(A.Shred) or 42
-local ENERGY_COST_BITE = get_spell_energy_cost(A.FerociousBite) or 35
-local ENERGY_COST_RAVAGE = get_spell_energy_cost(A.Ravage) or 60
-local ENERGY_COST_TIGERS_FURY = get_spell_energy_cost(A.TigersFury) or 30
+local ENERGY_COST_RIP = get_spell_energy_cost(A.Rip, 30)
+local ENERGY_COST_RAKE = get_spell_energy_cost(A.Rake, 35)
+local ENERGY_COST_MANGLE = get_spell_energy_cost(A.MangleCat, 40)
+local ENERGY_COST_SHRED = get_spell_energy_cost(A.Shred, 42)
+local ENERGY_COST_BITE = get_spell_energy_cost(A.FerociousBite, 35)
+local ENERGY_COST_RAVAGE = get_spell_energy_cost(A.Ravage, 60)
+local ENERGY_COST_TIGERS_FURY = get_spell_energy_cost(A.TigersFury, 30)
 
 if ENERGY_COST_RIP ~= 30 or ENERGY_COST_RAKE ~= 35 or ENERGY_COST_BITE ~= 35 or ENERGY_COST_MANGLE ~= 40 or ENERGY_COST_SHRED ~= 42 or ENERGY_COST_RAVAGE ~= 60 or ENERGY_COST_TIGERS_FURY ~= 30 then
    print("|cFFFF8800[Flux AIO]|r Dynamic energy costs: Rip=" .. ENERGY_COST_RIP .. ", Rake=" .. ENERGY_COST_RAKE .. ", Bite=" .. ENERGY_COST_BITE .. ", Mangle=" .. ENERGY_COST_MANGLE .. ", Shred=" .. ENERGY_COST_SHRED .. ", Ravage=" .. ENERGY_COST_RAVAGE .. ", Tigers=" .. ENERGY_COST_TIGERS_FURY)
