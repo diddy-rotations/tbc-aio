@@ -49,7 +49,7 @@ local floor = math.floor
 -- ENERGY COST INITIALIZATION
 -- ============================================================================
 local function get_spell_energy_cost(spell, fallback)
-   local cost, power_type = spell:GetSpellPowerCostCache()
+   local cost, power_type = spell:GetSpellPowerCost()
    if cost and cost > 0 and power_type == 3 then return cost end
    return fallback
 end
@@ -62,9 +62,7 @@ local ENERGY_COST_BITE = get_spell_energy_cost(A.FerociousBite, 35)
 local ENERGY_COST_RAVAGE = get_spell_energy_cost(A.Ravage, 60)
 local ENERGY_COST_TIGERS_FURY = get_spell_energy_cost(A.TigersFury, 30)
 
-if ENERGY_COST_RIP ~= 30 or ENERGY_COST_RAKE ~= 35 or ENERGY_COST_BITE ~= 35 or ENERGY_COST_MANGLE ~= 40 or ENERGY_COST_SHRED ~= 42 or ENERGY_COST_RAVAGE ~= 60 or ENERGY_COST_TIGERS_FURY ~= 30 then
-   print("|cFFFF8800[Flux AIO]|r Dynamic energy costs: Rip=" .. ENERGY_COST_RIP .. ", Rake=" .. ENERGY_COST_RAKE .. ", Bite=" .. ENERGY_COST_BITE .. ", Mangle=" .. ENERGY_COST_MANGLE .. ", Shred=" .. ENERGY_COST_SHRED .. ", Ravage=" .. ENERGY_COST_RAVAGE .. ", Tigers=" .. ENERGY_COST_TIGERS_FURY)
-end
+print("|cFFFF8800[Flux AIO]|r Energy costs: Rip=" .. ENERGY_COST_RIP .. ", Rake=" .. ENERGY_COST_RAKE .. ", Bite=" .. ENERGY_COST_BITE .. ", Mangle=" .. ENERGY_COST_MANGLE .. ", Shred=" .. ENERGY_COST_SHRED .. ", Ravage=" .. ENERGY_COST_RAVAGE .. ", Tigers=" .. ENERGY_COST_TIGERS_FURY)
 
 -- Tick optimization: prefer Mangle over Shred in this energy range when tick imminent.
 -- At these energy levels, Shred leaves you too low to act after the tick, but Mangle doesn't.
@@ -286,7 +284,7 @@ local function get_cat_state(context)
    local has_cc = context.has_clearcasting
 
    -- Debuff durations (3 API calls, done once per frame)
-   cat_state.mangle_duration = Unit(TARGET_UNIT):HasDeBuffs(MANGLE_CAT_DEBUFF_IDS, nil, true) or 0
+   cat_state.mangle_duration = Unit(TARGET_UNIT):HasDeBuffs(MANGLE_CAT_DEBUFF_IDS) or 0
    cat_state.rip_duration = Unit(TARGET_UNIT):HasDeBuffs(RIP_DEBUFF_IDS, nil, true) or 0
    cat_state.rake_duration = Unit(TARGET_UNIT):HasDeBuffs(RAKE_DEBUFF_IDS, nil, true) or 0
 

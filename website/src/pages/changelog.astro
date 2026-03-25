@@ -15,6 +15,17 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.8.7 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-patch">Patch</span>
+
+      <h3>Druid</h3>
+      <ul class="features">
+        <li><strong>Cat Energy Cost Fix</strong> &mdash; Switched energy cost detection from cached to realtime API query, fixing an issue where Shred&rsquo;s cost was read as 60 (untalented) instead of 42, causing excessive Mangle usage when behind the target.</li>
+        <li><strong>Cat Mangle Debuff Detection</strong> &mdash; Mangle debuff check now detects any druid&rsquo;s Mangle on the target (not just your own), preventing unnecessary reapplication when a bear tank is already maintaining the debuff.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.8.6 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-patch">Patch</span>
 
