@@ -604,8 +604,8 @@ rotation_registry:register_middleware({
         end
         -- TM check: don't swap if we'd lose significant rage
         local tm_cap = get_tactical_mastery_cap()
-        -- Arms needs to return to Battle often (MS/Overpower) — tolerate more rage waste
-        local waste_tolerance = spec == "arms" and 20 or 5
+        -- Arms/Kebab need their home stance for core abilities — tolerate more rage waste
+        local waste_tolerance = (spec == "arms" or spec == "kebab") and 20 or 5
         if context.rage > tm_cap + waste_tolerance then return false end
         return true
     end,
