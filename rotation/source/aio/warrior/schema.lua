@@ -44,6 +44,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						options = {
 							{ value = "arms", text = "Arms" },
 							{ value = "fury", text = "Fury" },
+							{ value = "kebab", text = "Kebab (DW Arms)" },
 							{ value = "protection", text = "Protection" },
 						},
 					},
@@ -414,7 +415,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "slider",
 						key = "arms_hs_rage_threshold",
-						default = 50,
+						default = 45,
 						min = 30,
 						max = 80,
 						label = "HS Rage Threshold",
@@ -424,9 +425,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "checkbox",
 						key = "arms_hs_during_execute",
-						default = true,
+						default = false,
 						label = "HS During Execute",
-						tooltip = "Allow Heroic Strike during execute phase (dump excess rage).",
+						tooltip = "Allow Heroic Strike during execute phase. OFF recommended (every rage point in Execute = +21 damage).",
 					},
 				},
 			},
@@ -498,7 +499,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "slider",
 						key = "fury_hs_rage_threshold",
-						default = 50,
+						default = 40,
 						min = 30,
 						max = 80,
 						label = "HS Rage Threshold",
@@ -585,9 +586,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "checkbox",
 						key = "fury_hs_during_execute",
-						default = true,
+						default = false,
 						label = "HS During Execute",
-						tooltip = "Allow Heroic Strike during execute phase (keeps yellow OH hits with HS trick).",
+						tooltip = "Allow Heroic Strike during execute phase. OFF recommended (every rage point in Execute = +21 damage). Exception: with HS trick, ON keeps yellow OH hits.",
 					},
 				},
 			},
@@ -995,6 +996,111 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						default = false,
 						label = "Auto Intervene",
 						tooltip = "Intervene to friendly party members below 40% HP (Defensive Stance).",
+					},
+				},
+			},
+		},
+	},
+
+	-- Tab 7: Kebab (DW Arms)
+	[7] = {
+		name = "Kebab (DW Arms)",
+		sections = {
+			{
+				header = "Core Abilities",
+				settings = {
+					{
+						type = "checkbox",
+						key = "kebab_use_overpower",
+						default = true,
+						label = "Use Overpower",
+						tooltip = "Use Overpower on dodge procs when already in Battle Stance (avoids unnecessary stance dance).",
+					},
+					{
+						type = "checkbox",
+						key = "kebab_use_whirlwind",
+						default = true,
+						label = "Use Whirlwind",
+						tooltip = "Use Whirlwind on cooldown (Berserker Stance).",
+					},
+					{
+						type = "checkbox",
+						key = "kebab_use_sweeping_strikes",
+						default = true,
+						label = "Use Sweeping Strikes",
+						tooltip = "Use Sweeping Strikes on cooldown in AoE.",
+					},
+				},
+			},
+			{
+				header = "Utility",
+				settings = {
+					{
+						type = "checkbox",
+						key = "kebab_use_victory_rush",
+						default = true,
+						label = "Use Victory Rush",
+						tooltip = "Use Victory Rush (free instant attack after a killing blow, 0 rage).",
+					},
+				},
+			},
+			{
+				header = "Execute Phase",
+				settings = {
+					{
+						type = "checkbox",
+						key = "kebab_execute_phase",
+						default = true,
+						label = "Execute Phase",
+						tooltip = "Switch to Execute priority at <20% target HP.",
+					},
+					{
+						type = "checkbox",
+						key = "kebab_use_ms_execute",
+						default = true,
+						label = "MS During Execute",
+						tooltip = "Use Mortal Strike during execute phase.",
+					},
+					{
+						type = "checkbox",
+						key = "kebab_use_ww_execute",
+						default = true,
+						label = "WW During Execute",
+						tooltip = "Use Whirlwind during execute phase.",
+					},
+				},
+			},
+			{
+				header = "Rage Dump",
+				settings = {
+					{
+						type = "slider",
+						key = "kebab_hs_rage_threshold",
+						default = 40,
+						min = 25,
+						max = 80,
+						label = "HS Rage Threshold",
+						tooltip = "Queue Heroic Strike above this rage.",
+						format = "%d",
+					},
+					{
+						type = "checkbox",
+						key = "kebab_hs_during_execute",
+						default = false,
+						label = "HS During Execute",
+						tooltip = "Allow Heroic Strike during execute phase. OFF recommended (every rage point in Execute = +21 damage).",
+					},
+				},
+			},
+			{
+				header = "Cooldowns",
+				settings = {
+					{
+						type = "checkbox",
+						key = "kebab_use_death_wish",
+						default = true,
+						label = "Use Death Wish",
+						tooltip = "Use Death Wish cooldown (+20% damage).",
 					},
 				},
 			},
