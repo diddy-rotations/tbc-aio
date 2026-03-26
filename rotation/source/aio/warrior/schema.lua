@@ -676,7 +676,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "slider",
 						key = "prot_tc_min_mobs",
-						default = 3,
+						default = 2,
 						min = 1,
 						max = 10,
 						label = "TC Min Enemies",
@@ -708,7 +708,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "slider",
 						key = "prot_hs_rage_threshold",
-						default = 60,
+						default = 50,
 						min = 40,
 						max = 90,
 						label = "HS Rage Threshold",
