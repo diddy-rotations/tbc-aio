@@ -68,12 +68,12 @@ local function get_arms_state(context)
 end
 
 -- ============================================================================
--- RESOURCE POOLING (matches wowsims slamMSWWDelay = 2000ms)
+-- RESOURCE POOLING
 -- ============================================================================
--- Don't waste GCD + rage on Slam when core abilities are imminent.
--- If MS or WW comes off CD within 2s, hold the filler unless we can
--- afford both the filler AND the core ability's rage cost.
-local FILLER_HOLD_WINDOW = 2.0  -- seconds
+-- Hold Slam when MS is imminent and we can't afford both.
+-- Don't pool for WW — Slam is higher priority than WW in Arms,
+-- and WW requires a Berserker stance dance that may not happen.
+local FILLER_HOLD_WINDOW = 1.5  -- seconds (tighter window to reduce dead GCDs)
 local RAGE_COST_MS = 30
 local RAGE_COST_WW = 25
 local RAGE_COST_SLAM = 15
@@ -81,14 +81,11 @@ local RAGE_COST_PUMMEL = 10
 local SLAM_MIN_WINDOW = 1.1   -- Improved Slam 1.0s cast + 0.1s latency; only Slam if swing is further away
 
 local function should_pool_for_core_arms(context, state)
+    -- Don't pool if we can't even afford Slam (nothing to hold back)
+    if context.rage < RAGE_COST_SLAM then return false end
     -- MS imminent: hold if spending Slam cost would starve MS
     if state.ms_cd > 0 and state.ms_cd <= FILLER_HOLD_WINDOW then
         if (context.rage - RAGE_COST_SLAM) < RAGE_COST_MS then return true end
-    end
-    -- WW imminent: hold if spending Slam cost would starve WW
-    if context.settings.arms_use_whirlwind
-        and state.ww_cd > 0 and state.ww_cd <= FILLER_HOLD_WINDOW then
-        if (context.rage - RAGE_COST_SLAM) < RAGE_COST_WW then return true end
     end
     return false
 end
@@ -418,29 +415,14 @@ local Arms_Slam = {
         if context.is_moving then return false end
         -- Don't Slam in execute phase (Execute is better use of rage)
         if state.target_below_20 and context.settings.arms_execute_phase then return false end
-        -- Resource pooling: hold GCD for MS/WW if imminent and rage is tight
-        if should_pool_for_core_arms(context, state) then
-            debug_print(format("[ARMS] Slam skip: pooling (MS cd=%.1f, WW cd=%.1f, rage=%d)",
-                state.ms_cd, state.ww_cd, context.rage))
-            return false
-        end
+        -- Resource pooling: hold GCD for MS if imminent and rage is tight
+        if should_pool_for_core_arms(context, state) then return false end
         -- Hold filler if Sweeping Strikes is imminent in AoE
-        if should_reserve_for_sweeping(context) then
-            debug_print("[ARMS] Slam skip: SS pooling")
-            return false
-        end
+        if should_reserve_for_sweeping(context) then return false end
         -- Slam weaving: only Slam if the cast fits before next auto-attack
         local swing_remain = NS.get_time_until_swing()
-        if swing_remain < SLAM_MIN_WINDOW then
-            debug_print(format("[ARMS] Slam skip: swing too soon (%.2fs < %.1fs window)",
-                swing_remain, SLAM_MIN_WINDOW))
-            return false
-        end
-        local ready = A.Slam:IsReady(TARGET_UNIT)
-        if ready then
-            debug_print(format("[ARMS] Slam ready: swing in %.2fs, rage=%d", swing_remain, context.rage))
-        end
-        return ready
+        if swing_remain < SLAM_MIN_WINDOW then return false end
+        return A.Slam:IsReady(TARGET_UNIT)
     end,
 
     execute = function(icon, context, state)
