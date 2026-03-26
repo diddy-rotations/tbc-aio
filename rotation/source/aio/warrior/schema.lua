@@ -44,7 +44,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						options = {
 							{ value = "arms", text = "Arms" },
 							{ value = "fury", text = "Fury" },
-							{ value = "kebab", text = "Kebab (DW Arms)" },
+							{ value = "kebab", text = "Kebab" },
 							{ value = "protection", text = "Protection" },
 						},
 					},
