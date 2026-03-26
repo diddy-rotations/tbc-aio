@@ -455,7 +455,7 @@ local Arms_HeroicStrike = {
                 end
             end
         end
-        local threshold = context.settings.arms_hs_rage_threshold or 45
+        local threshold = context.settings.arms_hs_rage_threshold or 60
         if context.rage < threshold then return false end
         -- Don't queue HS/Cleave if it would starve an imminent core ability
         if would_starve_core_arms(context, state, 15) then return false end
@@ -503,16 +503,16 @@ local Arms_VictoryRush = {
 -- ============================================================================
 rotation_registry:register("arms", {
     named("MaintainRend",    Arms_MaintainRend),
-    named("MortalStrike",    Arms_MortalStrike),     -- #1 damage ability, always on CD
     named("SweepingStrikes", Arms_SweepingStrikes),   -- before WW to double hits in AoE
+    named("Slam",            Arms_Slam),              -- #1 filler per sim (above MS for 2H Arms)
+    named("MortalStrike",    Arms_MortalStrike),
     named("Whirlwind",       Arms_Whirlwind),
-    named("Overpower",       Arms_Overpower),         -- reactive dodge proc (5s window) — below WW per wowsims APL
     named("Execute",         Arms_Execute),
+    named("Overpower",       Arms_Overpower),         -- reactive dodge proc — off by default for 2H
     named("VictoryRush",     Arms_VictoryRush),
     named("SunderMaintain",  Arms_SunderMaintain),
     named("ThunderClap",     Arms_ThunderClap),
     named("DemoShout",       Arms_DemoShout),
-    named("Slam",            Arms_Slam),
     named("HeroicStrike",    Arms_HeroicStrike),
 }, {
     context_builder = get_arms_state,

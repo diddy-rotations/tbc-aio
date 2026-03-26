@@ -329,9 +329,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "checkbox",
 						key = "arms_use_overpower",
-						default = true,
+						default = false,
 						label = "Use Overpower",
-						tooltip = "Use Overpower on dodge procs (Battle Stance only).",
+						tooltip = "Use Overpower on dodge procs (Battle Stance only). OFF recommended for 2H Arms (stance dance costs rage, delays MS/WW).",
 					},
 					{
 						type = "slider",
@@ -415,7 +415,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "slider",
 						key = "arms_hs_rage_threshold",
-						default = 45,
+						default = 60,
 						min = 30,
 						max = 80,
 						label = "HS Rage Threshold",
@@ -1002,9 +1002,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 		},
 	},
 
-	-- Tab 7: Kebab (DW Arms)
+	-- Tab 7: Kebab
 	[7] = {
-		name = "Kebab (DW Arms)",
+		name = "Kebab",
 		sections = {
 			{
 				header = "Core Abilities",
