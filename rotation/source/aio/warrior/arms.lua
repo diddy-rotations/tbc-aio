@@ -28,7 +28,7 @@ local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
 local is_spell_available = NS.is_spell_available
-local is_stance_swap_safe = NS.is_stance_swap_safe
+-- Note: is_stance_swap_safe accessed via NS at call time (middleware load order)
 local debug_print = NS.debug_print
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
@@ -212,7 +212,7 @@ local Arms_Overpower = {
         local op_remaining = A.Overpower:GetCooldown() or 0
         if op_remaining > 0 and op_remaining <= 1.5 then
             -- Proc expiring — still need basic affordability
-            return is_stance_swap_safe(context.rage, 5)
+            return NS.is_stance_swap_safe(context.rage, 5)
         end
 
         -- Smart rage protection: check MS/WW/Execute starvation
@@ -281,7 +281,7 @@ local Arms_Whirlwind = {
         -- Swap to Berserker Stance if needed (inline stance dance)
         if context.stance ~= Constants.STANCE.BERSERKER then
             -- TM check: WW costs 25 rage, don't dance if we'd waste too much
-            if not is_stance_swap_safe(context.rage, 25) then return nil end
+            if not NS.is_stance_swap_safe(context.rage, 25) then return nil end
             if A.BerserkerStance:IsReady(PLAYER_UNIT) then
                 return A.BerserkerStance:Show(icon), "[ARMS] → Berserker (for WW)"
             end
