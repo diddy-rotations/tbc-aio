@@ -602,10 +602,12 @@ rotation_registry:register_middleware({
                 end
             end
         end
+        -- Kebab has no TM — always swap back to Berserker (losing rage is better than no WW)
+        if spec == "kebab" then return true end
         -- TM check: don't swap if we'd lose significant rage
         local tm_cap = get_tactical_mastery_cap()
-        -- Arms/Kebab need their home stance for core abilities — tolerate more rage waste
-        local waste_tolerance = (spec == "arms" or spec == "kebab") and 20 or 5
+        -- Arms needs home stance for core abilities — tolerate more rage waste
+        local waste_tolerance = spec == "arms" and 20 or 5
         if context.rage > tm_cap + waste_tolerance then return false end
         return true
     end,

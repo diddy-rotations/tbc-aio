@@ -165,7 +165,7 @@ local Kebab_Whirlwind = {
 
     execute = function(icon, context, state)
         if context.stance ~= Constants.STANCE.BERSERKER then
-            if not is_stance_swap_safe(context.rage, 25) then return nil end
+            -- No TM — accept rage loss to access WW (staying in wrong stance is worse)
             if A.BerserkerStance:IsReady(PLAYER_UNIT) then
                 return A.BerserkerStance:Show(icon), "[KEBAB] → Berserker (for WW)"
             end
