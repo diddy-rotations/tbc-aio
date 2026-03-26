@@ -415,20 +415,43 @@ local Arms_Slam = {
     setting_key = "arms_use_slam",
 
     matches = function(context, state)
-        if context.is_moving then return false end
+        if context.is_moving then
+            debug_print("[ARMS] Slam skip: moving")
+            return false
+        end
         -- Don't Slam in execute phase (Execute is better use of rage)
-        if state.target_below_20 and context.settings.arms_execute_phase then return false end
+        if state.target_below_20 and context.settings.arms_execute_phase then
+            debug_print("[ARMS] Slam skip: execute phase")
+            return false
+        end
         -- Resource pooling: hold GCD for MS/WW if imminent and rage is tight
-        if should_pool_for_core_arms(context, state) then return false end
+        if should_pool_for_core_arms(context, state) then
+            debug_print(format("[ARMS] Slam skip: pooling (MS cd=%.1f, WW cd=%.1f, rage=%d)",
+                state.ms_cd, state.ww_cd, context.rage))
+            return false
+        end
         -- Hold filler if Sweeping Strikes is imminent in AoE
-        if should_reserve_for_sweeping(context) then return false end
+        if should_reserve_for_sweeping(context) then
+            debug_print("[ARMS] Slam skip: SS pooling")
+            return false
+        end
         -- Slam weaving: only Slam if the cast fits before next auto-attack
-        if NS.get_time_until_swing() < SLAM_MIN_WINDOW then return false end
-        return A.Slam:IsReady(TARGET_UNIT)
+        local swing_remain = NS.get_time_until_swing()
+        if swing_remain < SLAM_MIN_WINDOW then
+            debug_print(format("[ARMS] Slam skip: swing too soon (%.2fs < %.1fs window)",
+                swing_remain, SLAM_MIN_WINDOW))
+            return false
+        end
+        local ready = A.Slam:IsReady(TARGET_UNIT)
+        if ready then
+            debug_print(format("[ARMS] Slam ready: swing in %.2fs, rage=%d", swing_remain, context.rage))
+        end
+        return ready
     end,
 
     execute = function(icon, context, state)
-        return try_cast(A.Slam, icon, TARGET_UNIT, "[ARMS] Slam")
+        return try_cast(A.Slam, icon, TARGET_UNIT,
+            format("[ARMS] Slam - Rage: %d, Swing: %.2fs", context.rage, NS.get_time_until_swing()))
     end,
 }
 
