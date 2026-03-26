@@ -312,9 +312,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "checkbox",
 						key = "arms_maintain_rend",
-						default = true,
+						default = false,
 						label = "Maintain Rend",
-						tooltip = "Keep Rend DoT on target (for Blood Frenzy talent).",
+						tooltip = "Keep Rend DoT on target. OFF recommended (Deep Wounds applies Rend on crit).",
 					},
 					{
 						type = "slider",
