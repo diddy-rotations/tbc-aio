@@ -415,15 +415,9 @@ local Arms_Slam = {
     setting_key = "arms_use_slam",
 
     matches = function(context, state)
-        if context.is_moving then
-            debug_print("[ARMS] Slam skip: moving")
-            return false
-        end
+        if context.is_moving then return false end
         -- Don't Slam in execute phase (Execute is better use of rage)
-        if state.target_below_20 and context.settings.arms_execute_phase then
-            debug_print("[ARMS] Slam skip: execute phase")
-            return false
-        end
+        if state.target_below_20 and context.settings.arms_execute_phase then return false end
         -- Resource pooling: hold GCD for MS/WW if imminent and rage is tight
         if should_pool_for_core_arms(context, state) then
             debug_print(format("[ARMS] Slam skip: pooling (MS cd=%.1f, WW cd=%.1f, rage=%d)",
