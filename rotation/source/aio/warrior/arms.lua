@@ -277,8 +277,10 @@ local Arms_Whirlwind = {
     execute = function(icon, context, state)
         -- Swap to Berserker Stance if needed (inline stance dance)
         if context.stance ~= Constants.STANCE.BERSERKER then
-            -- TM check: WW costs 25 rage, don't dance if we'd waste too much
-            if not NS.is_stance_swap_safe(context.rage, 25) then return nil end
+            -- Need enough rage post-swap to cast WW (25). No TM = accept rage loss in AoE.
+            local tm_cap = (A.TacticalMastery:GetTalentRank() or 0) * 5
+            local rage_after = context.rage <= tm_cap and context.rage or tm_cap
+            if rage_after < 25 and context.enemy_count < 2 then return nil end
             if A.BerserkerStance:IsReady(PLAYER_UNIT) then
                 return A.BerserkerStance:Show(icon), "[ARMS] → Berserker (for WW)"
             end
