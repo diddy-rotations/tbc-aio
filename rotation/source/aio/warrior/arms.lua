@@ -419,6 +419,12 @@ local Arms_Slam = {
             and A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true) then
             return false
         end
+        -- AoE: yield to WW when 2+ enemies (WW hits 4 targets, higher AoE priority)
+        if context.enemy_count >= 2 and context.rage >= 25
+            and context.settings.arms_use_whirlwind
+            and A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true) then
+            return false
+        end
         -- Resource pooling: hold GCD for MS if imminent and rage is tight
         if should_pool_for_core_arms(context, state) then return false end
         -- Hold filler if Sweeping Strikes is imminent in AoE
