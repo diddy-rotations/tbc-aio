@@ -154,7 +154,7 @@ local Constants = {
 
     -- Preferred stance per spec (used by stance correction middleware)
     PREFERRED_STANCE = {
-        arms       = 1,  -- Battle
+        arms       = 3,  -- Berserker (MS works in any stance, no TM, 3% crit)
         fury       = 3,  -- Berserker
         kebab      = 3,  -- Berserker (DW Arms)
         protection = 2,  -- Defensive

@@ -576,13 +576,6 @@ rotation_registry:register_middleware({
         local preferred = Constants.PREFERRED_STANCE[spec]
         if not preferred then return false end
         if context.stance == preferred then return false end
-        -- Don't fight inline stance dances: Arms WW needs Berserker — yield while WW is ready
-        if spec == "arms" and context.stance == Constants.STANCE.BERSERKER
-            and context.settings.arms_use_whirlwind
-            and context.rage >= 25
-            and (A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true)) then
-            return false
-        end
         -- Don't fight inline stance dances: Prot TC needs Battle — yield while TC debuff needs refresh
         if spec == "protection" and context.stance == Constants.STANCE.BATTLE
             and context.settings.prot_use_thunder_clap then
@@ -602,12 +595,11 @@ rotation_registry:register_middleware({
                 end
             end
         end
-        -- Kebab has no TM — always swap back to Berserker (losing rage is better than no WW)
-        if spec == "kebab" then return true end
+        -- Arms/Kebab have no TM — always swap back to Berserker (losing rage is better than wrong stance)
+        if spec == "arms" or spec == "kebab" then return true end
         -- TM check: don't swap if we'd lose significant rage
         local tm_cap = get_tactical_mastery_cap()
-        -- Arms needs home stance for core abilities — tolerate more rage waste
-        local waste_tolerance = spec == "arms" and 20 or 5
+        local waste_tolerance = 5
         if context.rage > tm_cap + waste_tolerance then return false end
         return true
     end,
