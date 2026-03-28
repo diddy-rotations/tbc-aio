@@ -52,7 +52,7 @@ local function get_kebab_state(context)
     if context._kebab_valid then return kebab_state end
     context._kebab_valid = true
 
-    kebab_state.target_below_20 = context.target_hp < 20
+    kebab_state.target_below_20 = context.target_hp < 20 and context.target_is_elite
     kebab_state.sunder_stacks = Unit(TARGET_UNIT):HasDeBuffsStacks(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     kebab_state.sunder_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     kebab_state.thunder_clap_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.THUNDER_CLAP) or 0

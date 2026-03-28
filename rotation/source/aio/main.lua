@@ -223,6 +223,12 @@ local function create_context(icon)
    ctx.in_melee_range = (min_range and min_range <= 5) or false
    ctx.target_phys_immune = has_phys_immunity(TARGET_UNIT)
    ctx.is_boss = ctx.has_valid_enemy_target and Unit(TARGET_UNIT):IsBoss()
+   if ctx.has_valid_enemy_target then
+       local c = _G.UnitClassification(TARGET_UNIT)
+       ctx.target_is_elite = ctx.is_boss or c == "elite" or c == "worldboss" or c == "rareelite"
+   else
+       ctx.target_is_elite = false
+   end
    ctx.combat_time = combat_time
    ctx.settings = cached_settings
    ctx.gcd_remaining = gcd_remaining

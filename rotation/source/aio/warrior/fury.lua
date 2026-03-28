@@ -52,7 +52,7 @@ local function get_fury_state(context)
     if context._fury_valid then return fury_state end
     context._fury_valid = true
 
-    fury_state.target_below_20 = context.target_hp < 20
+    fury_state.target_below_20 = context.target_hp < 20 and context.target_is_elite
     fury_state.sunder_stacks = Unit(TARGET_UNIT):HasDeBuffsStacks(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     fury_state.sunder_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     fury_state.thunder_clap_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.THUNDER_CLAP) or 0

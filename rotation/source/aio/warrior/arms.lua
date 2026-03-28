@@ -56,7 +56,7 @@ local function get_arms_state(context)
 
     arms_state.rend_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.REND) or 0
     arms_state.rend_active = arms_state.rend_duration > 0
-    arms_state.target_below_20 = context.target_hp < 20
+    arms_state.target_below_20 = context.target_hp < 20 and context.target_is_elite
     arms_state.sunder_stacks = Unit(TARGET_UNIT):HasDeBuffsStacks(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     arms_state.sunder_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     arms_state.thunder_clap_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.THUNDER_CLAP) or 0
