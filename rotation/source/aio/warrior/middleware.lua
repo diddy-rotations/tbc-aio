@@ -592,8 +592,12 @@ rotation_registry:register_middleware({
         if not preferred then return false end
         if context.stance == preferred then return false end
         -- Don't fight inline stance dances: Prot TC needs Battle — yield while TC debuff needs refresh
+        -- Exception: if we lost aggro, get back to Defensive for Taunt immediately
+        local prot_lost_aggro = spec == "protection"
+            and _G.UnitExists("targettarget") and not _G.UnitIsUnit("targettarget", "player")
         if spec == "protection" and context.stance == Constants.STANCE.BATTLE
-            and context.settings.prot_use_thunder_clap then
+            and context.settings.prot_use_thunder_clap
+            and not prot_lost_aggro then
             local tc_debuff = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.THUNDER_CLAP) or 0
             if tc_debuff <= Constants.TC_REFRESH_WINDOW then
                 return false
@@ -612,6 +616,8 @@ rotation_registry:register_middleware({
         end
         -- Arms/Kebab have no TM — always swap back to Berserker (losing rage is better than wrong stance)
         if spec == "arms" or spec == "kebab" then return true end
+        -- Prot lost aggro — get back to Defensive for Taunt regardless of rage
+        if prot_lost_aggro then return true end
         -- TM check: don't swap if we'd lose significant rage
         local tm_cap = get_tactical_mastery_cap()
         local waste_tolerance = 5
