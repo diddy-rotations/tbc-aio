@@ -436,8 +436,7 @@ local Arms_Slam = {
     end,
 
     execute = function(icon, context, state)
-        return try_cast(A.Slam, icon, TARGET_UNIT,
-            format("[ARMS] Slam - Rage: %d, Swing: %.2fs", context.rage, NS.get_time_until_swing()))
+        return try_cast(A.Slam, icon, TARGET_UNIT, "[ARMS] Slam")
     end,
 }
 
