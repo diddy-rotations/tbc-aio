@@ -37,10 +37,11 @@ local LOC_FEAR = { "FEAR" }
 local BLOODLUST_IDS = { 2825, 32182 }
 
 -- Check if a CD mode setting allows firing
--- mode: "off" | "in_combat" | "bloodlust" | true (legacy boolean)
-local function cd_mode_allows(mode)
+-- mode: "off" | "in_combat" | "boss" | "bloodlust" | true (legacy boolean)
+local function cd_mode_allows(mode, context)
     if mode == "off" or mode == false then return false end
     if mode == "in_combat" or mode == true then return true end
+    if mode == "boss" then return context and context.is_boss end
     if mode == "bloodlust" then
         return (Unit(PLAYER_UNIT):HasBuffs(BLOODLUST_IDS) or 0) > 0
     end
@@ -756,7 +757,7 @@ rotation_registry:register_middleware({
         local ps = context.settings.playstyle or "fury"
         if ps == "protection" then return false end
         local mode = context.settings[ps .. "_use_death_wish"] or "off"
-        if not cd_mode_allows(mode) then return false end
+        if not cd_mode_allows(mode, context) then return false end
         -- PvP: don't waste CDs on CC'd or physically immune targets
         if context.is_pvp and context.settings.pvp_enabled and context.target_is_player then
             local cc_remain = Unit(TARGET_UNIT):InCC() or 0
@@ -791,7 +792,7 @@ rotation_registry:register_middleware({
         local ps = context.settings.playstyle or "fury"
         if ps == "protection" then return false end
         local mode = context.settings[ps .. "_use_recklessness"] or "off"
-        if not cd_mode_allows(mode) then return false end
+        if not cd_mode_allows(mode, context) then return false end
         -- Recklessness requires Berserker Stance
         if context.stance ~= Constants.STANCE.BERSERKER then return false end
         -- PvP: don't waste CDs on CC'd or physically immune targets

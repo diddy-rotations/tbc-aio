@@ -443,6 +443,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						options = {
 							{ value = "off", text = "Off" },
 							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
 							{ value = "bloodlust", text = "During Bloodlust" },
 						},
 					},
@@ -455,6 +456,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						options = {
 							{ value = "off", text = "Off" },
 							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
 							{ value = "bloodlust", text = "During Bloodlust" },
 						},
 					},
@@ -621,6 +623,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						options = {
 							{ value = "off", text = "Off" },
 							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
 							{ value = "bloodlust", text = "During Bloodlust" },
 						},
 					},
@@ -633,6 +636,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						options = {
 							{ value = "off", text = "Off" },
 							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
 							{ value = "bloodlust", text = "During Bloodlust" },
 						},
 					},
@@ -1131,6 +1135,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						options = {
 							{ value = "off", text = "Off" },
 							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
 							{ value = "bloodlust", text = "During Bloodlust" },
 						},
 					},
@@ -1143,6 +1148,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						options = {
 							{ value = "off", text = "Off" },
 							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
 							{ value = "bloodlust", text = "During Bloodlust" },
 						},
 					},
