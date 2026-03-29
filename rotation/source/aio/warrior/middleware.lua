@@ -33,6 +33,20 @@ local CONST = A.Const
 local LOC_FEAR_INCAP = { "FEAR", "INCAPACITATE" }
 local LOC_FEAR = { "FEAR" }
 
+-- Bloodlust/Heroism buff IDs for CD gating
+local BLOODLUST_IDS = { 2825, 32182 }
+
+-- Check if a CD mode setting allows firing
+-- mode: "off" | "in_combat" | "bloodlust" | true (legacy boolean)
+local function cd_mode_allows(mode)
+    if mode == "off" or mode == false then return false end
+    if mode == "in_combat" or mode == true then return true end
+    if mode == "bloodlust" then
+        return (Unit(PLAYER_UNIT):HasBuffs(BLOODLUST_IDS) or 0) > 0
+    end
+    return true  -- unknown value, default to allow
+end
+
 -- Tactical Mastery: returns max rage preserved after stance swap (5 per rank, 0-25)
 local function get_tactical_mastery_cap()
     return (A.TacticalMastery:GetTalentRank() or 0) * 5
@@ -740,9 +754,9 @@ rotation_registry:register_middleware({
         if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
 
         local ps = context.settings.playstyle or "fury"
-        if ps == "arms" and not context.settings.arms_use_death_wish then return false end
-        if ps == "fury" and not context.settings.fury_use_death_wish then return false end
         if ps == "protection" then return false end
+        local mode = context.settings[ps .. "_use_death_wish"] or "off"
+        if not cd_mode_allows(mode) then return false end
         -- PvP: don't waste CDs on CC'd or physically immune targets
         if context.is_pvp and context.settings.pvp_enabled and context.target_is_player then
             local cc_remain = Unit(TARGET_UNIT):InCC() or 0
@@ -775,8 +789,9 @@ rotation_registry:register_middleware({
         local min_ttd = context.settings.cd_min_ttd or 0
         if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         local ps = context.settings.playstyle or "fury"
-        if ps ~= "fury" then return false end
-        if not context.settings.fury_use_recklessness then return false end
+        if ps == "protection" then return false end
+        local mode = context.settings[ps .. "_use_recklessness"] or "off"
+        if not cd_mode_allows(mode) then return false end
         -- Recklessness requires Berserker Stance
         if context.stance ~= Constants.STANCE.BERSERKER then return false end
         -- PvP: don't waste CDs on CC'd or physically immune targets
