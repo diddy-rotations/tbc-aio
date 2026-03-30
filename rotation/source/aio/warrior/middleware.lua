@@ -715,17 +715,18 @@ rotation_registry:register_middleware({
         local shout_type = context.settings.shout_type or "battle"
         if shout_type == "none" then return false end
 
-        -- Refresh if missing or duration < 30s (2 min buff, refresh early)
+        -- Refresh if missing or duration < 10s (2 min buff, refresh late to avoid wasting opener GCDs)
         -- Use all-rank arrays so we detect shouts from any party member at any rank
+        local refresh_threshold = 10
         if shout_type == "battle" then
             if not context.has_battle_shout then return true end
             local dur = Unit(PLAYER_UNIT):HasBuffs(Constants.BATTLE_SHOUT_IDS) or 0
-            if dur < 30 then return true end
+            if dur < refresh_threshold then return true end
         end
         if shout_type == "commanding" then
             if not context.has_commanding_shout then return true end
             local dur = Unit(PLAYER_UNIT):HasBuffs(Constants.COMMANDING_SHOUT_IDS) or 0
-            if dur < 30 then return true end
+            if dur < refresh_threshold then return true end
         end
         return false
     end,
