@@ -1305,6 +1305,9 @@ rotation_registry:register_middleware({
         local now = _G.GetTime()
         -- Charge: Battle Stance, out of combat
         if not context.in_combat then
+            -- Check Charge CD before swapping stance (avoid wasting rage on pointless swap)
+            local charge_cd = A.Charge:GetCooldown() or 0
+            if charge_cd > 1.5 then return nil end
             -- Need Battle Stance for Charge — swap first if needed
             if context.stance ~= Constants.STANCE.BATTLE and A.BattleStance:IsReady(PLAYER_UNIT) then
                 return A.BattleStance:Show(icon), "[MW] Battle Stance (for Charge)"
@@ -1318,6 +1321,9 @@ rotation_registry:register_middleware({
         -- Intercept: Berserker Stance, in combat
         -- Suppress Intercept to same target we just Charged to (travel time + landing)
         if context.in_combat and not recently_charged_same_target(now) then
+            -- Check Intercept CD before swapping stance (avoid wasting rage on pointless swap)
+            local intercept_cd = A.Intercept:GetCooldown() or 0
+            if intercept_cd > 1.5 then return nil end
             -- Need Berserker Stance for Intercept — swap first if needed
             if context.stance ~= Constants.STANCE.BERSERKER then
                 -- Check TM: Intercept costs 10 rage, don't swap if we'd lose too much
