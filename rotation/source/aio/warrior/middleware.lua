@@ -118,8 +118,8 @@ rotation_registry:register_middleware({
             end
         end
 
-        -- 3. Target entered execute phase — Execute is better DPS
-        if not should_dequeue then
+        -- 3. Target entered execute phase — Execute is better DPS (elites/bosses only)
+        if not should_dequeue and context.target_is_elite then
             local target_hp = context.target_hp or 100
             if target_hp <= 20 then
                 local playstyle = context.settings.playstyle or "fury"
