@@ -308,8 +308,8 @@ rotation_registry:register("shadow", {
          if state.swp_active then
             return false
          end
-         -- Don't apply if target will die soon
-         if context.ttd < 6 then
+         -- Don't apply if target will die soon (need 2 ticks = 6s minimum)
+         if context.ttd and context.ttd > 0 and context.ttd < 6 then
             return false
          end
          -- Only apply when MB on CD (don't waste GCD when MB is ready)
