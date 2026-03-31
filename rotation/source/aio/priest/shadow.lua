@@ -162,35 +162,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [4] Vampiric Touch (refresh when remaining <= ~1.5s cast time)
-   named("VampiricTouch", {
-      matches = function(context, state)
-         if not context.in_combat then
-            return false
-         end
-         if not context.has_valid_enemy_target then
-            return false
-         end
-         if state.execute_phase then
-            return false
-         end
-         if context.is_moving then
-            return false
-         end
-         -- Don't apply on dying targets (1.5s cast + 15s DoT, need 2 ticks = 6s minimum)
-         if context.ttd and context.ttd > 0 and context.ttd < 6 then
-            return false
-         end
-         -- Refresh when: VT missing entirely OR (VT expiring AND MB on CD)
-         if state.vt_remaining == 0 then return true end
-         return state.vt_remaining < 1.8 and not state.mb_ready
-      end,
-      execute = function(icon, context, state)
-         return try_cast_fmt(A.VampiricTouch, icon, TARGET_UNIT, "[SHADOW]", "VT", "rem: %.1fs", state.vt_remaining)
-      end,
-   }),
-
-   -- [5] AoE VT Spread (blanket enemies with VT)
+   -- [4] AoE VT Spread (blanket enemies with VT)
    named("AoEVTSpread", {
       matches = function(context, state)
          if not context.in_combat then
@@ -222,6 +194,34 @@ rotation_registry:register("shadow", {
       end,
    }),
 
+   -- [5] AoE VE (apply to main target after blanket DoTs are spread)
+   named("AoEVE", {
+      matches = function(context, state)
+         if not context.in_combat then
+            return false
+         end
+         if not context.has_valid_enemy_target then
+            return false
+         end
+         if not state.in_aoe then
+            return false
+         end
+         if not context.settings.shadow_ve_maintain then
+            return false
+         end
+         if state.ve_remaining >= 3 then
+            return false
+         end
+         if not A.VampiricEmbrace:IsInRange(TARGET_UNIT) then
+            return false
+         end
+         return true
+      end,
+      execute = function(icon, context, state)
+         return try_cast(A.VampiricEmbrace, icon, TARGET_UNIT, "[SHADOW] AoE VE (main target)")
+      end,
+   }),
+
    -- [6] Vampiric Embrace (maintain debuff on target)
    named("VampiricEmbrace", {
       matches = function(context, state)
@@ -232,6 +232,9 @@ rotation_registry:register("shadow", {
             return false
          end
          if state.execute_phase then
+            return false
+         end
+         if state.in_aoe then
             return false
          end
          if not context.settings.shadow_ve_maintain then
@@ -255,7 +258,38 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [7] Shadow Word: Pain (reapply only when it falls off — single-target only)
+   -- [7] Vampiric Touch (refresh when remaining <= ~1.5s cast time)
+   named("VampiricTouch", {
+      matches = function(context, state)
+         if not context.in_combat then
+            return false
+         end
+         if not context.has_valid_enemy_target then
+            return false
+         end
+         if state.execute_phase then
+            return false
+         end
+         if state.in_aoe then
+            return false
+         end
+         if context.is_moving then
+            return false
+         end
+         -- Don't apply on dying targets (1.5s cast + 15s DoT, need 2 ticks = 6s minimum)
+         if context.ttd and context.ttd > 0 and context.ttd < 6 then
+            return false
+         end
+         -- Refresh when: VT missing entirely OR (VT expiring AND MB on CD)
+         if state.vt_remaining == 0 then return true end
+         return state.vt_remaining < 1.8 and not state.mb_ready
+      end,
+      execute = function(icon, context, state)
+         return try_cast_fmt(A.VampiricTouch, icon, TARGET_UNIT, "[SHADOW]", "VT", "rem: %.1fs", state.vt_remaining)
+      end,
+   }),
+
+   -- [8] Shadow Word: Pain (reapply only when it falls off — single-target only)
    named("ShadowWordPain", {
       matches = function(context, state)
          if not context.in_combat then
@@ -289,7 +323,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [8] Starshards (Night Elf racial, before MB/SWD)
+   -- [9] Starshards (Night Elf racial, before MB/SWD)
    named("Starshards", {
       matches = function(context, state)
          if not context.in_combat then
@@ -299,6 +333,9 @@ rotation_registry:register("shadow", {
             return false
          end
          if state.execute_phase then
+            return false
+         end
+         if state.in_aoe then
             return false
          end
          if not context.settings.shadow_use_starshards then
@@ -311,7 +348,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [9] Devouring Plague (Undead racial, before MB/SWD)
+   -- [10] Devouring Plague (Undead racial, before MB/SWD)
    named("DevouringPlague", {
       matches = function(context, state)
          if not context.in_combat then
@@ -321,6 +358,9 @@ rotation_registry:register("shadow", {
             return false
          end
          if state.execute_phase then
+            return false
+         end
+         if state.in_aoe then
             return false
          end
          if not context.settings.shadow_use_devouring_plague then
@@ -342,7 +382,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [10] Inner Focus (off-GCD, fire before Mind Blast)
+   -- [11] Inner Focus (off-GCD, fire before Mind Blast)
    named("InnerFocus", {
       is_gcd_gated = false,
       is_burst = true,
@@ -367,7 +407,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [11] Mind Blast (on cooldown)
+   -- [12] Mind Blast (on cooldown)
    named("MindBlast", {
       matches = function(context, state)
          if not context.in_combat then
@@ -386,7 +426,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [12] Shadow Word: Death (on CD, HP gated)
+   -- [13] Shadow Word: Death (on CD, HP gated)
    named("ShadowWordDeath", {
       matches = function(context, state)
          if not context.in_combat then
@@ -408,7 +448,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [13] Racial (off-GCD, Berserking only — Arcane Torrent is a silence, handled by middleware)
+   -- [14] Racial (off-GCD, Berserking only — Arcane Torrent is a silence, handled by middleware)
    named("Racial", {
       is_gcd_gated = false,
       matches = function(context, state)
@@ -425,7 +465,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [14] Mind Flay (filler — yields to LowManaMode when mana below threshold)
+   -- [15] Mind Flay (filler — yields to LowManaMode when mana below threshold)
    named("MindFlay", {
       matches = function(context, state)
          if not context.in_combat then
@@ -449,7 +489,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [15] Low Mana PW:S (shield self when conserving mana, wand handled by framework AutoShoot)
+   -- [16] Low Mana PW:S (shield self when conserving mana, wand handled by framework AutoShoot)
    named("LowManaPWS", {
       matches = function(context, state)
          if not context.in_combat then
