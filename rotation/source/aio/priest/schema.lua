@@ -105,6 +105,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "shadow_aoe_count", default = 4, min = 2, max = 8, label = "AoE Target Count",
               tooltip = "Spread DoTs on multiple targets when this many enemies in combat.", format = "%d" },
         }},
+        { header = "Execute Phase", settings = {
+            { type = "slider", key = "shadow_execute_ttd", default = 10, min = 5, max = 15, label = "Execute TTD (sec)",
+              tooltip = "Skip DoTs when target dies within this many seconds. Uses MB > SW:D > MF only.", format = "%d sec" },
+        }},
         { header = "Mana Conservation", settings = {
             { type = "slider", key = "shadow_low_mana_pct", default = 50, min = 20, max = 80, label = "Low Mana Wand%",
               tooltip = "Below this mana%: maintain DoTs, PW:S self, then wand instead of Mind Flay.", format = "%d%%" },
