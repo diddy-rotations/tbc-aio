@@ -142,6 +142,9 @@ rotation_registry:register("shadow", {
          if not context.has_valid_enemy_target then
             return false
          end
+         if state.execute_phase then
+            return false
+         end
          if not context.settings.shadow_ve_maintain then
             return false
          end
@@ -172,6 +175,9 @@ rotation_registry:register("shadow", {
          if not context.has_valid_enemy_target then
             return false
          end
+         if state.execute_phase then
+            return false
+         end
          if context.is_moving then
             return false
          end
@@ -195,6 +201,9 @@ rotation_registry:register("shadow", {
             return false
          end
          if not context.has_valid_enemy_target then
+            return false
+         end
+         if state.execute_phase then
             return false
          end
          if state.swp_active then
@@ -224,6 +233,9 @@ rotation_registry:register("shadow", {
          if not context.has_valid_enemy_target then
             return false
          end
+         if state.execute_phase then
+            return false
+         end
          if not context.settings.shadow_use_starshards then
             return false
          end
@@ -241,6 +253,9 @@ rotation_registry:register("shadow", {
             return false
          end
          if not context.has_valid_enemy_target then
+            return false
+         end
+         if state.execute_phase then
             return false
          end
          if not context.settings.shadow_use_devouring_plague then
