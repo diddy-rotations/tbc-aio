@@ -45,6 +45,8 @@ local shadow_state = {
    swd_ready = false,
    swd_safe = false,
    inner_focus_ready = false,
+   in_aoe = false,
+   execute_phase = false,
 }
 
 local function get_shadow_state(context)
@@ -62,6 +64,13 @@ local function get_shadow_state(context)
    shadow_state.swd_ready = is_spell_available(A.ShadowWordDeath) and A.ShadowWordDeath:IsReady(TARGET_UNIT)
    shadow_state.swd_safe = context.hp > (context.settings.shadow_swd_hp or 40)
    shadow_state.inner_focus_ready = is_spell_available(A.InnerFocus) and A.InnerFocus:IsReady(PLAYER_UNIT)
+
+   -- AoE mode: enough enemies for blanket DoT spreading
+   shadow_state.in_aoe = context.enemy_count >= (context.settings.shadow_aoe_count or 4)
+
+   -- Execute phase: target dying soon, skip DoTs and nuke
+   local execute_ttd = context.settings.shadow_execute_ttd or 10
+   shadow_state.execute_phase = context.ttd > 0 and context.ttd <= execute_ttd
 
    return shadow_state
 end
@@ -166,8 +175,8 @@ rotation_registry:register("shadow", {
          if context.is_moving then
             return false
          end
-         -- Don't apply on dying targets (1.5s cast + 15s DoT, poor value if TTD < 5)
-         if context.ttd and context.ttd > 0 and context.ttd < 5 then
+         -- Don't apply on dying targets (1.5s cast + 15s DoT, need 2 ticks = 6s minimum)
+         if context.ttd and context.ttd > 0 and context.ttd < 6 then
             return false
          end
          -- Refresh when: VT missing entirely OR (VT expiring AND MB on CD)
