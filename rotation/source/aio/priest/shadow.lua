@@ -96,7 +96,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [1.5] Pre-Combat Pull (start combat with VT or MB)
+   -- [2] Pre-Combat Pull (start combat with VT or MB)
    named("PreCombatPull", {
       matches = function(context, state)
          if context.in_combat then
@@ -133,7 +133,96 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [2] Vampiric Embrace (maintain debuff on target)
+   -- [3] AoE SW:P Spread (blanket enemies with SW:P)
+   named("AoESWPSpread", {
+      matches = function(context, state)
+         if not context.in_combat then
+            return false
+         end
+         if context.enemy_count < (context.settings.shadow_aoe_count or 4) then
+            return false
+         end
+         return true
+      end,
+      execute = function(icon, context, state)
+         local plates = MultiUnits:GetActiveUnitPlates()
+         for unitID in pairs(plates) do
+            if UnitExists(unitID) and not Unit(unitID):IsDead() then
+               local unit_ttd = Unit(unitID):TimeToDie() or 0
+               local survives = unit_ttd == 0 or unit_ttd >= 6
+               if survives then
+                  local swp = (Unit(unitID):HasDeBuffs(A.ShadowWordPain.ID, "player", true) or 0)
+                  if swp == 0 and A.ShadowWordPain:IsReady(unitID) then
+                     return try_cast_fmt(A.ShadowWordPain, icon, unitID, "[SHADOW]", "AoE SW:P", "on %s", unitID)
+                  end
+               end
+            end
+         end
+         return nil
+      end,
+   }),
+
+   -- [4] Vampiric Touch (refresh when remaining <= ~1.5s cast time)
+   named("VampiricTouch", {
+      matches = function(context, state)
+         if not context.in_combat then
+            return false
+         end
+         if not context.has_valid_enemy_target then
+            return false
+         end
+         if state.execute_phase then
+            return false
+         end
+         if context.is_moving then
+            return false
+         end
+         -- Don't apply on dying targets (1.5s cast + 15s DoT, need 2 ticks = 6s minimum)
+         if context.ttd and context.ttd > 0 and context.ttd < 6 then
+            return false
+         end
+         -- Refresh when: VT missing entirely OR (VT expiring AND MB on CD)
+         if state.vt_remaining == 0 then return true end
+         return state.vt_remaining < 1.8 and not state.mb_ready
+      end,
+      execute = function(icon, context, state)
+         return try_cast_fmt(A.VampiricTouch, icon, TARGET_UNIT, "[SHADOW]", "VT", "rem: %.1fs", state.vt_remaining)
+      end,
+   }),
+
+   -- [5] AoE VT Spread (blanket enemies with VT)
+   named("AoEVTSpread", {
+      matches = function(context, state)
+         if not context.in_combat then
+            return false
+         end
+         if context.is_moving then
+            return false
+         end
+         if context.enemy_count < (context.settings.shadow_aoe_count or 4) then
+            return false
+         end
+         return true
+      end,
+      execute = function(icon, context, state)
+         local plates = MultiUnits:GetActiveUnitPlates()
+         for unitID in pairs(plates) do
+            if UnitExists(unitID) and not Unit(unitID):IsDead() then
+               local unit_ttd = Unit(unitID):TimeToDie() or 0
+               local survives = unit_ttd == 0 or unit_ttd >= 6
+               if survives then
+                  local vt = (Unit(unitID):HasDeBuffs(A.VampiricTouch.ID, "player", true) or 0)
+                  if vt == 0 and A.VampiricTouch:IsReady(unitID) then
+                     return try_cast_fmt(A.VampiricTouch, icon, unitID, "[SHADOW]", "AoE VT", "on %s", unitID)
+                  end
+               end
+            end
+         end
+         return nil
+      end,
+   }),
+
+   -- [6] Vampiric Embrace (maintain debuff on target)
    named("VampiricEmbrace", {
       matches = function(context, state)
          if not context.in_combat then
@@ -166,35 +255,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [3] Vampiric Touch (refresh when remaining <= ~1.5s cast time)
-   named("VampiricTouch", {
-      matches = function(context, state)
-         if not context.in_combat then
-            return false
-         end
-         if not context.has_valid_enemy_target then
-            return false
-         end
-         if state.execute_phase then
-            return false
-         end
-         if context.is_moving then
-            return false
-         end
-         -- Don't apply on dying targets (1.5s cast + 15s DoT, need 2 ticks = 6s minimum)
-         if context.ttd and context.ttd > 0 and context.ttd < 6 then
-            return false
-         end
-         -- Refresh when: VT missing entirely OR (VT expiring AND MB on CD)
-         if state.vt_remaining == 0 then return true end
-         return state.vt_remaining < 1.8 and not state.mb_ready
-      end,
-      execute = function(icon, context, state)
-         return try_cast_fmt(A.VampiricTouch, icon, TARGET_UNIT, "[SHADOW]", "VT", "rem: %.1fs", state.vt_remaining)
-      end,
-   }),
-
-   -- [4] Shadow Word: Pain (reapply only when it falls off)
+   -- [7] Shadow Word: Pain (reapply only when it falls off — single-target only)
    named("ShadowWordPain", {
       matches = function(context, state)
          if not context.in_combat then
@@ -204,6 +265,10 @@ rotation_registry:register("shadow", {
             return false
          end
          if state.execute_phase then
+            return false
+         end
+         -- In AoE mode, SWP spread covers all targets including main
+         if state.in_aoe then
             return false
          end
          if state.swp_active then
@@ -224,7 +289,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [5] Starshards (Night Elf racial, before MB/SWD)
+   -- [8] Starshards (Night Elf racial, before MB/SWD)
    named("Starshards", {
       matches = function(context, state)
          if not context.in_combat then
@@ -246,7 +311,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [6] Devouring Plague (Undead racial, before MB/SWD)
+   -- [9] Devouring Plague (Undead racial, before MB/SWD)
    named("DevouringPlague", {
       matches = function(context, state)
          if not context.in_combat then
@@ -277,7 +342,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [7] Inner Focus (off-GCD, fire before Mind Blast)
+   -- [10] Inner Focus (off-GCD, fire before Mind Blast)
    named("InnerFocus", {
       is_gcd_gated = false,
       is_burst = true,
@@ -302,7 +367,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [8] Mind Blast (on cooldown)
+   -- [11] Mind Blast (on cooldown)
    named("MindBlast", {
       matches = function(context, state)
          if not context.in_combat then
@@ -321,7 +386,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [9] Shadow Word: Death (on CD, HP gated)
+   -- [12] Shadow Word: Death (on CD, HP gated)
    named("ShadowWordDeath", {
       matches = function(context, state)
          if not context.in_combat then
@@ -343,7 +408,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [10] Racial (off-GCD, Berserking only — Arcane Torrent is a silence, handled by middleware)
+   -- [13] Racial (off-GCD, Berserking only — Arcane Torrent is a silence, handled by middleware)
    named("Racial", {
       is_gcd_gated = false,
       matches = function(context, state)
@@ -360,60 +425,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [11] AoE SW:P Spread (blanket enemies with SW:P)
-   named("AoESWPSpread", {
-      matches = function(context, state)
-         if not context.in_combat then
-            return false
-         end
-         if context.enemy_count < (context.settings.shadow_aoe_count or 4) then
-            return false
-         end
-         return true
-      end,
-      execute = function(icon, context, state)
-         local plates = MultiUnits:GetActiveUnitPlates()
-         for unitID in pairs(plates) do
-            if UnitExists(unitID) and not Unit(unitID):IsDead() then
-               local swp = (Unit(unitID):HasDeBuffs(A.ShadowWordPain.ID, "player", true) or 0)
-               if swp == 0 and A.ShadowWordPain:IsReady(unitID) then
-                  return try_cast_fmt(A.ShadowWordPain, icon, unitID, "[SHADOW]", "AoE SW:P", "on %s", unitID)
-               end
-            end
-         end
-         return nil
-      end,
-   }),
-
-   -- [12] AoE VT Spread (blanket enemies with VT)
-   named("AoEVTSpread", {
-      matches = function(context, state)
-         if not context.in_combat then
-            return false
-         end
-         if context.is_moving then
-            return false
-         end
-         if context.enemy_count < (context.settings.shadow_aoe_count or 4) then
-            return false
-         end
-         return true
-      end,
-      execute = function(icon, context, state)
-         local plates = MultiUnits:GetActiveUnitPlates()
-         for unitID in pairs(plates) do
-            if UnitExists(unitID) and not Unit(unitID):IsDead() then
-               local vt = (Unit(unitID):HasDeBuffs(A.VampiricTouch.ID, "player", true) or 0)
-               if vt == 0 and A.VampiricTouch:IsReady(unitID) then
-                  return try_cast_fmt(A.VampiricTouch, icon, unitID, "[SHADOW]", "AoE VT", "on %s", unitID)
-               end
-            end
-         end
-         return nil
-      end,
-   }),
-
-   -- [13] Mind Flay (filler — yields to LowManaMode when mana below threshold)
+   -- [14] Mind Flay (filler — yields to LowManaMode when mana below threshold)
    named("MindFlay", {
       matches = function(context, state)
          if not context.in_combat then
@@ -437,7 +449,7 @@ rotation_registry:register("shadow", {
       end,
    }),
 
-   -- [14] Low Mana PW:S (shield self when conserving mana, wand handled by framework AutoShoot)
+   -- [15] Low Mana PW:S (shield self when conserving mana, wand handled by framework AutoShoot)
    named("LowManaPWS", {
       matches = function(context, state)
          if not context.in_combat then
