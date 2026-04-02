@@ -135,7 +135,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "checkbox",
 						key = "use_berserker_rage",
-						default = true,
+						default = false,
 						label = "Auto Berserker Rage",
 						tooltip = "Use Berserker Rage on cooldown when in Berserker Stance (rage gen + fear immunity).",
 					},
@@ -654,13 +654,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 				settings = {
 					{
 						type = "checkbox",
-						key = "prot_use_shield_block",
-						default = true,
-						label = "Auto Shield Block",
-						tooltip = "Maintain Shield Block on cooldown (crush prevention).",
-					},
-					{
-						type = "checkbox",
 						key = "prot_use_revenge",
 						default = true,
 						label = "Use Revenge",
@@ -734,17 +727,54 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 				},
 			},
 			{
-				header = "Rage Dump",
+				header = "Heroic Strike / Cleave",
 				settings = {
 					{
 						type = "slider",
 						key = "prot_hs_rage_threshold",
-						default = 50,
-						min = 40,
+						default = 25,
+						min = 15,
 						max = 90,
 						label = "HS Rage Threshold",
-						tooltip = "Queue Heroic Strike above this rage.",
+						tooltip = "Queue Heroic Strike/Cleave above this rage. Lower = more HS/Cleave uptime, higher = more rage reserved for abilities.",
 						format = "%d",
+					},
+				},
+			},
+			{
+				header = "Shield Block",
+				settings = {
+					{
+						type = "dropdown",
+						key = "prot_sb_mode",
+						default = "rage",
+						label = "Shield Block Mode",
+						tooltip = "How to gate Shield Block usage.",
+						options = {
+							{ value = "off", text = "Off" },
+							{ value = "rage", text = "By Rage" },
+							{ value = "threat", text = "By Threat Lead" },
+						},
+					},
+					{
+						type = "slider",
+						key = "prot_sb_rage_threshold",
+						default = 90,
+						min = 30,
+						max = 100,
+						label = "SB Rage Threshold",
+						tooltip = "Only use Shield Block above this rage (By Rage mode).",
+						format = "%d",
+					},
+					{
+						type = "slider",
+						key = "prot_sb_threat_lead",
+						default = 110,
+						min = 100,
+						max = 200,
+						label = "SB Threat Lead (%)",
+						tooltip = "Only use Shield Block when threat lead exceeds this % (By Threat Lead mode).",
+						format = "%d%%",
 					},
 				},
 			},
