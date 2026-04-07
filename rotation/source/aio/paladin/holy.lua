@@ -45,10 +45,21 @@ local HL_COEFFICIENT = NS.HL_COEFFICIENT
 local FOL_COEFFICIENT = NS.FOL_COEFFICIENT
 local HEALING_LIGHT_MULT = NS.HEALING_LIGHT_MULT
 local GetSpellBonusHealing = _G.GetSpellBonusHealing
+local IsSpellKnown = _G.IsSpellKnown
+local get_spell_mana_cost = NS.get_spell_mana_cost
+local Player = NS.Player
 
 -- ============================================================================
 -- HEAL SELECTION (deficit math + rank selection)
 -- ============================================================================
+
+-- Check if a specific spell rank is castable: trained + enough mana
+local function is_rank_castable(spell_action)
+    if not IsSpellKnown(spell_action.ID) then return false end
+    local cost = get_spell_mana_cost(spell_action)
+    if cost > 0 and Player:Mana() < cost then return false end
+    return true
+end
 
 -- Compute expected heal for a rank entry given current +healing
 local function expected_heal(rank_entry, bonus_healing, coefficient)
@@ -63,7 +74,7 @@ local function select_rank(rank_table, deficit, bonus_healing, coefficient, skip
     local best = nil
     for i = 1, #rank_table do
         local entry = rank_table[i]
-        if entry.spell:IsReady("player") then
+        if is_rank_castable(entry.spell) then
             if skip_overheal_opt then
                 return entry
             end
@@ -119,7 +130,7 @@ local function select_heal(context, state, target)
         if context.mana_pct < mana_floor then return nil end
         for i = #FLASH_OF_LIGHT_RANKS, 1, -1 do
             local entry = FLASH_OF_LIGHT_RANKS[i]
-            if entry.spell:IsReady("player") then
+            if is_rank_castable(entry.spell) then
                 heal_result.spell = entry.spell
                 heal_result.label = "FoL " .. entry.label
                 heal_result.spell_type = "FoL"
@@ -321,13 +332,13 @@ local Holy_LayOnHands = {
 -- [6] Light's Grace proc (HL R1 to activate -0.5s HL cast time buff)
 -- Luxury cast: only when nobody is in danger
 local Holy_LightsGraceProc = {
-    spell = A.HolyLightR1,
     spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
         if not context.in_combat then return false end
         if state.lights_grace_active then return false end
         if state.divine_favor_active then return false end
+        if not is_rank_castable(A.HolyLightR1) then return false end
         if state.emergency_count > 0 then return false end
         -- Safety: skip if lowest target is critically low (use real heal instead)
         if not state.lowest then return false end
