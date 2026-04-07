@@ -105,8 +105,7 @@ local function scan_healing_targets()
                 local eff_deficit = predict_effective_deficit(unit, 1.5)
                 entry.effective_hp = max_hp > 0 and (100 - (eff_deficit / max_hp) * 100) or entry.hp
 
-                local role = _G.UnitGroupRolesAssigned and _G.UnitGroupRolesAssigned(unit)
-                entry.is_tank = entry.has_aggro or (role == "TANK")
+                entry.is_tank = Unit(unit):IsTank() == true
 
                 -- Check for dispellable debuffs
                 entry.has_poison = _G.Action.AuraIsValid(unit, "UseDispel", "Poison") or false
