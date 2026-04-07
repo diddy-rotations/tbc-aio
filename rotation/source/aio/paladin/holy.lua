@@ -49,6 +49,16 @@ local IsSpellKnown = _G.IsSpellKnown
 local get_spell_mana_cost = NS.get_spell_mana_cost
 local Player = NS.Player
 
+-- Rank-safe heal cast: bypasses IsReady (which fails for non-max ranks)
+-- Caller must validate with is_rank_castable() before using this
+local function ranked_heal_cast(ability, icon, target_unit, log_message)
+    local HE = A.HealingEngine
+    if HE and HE.SetTarget then HE.SetTarget(target_unit) end
+    local result = ability:Show(icon)
+    if result then return result, log_message end
+    return nil
+end
+
 -- ============================================================================
 -- HEAL SELECTION (deficit math + rank selection)
 -- ============================================================================
@@ -349,7 +359,7 @@ local Holy_LightsGraceProc = {
 
     execute = function(icon, context, state)
         local target = state.lowest
-        return safe_heal_cast(A.HolyLightR1, icon, target.unit,
+        return ranked_heal_cast(A.HolyLightR1, icon, target.unit,
             format("[HOLY] HL R1 (Light's Grace proc) -> %s (%.0f%%)", target.unit, target.hp))
     end,
 }
@@ -372,7 +382,7 @@ local Holy_HealTarget = {
         local target = state.lowest
         local result = select_heal(context, state, target)
         if not result or not result.spell then return nil end
-        return safe_heal_cast(result.spell, icon, target.unit,
+        return ranked_heal_cast(result.spell, icon, target.unit,
             format("[HOLY] %s -> %s (%.0f%%, deficit: %d)", result.label, target.unit, target.hp, target.deficit or 0))
     end,
 }
