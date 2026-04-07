@@ -150,15 +150,11 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 
     -- Tab 4: Holy
     [4] = { name = "Holy", sections = {
-        { header = "Healing Thresholds", settings = {
-            { type = "slider", key = "holy_holy_light_hp", default = 90, min = 50, max = 100, label = "Holy Light HP (%)",
-              tooltip = "Use Holy Light when target below this HP%. Primary heal — spam this.", format = "%d%%" },
-            { type = "slider", key = "holy_flash_of_light_hp", default = 95, min = 70, max = 100, label = "Flash of Light HP (%)",
-              tooltip = "Use Flash of Light when target below this HP%. Light damage filler when HL would overheal.", format = "%d%%" },
+        { header = "Healing", settings = {
             { type = "checkbox", key = "holy_use_holy_shock", default = true, label = "Holy Shock",
-              tooltip = "Use Holy Shock as instant heal (21s CD, 41-pt Holy talent)." },
-            { type = "slider", key = "holy_holy_shock_hp", default = 50, min = 20, max = 80, label = "Holy Shock HP (%)",
-              tooltip = "Use Holy Shock instant heal when target below this HP%.", format = "%d%%" },
+              tooltip = "Use Holy Shock as instant heal when target in range (20yd, 15s CD)." },
+            { type = "slider", key = "proactive_fol_mana_floor", default = 30, min = 10, max = 60, label = "Proactive FoL Mana Floor (%)",
+              tooltip = "Stop proactive FoL on tank when mana drops below this percent.", format = "%d%%" },
         }},
         { header = "Cooldowns", settings = {
             { type = "checkbox", key = "holy_use_divine_favor", default = true, label = "Divine Favor",

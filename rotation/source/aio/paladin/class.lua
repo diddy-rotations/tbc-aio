@@ -58,6 +58,27 @@ Action[A.PlayerClass] = {
     HolyShock       = Create({ Type = "Spell", ID = 20473, useMaxRank = true }),         -- 31-pt Holy talent
     LayOnHands      = Create({ Type = "Spell", ID = 633, useMaxRank = true }),
 
+    -- Healing rank tables (for downranking)
+    HolyLightR1  = Create({ Type = "Spell", ID = 635 }),
+    HolyLightR2  = Create({ Type = "Spell", ID = 639 }),
+    HolyLightR3  = Create({ Type = "Spell", ID = 647 }),
+    HolyLightR4  = Create({ Type = "Spell", ID = 1026 }),
+    HolyLightR5  = Create({ Type = "Spell", ID = 1042 }),
+    HolyLightR6  = Create({ Type = "Spell", ID = 3472 }),
+    HolyLightR7  = Create({ Type = "Spell", ID = 10328 }),
+    HolyLightR8  = Create({ Type = "Spell", ID = 10329 }),
+    HolyLightR9  = Create({ Type = "Spell", ID = 25292 }),
+    HolyLightR10 = Create({ Type = "Spell", ID = 27135 }),
+    HolyLightR11 = Create({ Type = "Spell", ID = 27136 }),
+
+    FlashOfLightR1 = Create({ Type = "Spell", ID = 19759 }),
+    FlashOfLightR2 = Create({ Type = "Spell", ID = 19939 }),
+    FlashOfLightR3 = Create({ Type = "Spell", ID = 19940 }),
+    FlashOfLightR4 = Create({ Type = "Spell", ID = 19941 }),
+    FlashOfLightR5 = Create({ Type = "Spell", ID = 19942 }),
+    FlashOfLightR6 = Create({ Type = "Spell", ID = 19943 }),
+    FlashOfLightR7 = Create({ Type = "Spell", ID = 27137 }),
+
     -- Defensive
     DivineShield     = Create({ Type = "Spell", ID = 642, Click = { unit = "player", type = "spell", spell = 642 } }),
     DivineProtection = Create({ Type = "Spell", ID = 5573, Click = { unit = "player", type = "spell", spell = 5573 } }),
@@ -184,6 +205,52 @@ local Constants = {
 }
 
 NS.Constants = Constants
+
+-- ============================================================================
+-- HEALING RANK TABLES
+-- Sorted high-to-low for downranking (first viable rank wins)
+-- ============================================================================
+local HOLY_LIGHT_RANKS = {
+    { spell = A.HolyLightR11, base_min = 2196, base_max = 2446, label = "R11" },
+    { spell = A.HolyLightR10, base_min = 1773, base_max = 1971, label = "R10" },
+    { spell = A.HolyLightR9,  base_min = 1619, base_max = 1799, label = "R9" },
+    { spell = A.HolyLightR8,  base_min = 1272, base_max = 1414, label = "R8" },
+    { spell = A.HolyLightR7,  base_min = 968,  base_max = 1076, label = "R7" },
+    { spell = A.HolyLightR6,  base_min = 717,  base_max = 799,  label = "R6" },
+    { spell = A.HolyLightR5,  base_min = 506,  base_max = 569,  label = "R5" },
+    { spell = A.HolyLightR4,  base_min = 322,  base_max = 368,  label = "R4" },
+    { spell = A.HolyLightR3,  base_min = 167,  base_max = 196,  label = "R3" },
+    { spell = A.HolyLightR2,  base_min = 81,   base_max = 96,   label = "R2" },
+    { spell = A.HolyLightR1,  base_min = 42,   base_max = 51,   label = "R1" },
+}
+
+local FLASH_OF_LIGHT_RANKS = {
+    { spell = A.FlashOfLightR7, base_min = 458, base_max = 513, label = "R7" },
+    { spell = A.FlashOfLightR6, base_min = 356, base_max = 396, label = "R6" },
+    { spell = A.FlashOfLightR5, base_min = 278, base_max = 310, label = "R5" },
+    { spell = A.FlashOfLightR4, base_min = 206, base_max = 231, label = "R4" },
+    { spell = A.FlashOfLightR3, base_min = 153, base_max = 171, label = "R3" },
+    { spell = A.FlashOfLightR2, base_min = 102, base_max = 117, label = "R2" },
+    { spell = A.FlashOfLightR1, base_min = 67,  base_max = 77,  label = "R1" },
+}
+
+local HL_COEFFICIENT = 0.7143
+local FOL_COEFFICIENT = 0.4286
+local HEALING_LIGHT_MULT = 1.12
+
+local HEALING_REDUCTION_DEBUFFS = {
+    "Mortal Strike",
+    "Aimed Shot",
+    "Wound Poison",
+    "Mortal Cleave",
+}
+
+NS.HOLY_LIGHT_RANKS = HOLY_LIGHT_RANKS
+NS.FLASH_OF_LIGHT_RANKS = FLASH_OF_LIGHT_RANKS
+NS.HL_COEFFICIENT = HL_COEFFICIENT
+NS.FOL_COEFFICIENT = FOL_COEFFICIENT
+NS.HEALING_LIGHT_MULT = HEALING_LIGHT_MULT
+NS.HEALING_REDUCTION_DEBUFFS = HEALING_REDUCTION_DEBUFFS
 
 -- ============================================================================
 -- FACTION-SPECIFIC SEAL RESOLUTION
