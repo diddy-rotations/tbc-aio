@@ -170,10 +170,30 @@ local function select_heal(context, state, target)
     -- Select best rank
     local skip_overheal = target.has_healing_reduction
     if use_hl then
-        local rank = select_rank(HOLY_LIGHT_RANKS, deficit, bonus_healing, HL_COEFFICIENT, skip_overheal)
-        if not rank then return nil end
-        heal_result.spell = rank.spell
-        heal_result.label = "HL " .. rank.label
+        local hl_rank = select_rank(HOLY_LIGHT_RANKS, deficit, bonus_healing, HL_COEFFICIENT, skip_overheal)
+        if not hl_rank then return nil end
+        -- Sanity check: if the chosen HL rank is less efficient than FoL,
+        -- fall back to FoL (unless forced to HL by MS/DF)
+        if not target.has_healing_reduction and not state.divine_favor_active then
+            local fol_rank = select_rank(FLASH_OF_LIGHT_RANKS, deficit, bonus_healing, FOL_COEFFICIENT, false)
+            if fol_rank then
+                local hl_cost = get_spell_mana_cost(hl_rank.spell)
+                local fol_cost = get_spell_mana_cost(fol_rank.spell)
+                local hl_heal = expected_heal(hl_rank, bonus_healing, HL_COEFFICIENT)
+                local fol_heal = expected_heal(fol_rank, bonus_healing, FOL_COEFFICIENT)
+                -- FoL also gets cast time advantage (1.5s vs 2.5s) — compare HPS/mana
+                local hl_eff = hl_cost > 0 and (hl_heal / 2.5) / hl_cost or 0
+                local fol_eff = fol_cost > 0 and (fol_heal / 1.5) / fol_cost or 0
+                if fol_eff > hl_eff then
+                    heal_result.spell = fol_rank.spell
+                    heal_result.label = "FoL " .. fol_rank.label
+                    heal_result.spell_type = "FoL"
+                    return heal_result
+                end
+            end
+        end
+        heal_result.spell = hl_rank.spell
+        heal_result.label = "HL " .. hl_rank.label
         heal_result.spell_type = "HL"
     else
         local rank = select_rank(FLASH_OF_LIGHT_RANKS, deficit, bonus_healing, FOL_COEFFICIENT, skip_overheal)
