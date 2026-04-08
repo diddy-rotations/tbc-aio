@@ -143,5 +143,6 @@
     "undefined-field",
     "redefined-local",
     "need-check-nil"
-  ]
+  ],
+  "stylua.targetReleaseVersion": "latest"
 }
