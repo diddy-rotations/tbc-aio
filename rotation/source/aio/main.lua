@@ -85,7 +85,9 @@ function rotation_registry:execute_middleware(icon, context)
       end
       -- Auto-burst gate: skip burst middleware when conditions configured but unmet
       local burst_blocked = mw.is_burst and (not forced) and auto_burst == false
-      local matches = not burst_blocked and (forced or mw.matches(context))
+      -- Setting key gate: skip if user disabled this middleware (forced bypasses, same as strategies)
+      local setting_ok = forced or not mw.setting_key or context.settings[mw.setting_key]
+      local matches = setting_ok and not burst_blocked and (forced or mw.matches(context))
 
       if matches then
          local result, log_msg = mw.execute(icon, context)
