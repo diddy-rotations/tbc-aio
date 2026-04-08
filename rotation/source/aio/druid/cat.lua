@@ -717,7 +717,10 @@ local Cat_Shred = {
    matches = function(context, state)
       if state.pooling then return false end
       if state.prefer_mangle_for_tick then return false end
-      return context.cp < 5
+      if context.cp < 5 then return true end
+      -- At 5 CP with energy above bite cap: Shred to dump energy, bank CPs for next Rip
+      local fb_max_energy = context.settings.fb_max_energy or 39
+      return context.energy > fb_max_energy
    end,
    execute = function(icon, context, state)
       if is_swing_landing_soon(0.15) then return nil end
@@ -744,7 +747,7 @@ local Cat_MangleBuilder = {
       if not_behind and not context.settings.use_mangle_builder then return false end
       return (not_behind or context.energy < ENERGY_COST_SHRED or state.prefer_mangle_for_tick)
          and (context.energy >= ENERGY_COST_MANGLE or context.has_clearcasting)
-         and context.cp < 5
+         and (context.cp < 5 or context.energy > (context.settings.fb_max_energy or 39))
    end,
    execute = function(icon, context, state)
       if is_swing_landing_soon(0.15) then return nil end
