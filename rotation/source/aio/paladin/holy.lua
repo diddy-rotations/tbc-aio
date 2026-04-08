@@ -37,6 +37,8 @@ local named = NS.named
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
+local AddDebugLogLine = NS.AddDebugLogLine
+local GetTime = _G.GetTime
 
 local scan_healing_targets = NS.scan_healing_targets
 local HOLY_LIGHT_RANKS = NS.HOLY_LIGHT_RANKS
@@ -50,10 +52,10 @@ local get_spell_mana_cost = NS.get_spell_mana_cost
 local Player = NS.Player
 
 -- Rank-safe heal cast: bypasses IsReady (which fails for non-max ranks)
--- Caller must validate with is_rank_castable() before using this
+-- Does NOT call HE.SetTarget — the framework's HE auto-targeting (OnUpdate)
+-- handles target injection into the icon macro separately.
+-- Calling SetTarget here overwrites the ranked macro with max-rank.
 local function ranked_heal_cast(ability, icon, target_unit, log_message)
-    local HE = A.HealingEngine
-    if HE and HE.SetTarget then HE.SetTarget(target_unit) end
     local result = ability:Show(icon)
     if result then return result, log_message end
     return nil
@@ -78,10 +80,12 @@ local function expected_heal(rank_entry, bonus_healing, coefficient)
 end
 
 -- Select best rank from a rank table for a given deficit
--- Walk high-to-low, pick first rank that doesn't overheal by more than 30%
+-- Walk high-to-low, pick first rank that fits the deficit within 30% overheal.
+-- When all ranks overheal, pick the most mana-efficient castable rank.
 -- skip_overheal_opt: true = use highest trained rank (MS on target, need throughput)
 local function select_rank(rank_table, deficit, bonus_healing, coefficient, skip_overheal_opt)
-    local best = nil
+    local best_eff_entry = nil
+    local best_eff = 0
     for i = 1, #rank_table do
         local entry = rank_table[i]
         if is_rank_castable(entry.spell) then
@@ -92,10 +96,20 @@ local function select_rank(rank_table, deficit, bonus_healing, coefficient, skip
             if heal <= deficit * 1.3 then
                 return entry
             end
-            best = entry
+            -- Track most mana-efficient rank as fallback
+            local cost = get_spell_mana_cost(entry.spell)
+            if cost > 0 then
+                local eff = heal / cost
+                if eff > best_eff then
+                    best_eff = eff
+                    best_eff_entry = entry
+                end
+            elseif not best_eff_entry then
+                best_eff_entry = entry
+            end
         end
     end
-    return best
+    return best_eff_entry
 end
 
 -- Pre-allocated result table (no table creation in combat)
