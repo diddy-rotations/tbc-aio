@@ -1289,8 +1289,7 @@ end
 rotation_registry:register_middleware({
     name = "Warrior_AutoCharge",
     priority = 160,
-    -- NOTE: setting_key is NOT auto-checked for middleware (only strategies).
-    -- Must check manually in matches().
+    setting_key = "use_auto_charge",
 
     matches = function(context)
         if not context.settings.use_auto_charge then return false end
