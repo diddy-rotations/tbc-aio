@@ -131,6 +131,12 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "When enabled, uses Mangle instead of Shred at 60-61 energy if an energy tick is imminent. Two Mangles can fit where one Shred + dead GCD would. Off = always Shred when behind." },
             { type = "checkbox", key = "use_mangle_builder", default = true, label = "Mangle as Builder",
               tooltip = "Use Mangle as a fallback CP builder when not behind target. When disabled, the rotation pauses if you're not behind — reposition and resume." },
+            { type = "checkbox", key = "cat_energy_pooling", default = true, label = "Energy Pooling",
+              tooltip = "Pool energy for Rip instead of spending on builders. When disabled, always uses builders even if Rip is pending — higher APM but may delay Rip." },
+            { type = "checkbox", key = "cat_swing_delay", default = true, label = "Swing Timer Delay",
+              tooltip = "Delay ability casts when a melee swing is about to land (within 0.15s). Prevents clipping auto-attacks. Disable if you experience hesitation in the rotation." },
+            { type = "checkbox", key = "cat_smart_shift_delay", default = true, label = "Smart Shift Delay",
+              tooltip = "Delay powershifts when an energy tick is arriving within 1 second. Saves mana by avoiding unnecessary shifts. Disable if you experience idle time at low energy." },
         }},
     }},
 
