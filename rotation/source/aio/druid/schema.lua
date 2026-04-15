@@ -89,7 +89,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "rip_only_elites", default = true, label = "Rip Only Elites/Bosses", tooltip = "Only Rip elite or boss targets." },
             { type = "slider", key = "rip_min_cp", default = 5, min = 4, max = 5, label = "Rip Min Combo Points", tooltip = "Minimum combo points for Rip.", format = "%d" },
             { type = "slider", key = "rip_refresh", default = 0, min = 0, max = 5, label = "Rip Refresh (sec)", tooltip = "Prepare refresh this many seconds before expiry.", format = "%d sec" },
-            { type = "slider", key = "rip_min_ttd", default = 12, min = 8, max = 30, label = "Rip Min TTD (sec)", tooltip = "Only Rip if target lives at least this long.", format = "%d sec" },
+            { type = "slider", key = "rip_min_ttd", default = 12, min = 0, max = 30, label = "Rip Min TTD (sec)", tooltip = "Only Rip if target lives at least this long. Set to 0 to always Rip.", format = "%d sec" },
             { type = "checkbox", key = "maintain_rake", default = false, label = "Maintain Rake", tooltip = "Keep Rake bleed active." },
             { type = "slider", key = "rake_refresh", default = 0, min = 0, max = 4, label = "Rake Refresh (sec)", tooltip = "Refresh Rake with this many seconds remaining.", format = "%d sec" },
         }},

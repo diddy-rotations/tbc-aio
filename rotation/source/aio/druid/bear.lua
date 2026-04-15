@@ -124,12 +124,17 @@ do
    local AOE_MIN_ENEMIES = 3
 
    -- Effective AoE threshold: respects user setting, but floors at AOE_MIN_ENEMIES for swipe_min=1
-   -- When elites/bosses are in melee, raise threshold by 1 (Lacerate on elite is higher value)
+   -- Bump threshold +1 only when elites/bosses are a MINORITY among trash — i.e. a single
+   -- high-value target in a trash pack, where Lacerate focus beats cleave. On elite-heavy
+   -- packs (pure elites, or elites >= trash), trust the user's setting and cleave for threat.
    local function get_aoe_threshold(ctx, state)
       local swipe_min = get_swipe_threshold(ctx)
       local base = swipe_min <= 1 and AOE_MIN_ENEMIES or swipe_min
-      if state and (state.nearby_bosses > 0 or state.nearby_elites > 0) then
-         return base + 1
+      if state then
+         local priority_targets = state.nearby_bosses + state.nearby_elites
+         if priority_targets > 0 and priority_targets < state.nearby_trash then
+            return base + 1
+         end
       end
       return base
    end
