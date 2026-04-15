@@ -202,6 +202,9 @@ end
 local function safe_cat_form_shift(icon, context)
    -- Record shift time so energy tick tracker can ignore Furor energy
    energy_tick_last_shift = GetTime()
+   -- Powershift resets the 2s tick cycle — anchor tracker to shift time
+   energy_tick.last_tick_time = energy_tick_last_shift
+   energy_tick.confident = true
 
    -- Use Sapper Charges when shifting vs 3+ enemies or bosses (requires DMH addon)
    local use_sappers = (context.enemy_count >= 3) or context.is_boss
