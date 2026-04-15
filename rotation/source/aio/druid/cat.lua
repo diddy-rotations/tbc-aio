@@ -121,11 +121,10 @@ local SHIFT_DELAY_TICK_THRESHOLD = 1.0         -- Wait up to 1s for tick before 
 local BITE_TRICK_TICK_THRESHOLD = 0.1
 local RAKE_TRICK_TICK_THRESHOLD = 1.0
 
-local energy_tick_last_shift = 0
-
 local energy_tick = {
    last_energy = 0,
    last_tick_time = 0,
+   last_shift_time = 0,
    confident = false,  -- True once we've detected at least one tick
 }
 
@@ -149,7 +148,7 @@ function energy_tick:update(current_energy, stance)
    -- Detect energy tick: positive increase, not from a recent form shift
    -- Ticks are 20 energy; filter out Furor (40) + Wolfshead (20) by checking shift window
    if delta > 0 and delta <= 25 and
-      (now - energy_tick_last_shift) > SHIFT_ENERGY_IGNORE_WINDOW then
+      (now - energy_tick.last_shift_time) > SHIFT_ENERGY_IGNORE_WINDOW then
       self.last_tick_time = now
       self.confident = true
    end
@@ -201,9 +200,9 @@ end
 --- @return any|nil The cast result or nil
 local function safe_cat_form_shift(icon, context)
    -- Record shift time so energy tick tracker can ignore Furor energy
-   energy_tick_last_shift = GetTime()
+   energy_tick.last_shift_time = GetTime()
    -- Powershift resets the 2s tick cycle — anchor tracker to shift time
-   energy_tick.last_tick_time = energy_tick_last_shift
+   energy_tick.last_tick_time = energy_tick.last_shift_time
    energy_tick.confident = true
 
    -- Use Sapper Charges when shifting vs 3+ enemies or bosses (requires DMH addon)
