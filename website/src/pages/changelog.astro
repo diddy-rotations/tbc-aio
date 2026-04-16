@@ -15,6 +15,18 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.9.1 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-fix">Fix</span>
+
+      <h3>Druid</h3>
+      <ul class="features">
+        <li><strong>Smart Shift Delay Tuning</strong> &mdash; Reduced delay threshold from 1.0s to 0.725s for tighter powershift timing.</li>
+        <li><strong>Bite Trick CP Gate</strong> &mdash; Bite trick now respects the FB Min Combo Points setting instead of a hardcoded 3 CP minimum.</li>
+        <li><strong>Shift Delay CP Awareness</strong> &mdash; Smart shift delay no longer stalls waiting for bite energy when you don't have enough combo points to bite. Rake trick correctly uses its own energy cost without a CP check.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.9.0 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-feature">Feature</span>
 
