@@ -26,9 +26,6 @@ A.Data.ProfileEnabled[A.CurrentProfile] = true
 _G.FluxAIO_SETTINGS_SCHEMA = {
     -- Tab 1: General
     [1] = { name = "General", sections = {
-        { header = "Targeting", settings = {
-            { type = "checkbox", key = "mouseover", default = false, label = "Use @mouseover", tooltip = "Use mouseover targeting.", hidden = true },
-        }},
         { header = "Shared Combat", settings = {
             { type = "dropdown", key = "maintain_faerie_fire", default = "all", label = "Faerie Fire Targets",
               tooltip = "Which targets to maintain Faerie Fire on. All = everything, Elites+ = elites and bosses, Bosses = bosses only, Off = disabled.",
@@ -101,8 +98,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "fb_min_energy", default = 35, min = 35, max = 70, label = "FB Min Energy", tooltip = "Only Bite above this energy. 35 is optimal.", format = "%d" },
             { type = "slider", key = "fb_min_rip_duration", default = 6, min = 0, max = 12, label = "FB Min Rip Duration (sec)", tooltip = "Only Bite when Rip has more than this remaining.", format = "%d sec" },
             { type = "checkbox", key = "use_bite_execute", default = false, label = "Bite as Execute", tooltip = "Use Ferocious Bite as an execute finisher when target is low HP or dying soon. Disable to always Rip instead." },
-            { type = "slider", key = "bite_execute_hp", default = 25, min = 10, max = 35, label = "Bite Execute HP (%)", tooltip = "Bite aggressively when target HP below this.", format = "%d%%" },
-            { type = "slider", key = "bite_execute_ttd", default = 6, min = 4, max = 12, label = "Bite Execute TTD (sec)", tooltip = "Use Bite instead of Rip when target dies within this.", format = "%d sec" },
+            { type = "slider", key = "bite_execute_ttd", default = 6, min = 1, max = 12, label = "Bite Execute TTD (sec)", tooltip = "Use Bite instead of Rip when target dies within this.", format = "%d sec" },
         }},
         { header = "Opener & Stealth", settings = {
             { type = "checkbox", key = "use_opener", default = true, label = "Use Combat Opener", tooltip = "Optimal opener from stealth (Ravage behind, Shred otherwise)." },
@@ -117,26 +113,20 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "use_goblin_sapper", default = false, label = "Use Goblin Sapper Charge", tooltip = "Use Goblin Sapper when shifting vs 3+ enemies or bosses. Requires DMH addon installed." },
             { type = "checkbox", key = "use_tigers_fury", default = false, label = "Use Tiger's Fury", tooltip = "Normally not worth using rotationally. Enable for casual play." },
             { type = "slider", key = "tigers_fury_energy", default = 100, min = 30, max = 100, label = "Tiger's Fury Min Energy", tooltip = "Only use above this energy.", format = "%d" },
-        }},
-        { header = "AoE", settings = {
-            { type = "checkbox", key = "enable_aoe", default = true, label = "Enable AoE", tooltip = "Enable AoE rotation when multiple enemies detected." },
-            { type = "slider", key = "aoe_enemy_count", default = 3, min = 2, max = 6, label = "AoE Enemy Threshold", tooltip = "Switch to AoE with this many enemies.", format = "%d" },
-            { type = "checkbox", key = "spread_rake", default = true, label = "Spread Rake", tooltip = "Apply Rake to multiple targets in AoE." },
-            { type = "slider", key = "max_rake_targets", default = 4, min = 2, max = 6, label = "Max Rake Targets", tooltip = "Maximum targets to maintain Rake on.", format = "%d" },
+            { type = "checkbox", key = "cat_smart_shift_delay", default = true, label = "Smart Shift Delay",
+              tooltip = "Delay powershifts when an energy tick is arriving soon. Saves mana by capturing the tick before shifting." },
+            { type = "slider", key = "cat_shift_delay_threshold", default = 0.7, min = 0.5, max = 1, label = "Shift Tick Delay (sec)",
+              tooltip = "Maximum time to wait for an incoming energy tick before shifting. 0.7 = recommended.", format = "%.1f sec", step = 0.1 },
         }},
         { header = "Advanced", settings = {
             { type = "checkbox", key = "use_bite_trick", default = true, label = "Use Bite Trick", tooltip = "Low-energy Ferocious Bite dump at 35-39 energy to avoid wasting combo points before powershift." },
             { type = "checkbox", key = "use_rake_trick", default = false, label = "Use Rake Trick", tooltip = "Low-energy Rake filler below Mangle cost to squeeze in damage before powershift." },
             { type = "checkbox", key = "cat_tick_optimization", default = false, label = "Mangle Over Shred (Tick Opt)",
               tooltip = "When enabled, uses Mangle instead of Shred at 60-61 energy if an energy tick is imminent. Two Mangles can fit where one Shred + dead GCD would. Off = always Shred when behind." },
-            { type = "checkbox", key = "use_mangle_builder", default = true, label = "Mangle as Builder",
-              tooltip = "Use Mangle as a fallback CP builder when not behind target. When disabled, the rotation pauses if you're not behind — reposition and resume." },
-            { type = "checkbox", key = "cat_energy_pooling", default = true, label = "Energy Pooling",
-              tooltip = "Pool energy for Rip instead of spending on builders. When disabled, always uses builders even if Rip is pending — higher APM but may delay Rip." },
+            { type = "checkbox", key = "force_mangle", default = false, label = "Force Mangle Over Shred",
+              tooltip = "Always use Mangle instead of Shred. Enable when you cannot reliably get behind the target." },
             { type = "checkbox", key = "cat_swing_delay", default = false, label = "Swing Timer Delay",
               tooltip = "Delay ability casts when a melee swing is about to land (within 0.15s). Prevents clipping auto-attacks. Disable if you experience hesitation in the rotation." },
-            { type = "checkbox", key = "cat_smart_shift_delay", default = true, label = "Smart Shift Delay",
-              tooltip = "Delay powershifts when an energy tick is arriving within 1 second. Saves mana by avoiding unnecessary shifts. Disable if you experience idle time at low energy." },
         }},
     }},
 

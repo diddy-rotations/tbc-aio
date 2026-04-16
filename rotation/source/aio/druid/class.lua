@@ -678,7 +678,6 @@ rotation_registry:register_class({
       ctx.energy = Player:Energy()
       ctx.cp = Player:ComboPoints()
       ctx.rage = Player:Rage()
-      ctx.is_behind = Player:IsBehind(0.3)
       ctx.has_clearcasting = (Unit("player"):HasBuffs(Constants.BUFF_ID.CLEARCASTING) or 0) > 0
       ctx.enemy_count = A.MultiUnits:GetByRange(8)
      
