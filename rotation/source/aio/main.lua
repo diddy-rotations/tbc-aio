@@ -85,7 +85,9 @@ function rotation_registry:execute_middleware(icon, context)
       end
       -- Auto-burst gate: skip burst middleware when conditions configured but unmet
       local burst_blocked = mw.is_burst and (not forced) and auto_burst == false
-      local matches = not burst_blocked and (forced or mw.matches(context))
+      -- Setting key gate: skip if user disabled this middleware (forced bypasses, same as strategies)
+      local setting_ok = forced or not mw.setting_key or context.settings[mw.setting_key]
+      local matches = setting_ok and not burst_blocked and (forced or mw.matches(context))
 
       if matches then
          local result, log_msg = mw.execute(icon, context)
@@ -223,6 +225,12 @@ local function create_context(icon)
    ctx.in_melee_range = (min_range and min_range <= 5) or false
    ctx.target_phys_immune = has_phys_immunity(TARGET_UNIT)
    ctx.is_boss = ctx.has_valid_enemy_target and Unit(TARGET_UNIT):IsBoss()
+   if ctx.has_valid_enemy_target then
+       local c = _G.UnitClassification(TARGET_UNIT)
+       ctx.target_is_elite = ctx.is_boss or c == "elite" or c == "worldboss" or c == "rareelite"
+   else
+       ctx.target_is_elite = false
+   end
    ctx.combat_time = combat_time
    ctx.settings = cached_settings
    ctx.gcd_remaining = gcd_remaining

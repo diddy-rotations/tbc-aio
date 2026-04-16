@@ -37,8 +37,174 @@ local named = NS.named
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
 local format = string.format
+local AddDebugLogLine = NS.AddDebugLogLine
+local GetTime = _G.GetTime
 
 local scan_healing_targets = NS.scan_healing_targets
+local HOLY_LIGHT_RANKS = NS.HOLY_LIGHT_RANKS
+local FLASH_OF_LIGHT_RANKS = NS.FLASH_OF_LIGHT_RANKS
+local HL_COEFFICIENT = NS.HL_COEFFICIENT
+local FOL_COEFFICIENT = NS.FOL_COEFFICIENT
+local HEALING_LIGHT_MULT = NS.HEALING_LIGHT_MULT
+local GetSpellBonusHealing = _G.GetSpellBonusHealing
+local IsSpellKnown = _G.IsSpellKnown
+local get_spell_mana_cost = NS.get_spell_mana_cost
+local Player = NS.Player
+
+-- Rank-safe heal cast: bypasses IsReady (which fails for non-max ranks)
+-- Does NOT call HE.SetTarget — the framework's HE auto-targeting (OnUpdate)
+-- handles target injection into the icon macro separately.
+-- Calling SetTarget here overwrites the ranked macro with max-rank.
+local function ranked_heal_cast(ability, icon, target_unit, log_message)
+    local result = ability:Show(icon)
+    if result then return result, log_message end
+    return nil
+end
+
+-- ============================================================================
+-- HEAL SELECTION (deficit math + rank selection)
+-- ============================================================================
+
+-- Check if a specific spell rank is castable: trained + enough mana
+local function is_rank_castable(spell_action)
+    if not IsSpellKnown(spell_action.ID) then return false end
+    local cost = get_spell_mana_cost(spell_action)
+    if cost > 0 and Player:Mana() < cost then return false end
+    return true
+end
+
+-- Compute expected heal for a rank entry given current +healing
+local function expected_heal(rank_entry, bonus_healing, coefficient)
+    local base_avg = (rank_entry.base_min + rank_entry.base_max) / 2
+    return (base_avg + bonus_healing * coefficient) * HEALING_LIGHT_MULT
+end
+
+-- Select best rank from a rank table for a given deficit
+-- Walk high-to-low, pick first rank that fits the deficit within 30% overheal.
+-- When all ranks overheal, pick the most mana-efficient castable rank.
+-- skip_overheal_opt: true = use highest trained rank (MS on target, need throughput)
+local function select_rank(rank_table, deficit, bonus_healing, coefficient, skip_overheal_opt)
+    local best_eff_entry = nil
+    local best_eff = 0
+    for i = 1, #rank_table do
+        local entry = rank_table[i]
+        if is_rank_castable(entry.spell) then
+            if skip_overheal_opt then
+                return entry
+            end
+            local heal = expected_heal(entry, bonus_healing, coefficient)
+            if heal <= deficit * 1.3 then
+                return entry
+            end
+            -- Track most mana-efficient rank as fallback
+            local cost = get_spell_mana_cost(entry.spell)
+            if cost > 0 then
+                local eff = heal / cost
+                if eff > best_eff then
+                    best_eff = eff
+                    best_eff_entry = entry
+                end
+            elseif not best_eff_entry then
+                best_eff_entry = entry
+            end
+        end
+    end
+    return best_eff_entry
+end
+
+-- Pre-allocated result table (no table creation in combat)
+local heal_result = { spell = nil, label = "", spell_type = "" }
+
+-- select_heal: picks spell type (HL vs FoL) and best rank for target
+local function select_heal(context, state, target)
+    if context.is_moving then return nil end
+
+    local bonus_healing = GetSpellBonusHealing() or 0
+    local deficit = target.deficit or 0
+
+    -- Determine spell type: HL or FoL
+    local use_hl = false
+
+    -- MS/healing reduction -> HL (FoL is useless at 50% reduced)
+    if target.has_healing_reduction then
+        use_hl = true
+    -- Divine Favor active -> HL (maximize guaranteed crit value)
+    elseif state.divine_favor_active then
+        use_hl = true
+    -- High incoming DPS -> HL (FoL throughput can't keep up)
+    elseif target.incoming_dps and target.incoming_dps > 0 then
+        local max_fol = expected_heal(FLASH_OF_LIGHT_RANKS[1], bonus_healing, FOL_COEFFICIENT)
+        local fol_hps = max_fol / 1.5
+        if target.incoming_dps > fol_hps then
+            use_hl = true
+        end
+    end
+
+    -- Deficit math (only if not already forced to HL)
+    if not use_hl and deficit > 0 then
+        local max_fol = expected_heal(FLASH_OF_LIGHT_RANKS[1], bonus_healing, FOL_COEFFICIENT)
+        if deficit > max_fol * 1.3 then
+            use_hl = true
+        end
+    end
+
+    -- Tank proactive: FoL even at full HP in combat (mana floor gated)
+    if not use_hl and deficit == 0 and target.is_tank and context.in_combat then
+        local mana_floor = context.settings.proactive_fol_mana_floor or 30
+        if context.mana_pct < mana_floor then return nil end
+        for i = #FLASH_OF_LIGHT_RANKS, 1, -1 do
+            local entry = FLASH_OF_LIGHT_RANKS[i]
+            if is_rank_castable(entry.spell) then
+                heal_result.spell = entry.spell
+                heal_result.label = "FoL " .. entry.label
+                heal_result.spell_type = "FoL"
+                return heal_result
+            end
+        end
+        return nil
+    end
+
+    -- No deficit and not proactive -> don't heal
+    if deficit == 0 then return nil end
+
+    -- Select best rank
+    local skip_overheal = target.has_healing_reduction
+    if use_hl then
+        local hl_rank = select_rank(HOLY_LIGHT_RANKS, deficit, bonus_healing, HL_COEFFICIENT, skip_overheal)
+        if not hl_rank then return nil end
+        -- Sanity check: if the chosen HL rank is less efficient than FoL,
+        -- fall back to FoL (unless forced to HL by MS/DF)
+        if not target.has_healing_reduction and not state.divine_favor_active then
+            local fol_rank = select_rank(FLASH_OF_LIGHT_RANKS, deficit, bonus_healing, FOL_COEFFICIENT, false)
+            if fol_rank then
+                local hl_cost = get_spell_mana_cost(hl_rank.spell)
+                local fol_cost = get_spell_mana_cost(fol_rank.spell)
+                local hl_heal = expected_heal(hl_rank, bonus_healing, HL_COEFFICIENT)
+                local fol_heal = expected_heal(fol_rank, bonus_healing, FOL_COEFFICIENT)
+                -- FoL also gets cast time advantage (1.5s vs 2.5s) — compare HPS/mana
+                local hl_eff = hl_cost > 0 and (hl_heal / 2.5) / hl_cost or 0
+                local fol_eff = fol_cost > 0 and (fol_heal / 1.5) / fol_cost or 0
+                if fol_eff > hl_eff then
+                    heal_result.spell = fol_rank.spell
+                    heal_result.label = "FoL " .. fol_rank.label
+                    heal_result.spell_type = "FoL"
+                    return heal_result
+                end
+            end
+        end
+        heal_result.spell = hl_rank.spell
+        heal_result.label = "HL " .. hl_rank.label
+        heal_result.spell_type = "HL"
+    else
+        local rank = select_rank(FLASH_OF_LIGHT_RANKS, deficit, bonus_healing, FOL_COEFFICIENT, skip_overheal)
+        if not rank then return nil end
+        heal_result.spell = rank.spell
+        heal_result.label = "FoL " .. rank.label
+        heal_result.spell_type = "FoL"
+    end
+
+    return heal_result
+end
 
 -- ============================================================================
 -- HOLY STATE (context_builder)
@@ -53,7 +219,8 @@ local holy_state = {
     cleanse_target = nil,   -- first target needing dispel
 }
 -- Pre-allocated lowest entry — reused each frame, no table creation in combat
-local holy_lowest_entry = { unit = nil, hp = 100 }
+local holy_lowest_entry = { unit = nil, hp = 100, is_tank = false,
+    deficit = 0, has_healing_reduction = false, incoming_dps = 0 }
 
 local function get_holy_state(context)
     if context._holy_valid then return holy_state end
@@ -80,6 +247,10 @@ local function get_holy_state(context)
             if not holy_state.lowest then
                 holy_lowest_entry.unit = entry.unit
                 holy_lowest_entry.hp   = entry.effective_hp
+                holy_lowest_entry.is_tank = entry.is_tank
+                holy_lowest_entry.deficit = entry.deficit or 0
+                holy_lowest_entry.has_healing_reduction = entry.has_healing_reduction or false
+                holy_lowest_entry.incoming_dps = entry.incoming_dps or 0
                 holy_state.lowest = holy_lowest_entry
             end
             if entry.effective_hp < 40 then
@@ -107,6 +278,7 @@ local Holy_DivineIllumination = {
     setting_key = "holy_use_divine_illumination",
 
     matches = function(context, state)
+        if not context.in_combat then return false end
         -- Use when mana is getting low to save on HL spam
         local di_pct = context.settings.holy_divine_illumination_pct or 60
         if context.mana_pct > di_pct then return false end
@@ -169,8 +341,9 @@ local Holy_HolyShockHeal = {
 
     matches = function(context, state)
         if not state.lowest then return false end
-        local threshold = context.settings.holy_holy_shock_hp or 50
-        if state.lowest.hp > threshold then return false end
+        local in_range = _G.IsSpellInRange("Holy Shock", state.lowest.unit)
+        if in_range ~= 1 then return false end
+        if state.lowest.hp >= 100 then return false end
         return true
     end,
 
@@ -200,45 +373,51 @@ local Holy_LayOnHands = {
     end,
 }
 
--- [5] Holy Light (PRIMARY heal — spam on assigned target)
--- TBC Holy Paladin's bread and butter. HL is the default heal, not FoL.
-local Holy_HolyLight = {
-    spell = A.HolyLight,
+-- [6] Light's Grace proc (HL R1 to activate -0.5s HL cast time buff)
+-- Luxury cast: only when nobody is in danger
+local Holy_LightsGraceProc = {
     spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
+        if not context.in_combat then return false end
+        if state.lights_grace_active then return false end
+        if state.divine_favor_active then return false end
+        if not is_rank_castable(A.HolyLightR1) then return false end
+        if state.emergency_count > 0 then return false end
+        -- Safety: skip if lowest target is critically low (use real heal instead)
         if not state.lowest then return false end
-        local threshold = context.settings.holy_holy_light_hp or 90
-        if state.lowest.hp > threshold then return false end
+        if state.lowest.hp < 30 then return false end
         if context.is_moving then return false end
         return true
     end,
 
     execute = function(icon, context, state)
         local target = state.lowest
-        return safe_heal_cast(A.HolyLight, icon, target.unit,
-            format("[HOLY] Holy Light -> %s (%.0f%%)", target.unit, target.hp))
+        return ranked_heal_cast(A.HolyLightR1, icon, target.unit,
+            format("[HOLY] HL R1 (Light's Grace proc) -> %s (%.0f%%)", target.unit, target.hp))
     end,
 }
 
--- [6] Flash of Light (light damage only — rare use when HL would overheal)
-local Holy_FlashOfLight = {
-    spell = A.FlashOfLight,
+-- [7] HealTarget (smart HL/FoL selection with downranking)
+-- Uses select_heal() for spell type + rank based on deficit, incoming damage,
+-- healing reduction, Divine Favor, and Light's Grace state.
+local Holy_HealTarget = {
     spell_target = PLAYER_UNIT,
 
     matches = function(context, state)
         if not state.lowest then return false end
-        local threshold = context.settings.holy_flash_of_light_hp or 90
-        if state.lowest.hp > threshold then return false end
-        -- FoL is the fallback when HL threshold isn't met or while moving
+        if state.lowest.is_tank and context.in_combat then return true end
+        if state.lowest.hp >= 100 then return false end
         if context.is_moving then return false end
         return true
     end,
 
     execute = function(icon, context, state)
         local target = state.lowest
-        return safe_heal_cast(A.FlashOfLight, icon, target.unit,
-            format("[HOLY] Flash of Light -> %s (%.0f%%)", target.unit, target.hp))
+        local result = select_heal(context, state, target)
+        if not result or not result.spell then return nil end
+        return ranked_heal_cast(result.spell, icon, target.unit,
+            format("[HOLY] %s -> %s (%.0f%%, deficit: %d)", result.label, target.unit, target.hp, target.deficit or 0))
     end,
 }
 
@@ -332,8 +511,8 @@ rotation_registry:register("holy", {
     named("Racial",              Holy_Racial),
     named("HolyShockHeal",       Holy_HolyShockHeal),
     named("LayOnHands",          Holy_LayOnHands),
-    named("HolyLight",           Holy_HolyLight),
-    named("FlashOfLight",        Holy_FlashOfLight),
+    named("LightsGraceProc",    Holy_LightsGraceProc),
+    named("HealTarget",          Holy_HealTarget),
     named("JudgementMaintain",   Holy_JudgementMaintain),
     named("SealMaintain",        Holy_SealMaintain),
     named("Cleanse",             Holy_Cleanse),

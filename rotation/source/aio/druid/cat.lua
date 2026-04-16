@@ -121,11 +121,10 @@ local DEFAULT_SHIFT_DELAY = 0.7  -- Default: wait up to 0.7s for tick before shi
 local BITE_TRICK_TICK_THRESHOLD = 0.1
 local RAKE_TRICK_TICK_THRESHOLD = 1.0
 
-local energy_tick_last_shift = 0
-
 local energy_tick = {
    last_energy = 0,
    last_tick_time = 0,
+   last_shift_time = 0,
    confident = false,  -- True once we've detected at least one tick
 }
 
@@ -149,7 +148,7 @@ function energy_tick:update(current_energy, stance)
    -- Detect energy tick: positive increase, not from a recent form shift
    -- Ticks are 20 energy; filter out Furor (40) + Wolfshead (20) by checking shift window
    if delta > 0 and delta <= 25 and
-      (now - energy_tick_last_shift) > SHIFT_ENERGY_IGNORE_WINDOW then
+      (now - energy_tick.last_shift_time) > SHIFT_ENERGY_IGNORE_WINDOW then
       self.last_tick_time = now
       self.confident = true
    end
@@ -201,10 +200,9 @@ end
 --- @return any|nil The cast result or nil
 local function safe_cat_form_shift(icon, context)
    -- Record shift time so energy tick tracker can ignore Furor energy
-   -- Also reset tick prediction: energy tick timer restarts on form shift
-   local now = GetTime()
-   energy_tick_last_shift = now
-   energy_tick.last_tick_time = now
+   energy_tick.last_shift_time = GetTime()
+   -- Powershift resets the 2s tick cycle — anchor tracker to shift time
+   energy_tick.last_tick_time = energy_tick.last_shift_time
    energy_tick.confident = true
 
    -- Use Sapper Charges when shifting vs 3+ enemies or bosses (requires DMH addon)
@@ -333,11 +331,15 @@ local function get_cat_state(context)
    -- Smart shift delay: compute minimum useful energy threshold for tick-waiting
    local shift_delay_threshold = settings.cat_shift_delay_threshold or DEFAULT_SHIFT_DELAY
    if settings.cat_smart_shift_delay and shift_delay_threshold > 0 then
+      -- Bite trick needs CP check; rake trick doesn't use combo points
       local min_useful_energy = ENERGY_COST_SHRED
+      local min_cp = settings.fb_min_cp or 5
       if rip_now then
          min_useful_energy = ENERGY_COST_RIP
-      elseif settings.use_bite_trick or settings.use_rake_trick then
+      elseif settings.use_bite_trick and cp >= min_cp then
          min_useful_energy = ENERGY_COST_BITE
+      elseif settings.use_rake_trick then
+         min_useful_energy = ENERGY_COST_RAKE
       end
       cat_state.should_delay_shift = energy_tick:should_delay_shift(energy, min_useful_energy, shift_delay_threshold)
    else
@@ -732,10 +734,11 @@ local Cat_BiteTrick = {
    requires_phys_immune = false,
    requires_clearcasting = false,
    min_energy = ENERGY_COST_BITE,
-   min_cp = 3,
    spell = A.FerociousBite,
    setting_key = "use_bite_trick",
    matches = function(context, state)
+      local min_cp = context.settings.fb_min_cp or 5
+      if context.cp < min_cp then return false end
       if state.rip_needs_refresh_soon then return false end
       if energy_tick:should_skip_bite_trick() then return false end
       return context.energy <= Constants.ENERGY.BITE_TRICK_MAX

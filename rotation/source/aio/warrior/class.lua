@@ -154,8 +154,9 @@ local Constants = {
 
     -- Preferred stance per spec (used by stance correction middleware)
     PREFERRED_STANCE = {
-        arms       = 1,  -- Battle
+        arms       = 3,  -- Berserker (MS works in any stance, no TM, 3% crit)
         fury       = 3,  -- Berserker
+        kebab      = 3,  -- Berserker (DW Arms)
         protection = 2,  -- Defensive
     },
 
@@ -248,8 +249,8 @@ end
 
 rotation_registry:register_class({
     name = "Warrior",
-    version = "v1.8.6",
-    playstyles = { "arms", "fury", "protection" },
+    version = "v1.9.0",
+    playstyles = { "arms", "fury", "kebab", "protection" },
     idle_playstyle_name = nil,
 
     get_active_playstyle = function(context)
@@ -277,6 +278,14 @@ rotation_registry:register_class({
             { spell = A.Rampage, name = "Rampage", required = false, note = "41pt Fury talent" },
             { spell = A.DeathWish, name = "Death Wish", required = false, note = "Fury talent" },
             { spell = A.Recklessness, name = "Recklessness", required = false },
+        },
+        kebab = {
+            { spell = A.MortalStrike, name = "Mortal Strike", required = true, note = "Arms talent" },
+            { spell = A.Whirlwind, name = "Whirlwind", required = false },
+            { spell = A.Overpower, name = "Overpower", required = false },
+            { spell = A.Execute, name = "Execute", required = false },
+            { spell = A.SweepingStrikes, name = "Sweeping Strikes", required = false, note = "Fury talent" },
+            { spell = A.DeathWish, name = "Death Wish", required = false, note = "Fury talent" },
         },
         protection = {
             { spell = A.ShieldSlam, name = "Shield Slam", required = false, note = "Prot talent" },
@@ -365,6 +374,7 @@ rotation_registry:register_class({
         -- Cache invalidation flags for per-playstyle context_builders
         ctx._arms_valid = false
         ctx._fury_valid = false
+        ctx._kebab_valid = false
         ctx._prot_valid = false
     end,
 
@@ -383,6 +393,7 @@ rotation_registry:register_class({
         cooldowns = {
             arms = { A.SweepingStrikes, A.Recklessness, A.DeathWish, A.Trinket1, A.Trinket2 },
             fury = { A.DeathWish, A.Recklessness, A.Trinket1, A.Trinket2 },
+            kebab = { A.SweepingStrikes, A.DeathWish, A.Trinket1, A.Trinket2 },
             protection = { A.ShieldBlock, A.ShieldWall, A.LastStand, A.Trinket1, A.Trinket2 },
         },
         buffs = {
@@ -397,6 +408,12 @@ rotation_registry:register_class({
                 { id = Constants.BUFF_ID.RAMPAGE, label = "Ramp" },
                 { id = Constants.BUFF_ID.FLURRY, label = "Flurry" },
             },
+            kebab = {
+                { id = Constants.BUFF_ID.SWEEPING_STRIKES, label = "SS" },
+                { id = Constants.BUFF_ID.DEATH_WISH, label = "DW" },
+                { id = Constants.BUFF_ID.ENRAGE, label = "Enr" },
+                { id = Constants.BUFF_ID.FLURRY, label = "Flurry" },
+            },
             protection = {
                 { id = Constants.BUFF_ID.SHIELD_BLOCK, label = "SB" },
                 { id = Constants.BUFF_ID.LAST_STAND, label = "LS" },
@@ -409,6 +426,9 @@ rotation_registry:register_class({
                 { id = Constants.DEBUFF_ID.SUNDER_ARMOR, label = "Sunder", target = true, show_stacks = true },
             },
             fury = {
+                { id = Constants.DEBUFF_ID.SUNDER_ARMOR, label = "Sunder", target = true, show_stacks = true },
+            },
+            kebab = {
                 { id = Constants.DEBUFF_ID.SUNDER_ARMOR, label = "Sunder", target = true, show_stacks = true },
             },
             protection = {

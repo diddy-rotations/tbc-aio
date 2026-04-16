@@ -24,6 +24,7 @@ end
 
 local Unit = NS.Unit
 local predict_effective_deficit = NS.predict_effective_deficit
+local HEALING_REDUCTION_DEBUFFS = NS.HEALING_REDUCTION_DEBUFFS
 local tsort = table.sort
 
 -- ============================================================================
@@ -40,7 +41,8 @@ local healing_targets_count = 0
 for i = 1, 40 do
     healing_targets[i] = { unit = nil, hp = 100, is_player = false, has_aggro = false,
                             is_tank = false, has_poison = false, has_disease = false,
-                            has_magic = false, needs_cleanse = false }
+                            has_magic = false, needs_cleanse = false,
+                            has_healing_reduction = false, incoming_dps = 0, deficit = 0 }
 end
 
 local function unit_has_aggro(unit_id)
@@ -92,7 +94,8 @@ local function scan_healing_targets()
                 if not entry then
                     entry = { unit = nil, hp = 100, is_player = false, has_aggro = false,
                               is_tank = false, has_poison = false, has_disease = false,
-                              has_magic = false, needs_cleanse = false }
+                              has_magic = false, needs_cleanse = false,
+                              has_healing_reduction = false, incoming_dps = 0, deficit = 0 }
                     healing_targets[idx] = entry
                 end
                 entry.unit = unit
@@ -105,8 +108,18 @@ local function scan_healing_targets()
                 local eff_deficit = predict_effective_deficit(unit, 1.5)
                 entry.effective_hp = max_hp > 0 and (100 - (eff_deficit / max_hp) * 100) or entry.hp
 
-                local role = _G.UnitGroupRolesAssigned and _G.UnitGroupRolesAssigned(unit)
-                entry.is_tank = entry.has_aggro or (role == "TANK")
+                entry.is_tank = Unit(unit):IsTank() == true
+
+                entry.deficit = _G.UnitHealthMax(unit) - _G.UnitHealth(unit)
+                entry.incoming_dps = Unit(unit):GetDMG() or 0
+
+                entry.has_healing_reduction = false
+                for k = 1, #HEALING_REDUCTION_DEBUFFS do
+                    if (Unit(unit):HasDeBuffs(HEALING_REDUCTION_DEBUFFS[k]) or 0) > 0 then
+                        entry.has_healing_reduction = true
+                        break
+                    end
+                end
 
                 -- Check for dispellable debuffs
                 entry.has_poison = _G.Action.AuraIsValid(unit, "UseDispel", "Poison") or false
@@ -117,16 +130,16 @@ local function scan_healing_targets()
         end
     end
 
-    -- Nil out stale entries beyond current count so sort only sees valid entries
-    for i = healing_targets_count + 1, #healing_targets do
-        healing_targets[i] = nil
+    -- Mark stale entries so sort pushes them to the end (preserves pre-allocated tables)
+    for i = healing_targets_count + 1, 40 do
+        if healing_targets[i] then
+            healing_targets[i].effective_hp = 999
+        end
     end
 
     -- Sort by effective HP ascending (most in need first)
     if healing_targets_count > 1 then
         tsort(healing_targets, function(a, b)
-            if not a or not a.effective_hp then return false end
-            if not b or not b.effective_hp then return true end
             return a.effective_hp < b.effective_hp
         end)
     end

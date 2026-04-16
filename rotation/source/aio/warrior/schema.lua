@@ -44,6 +44,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						options = {
 							{ value = "arms", text = "Arms" },
 							{ value = "fury", text = "Fury" },
+							{ value = "kebab", text = "Kebab" },
 							{ value = "protection", text = "Protection" },
 						},
 					},
@@ -134,7 +135,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "checkbox",
 						key = "use_berserker_rage",
-						default = true,
+						default = false,
 						label = "Auto Berserker Rage",
 						tooltip = "Use Berserker Rage on cooldown when in Berserker Stance (rage gen + fear immunity).",
 					},
@@ -311,9 +312,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "checkbox",
 						key = "arms_maintain_rend",
-						default = true,
+						default = false,
 						label = "Maintain Rend",
-						tooltip = "Keep Rend DoT on target (for Blood Frenzy talent).",
+						tooltip = "Keep Rend DoT on target. OFF recommended (Deep Wounds applies Rend on crit).",
 					},
 					{
 						type = "slider",
@@ -328,9 +329,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "checkbox",
 						key = "arms_use_overpower",
-						default = true,
+						default = false,
 						label = "Use Overpower",
-						tooltip = "Use Overpower on dodge procs (Battle Stance only).",
+						tooltip = "Use Overpower on dodge procs (Battle Stance only). OFF recommended for 2H Arms (stance dance costs rage, delays MS/WW).",
 					},
 					{
 						type = "slider",
@@ -414,7 +415,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "slider",
 						key = "arms_hs_rage_threshold",
-						default = 50,
+						default = 60,
 						min = 30,
 						max = 80,
 						label = "HS Rage Threshold",
@@ -424,9 +425,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "checkbox",
 						key = "arms_hs_during_execute",
-						default = true,
+						default = false,
 						label = "HS During Execute",
-						tooltip = "Allow Heroic Strike during execute phase (dump excess rage).",
+						tooltip = "Allow Heroic Strike during execute phase. OFF recommended (every rage point in Execute = +21 damage).",
 					},
 				},
 			},
@@ -434,11 +435,30 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 				header = "Cooldowns",
 				settings = {
 					{
-						type = "checkbox",
+						type = "dropdown",
 						key = "arms_use_death_wish",
-						default = true,
-						label = "Use Death Wish",
-						tooltip = "Use Death Wish cooldown (+20% damage).",
+						default = "in_combat",
+						label = "Death Wish",
+						tooltip = "When to use Death Wish (+20% damage). Off = never, In Combat = on cooldown, Bloodlust = only during Bloodlust/Heroism.",
+						options = {
+							{ value = "off", text = "Off" },
+							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
+							{ value = "bloodlust", text = "During Bloodlust" },
+						},
+					},
+					{
+						type = "dropdown",
+						key = "arms_use_recklessness",
+						default = "in_combat",
+						label = "Recklessness",
+						tooltip = "When to use Recklessness (+100% crit for 3 charges). Off = never, In Combat = on cooldown, Bloodlust = only during Bloodlust/Heroism.",
+						options = {
+							{ value = "off", text = "Off" },
+							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
+							{ value = "bloodlust", text = "During Bloodlust" },
+						},
 					},
 				},
 			},
@@ -498,7 +518,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "slider",
 						key = "fury_hs_rage_threshold",
-						default = 50,
+						default = 40,
 						min = 30,
 						max = 80,
 						label = "HS Rage Threshold",
@@ -585,9 +605,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "checkbox",
 						key = "fury_hs_during_execute",
-						default = true,
+						default = false,
 						label = "HS During Execute",
-						tooltip = "Allow Heroic Strike during execute phase (keeps yellow OH hits with HS trick).",
+						tooltip = "Allow Heroic Strike during execute phase. OFF recommended (every rage point in Execute = +21 damage). Exception: with HS trick, ON keeps yellow OH hits.",
 					},
 				},
 			},
@@ -595,18 +615,30 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 				header = "Cooldowns",
 				settings = {
 					{
-						type = "checkbox",
+						type = "dropdown",
 						key = "fury_use_death_wish",
-						default = true,
-						label = "Use Death Wish",
-						tooltip = "Use Death Wish cooldown (+20% damage).",
+						default = "in_combat",
+						label = "Death Wish",
+						tooltip = "When to use Death Wish (+20% damage). Off = never, In Combat = on cooldown, Bloodlust = only during Bloodlust/Heroism.",
+						options = {
+							{ value = "off", text = "Off" },
+							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
+							{ value = "bloodlust", text = "During Bloodlust" },
+						},
 					},
 					{
-						type = "checkbox",
+						type = "dropdown",
 						key = "fury_use_recklessness",
-						default = true,
-						label = "Use Recklessness",
-						tooltip = "Use Recklessness during burn windows (+100% crit).",
+						default = "in_combat",
+						label = "Recklessness",
+						tooltip = "When to use Recklessness (+100% crit for 3 charges). Off = never, In Combat = on cooldown, Bloodlust = only during Bloodlust/Heroism.",
+						options = {
+							{ value = "off", text = "Off" },
+							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
+							{ value = "bloodlust", text = "During Bloodlust" },
+						},
 					},
 				},
 			},
@@ -620,13 +652,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 			{
 				header = "Core Abilities",
 				settings = {
-					{
-						type = "checkbox",
-						key = "prot_use_shield_block",
-						default = true,
-						label = "Auto Shield Block",
-						tooltip = "Maintain Shield Block on cooldown (crush prevention).",
-					},
 					{
 						type = "checkbox",
 						key = "prot_use_revenge",
@@ -675,7 +700,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 					{
 						type = "slider",
 						key = "prot_tc_min_mobs",
-						default = 3,
+						default = 2,
 						min = 1,
 						max = 10,
 						label = "TC Min Enemies",
@@ -702,17 +727,54 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 				},
 			},
 			{
-				header = "Rage Dump",
+				header = "Heroic Strike / Cleave",
 				settings = {
 					{
 						type = "slider",
 						key = "prot_hs_rage_threshold",
-						default = 60,
-						min = 40,
+						default = 25,
+						min = 15,
 						max = 90,
 						label = "HS Rage Threshold",
-						tooltip = "Queue Heroic Strike above this rage.",
+						tooltip = "Queue Heroic Strike/Cleave above this rage. Lower = more HS/Cleave uptime, higher = more rage reserved for abilities.",
 						format = "%d",
+					},
+				},
+			},
+			{
+				header = "Shield Block",
+				settings = {
+					{
+						type = "dropdown",
+						key = "prot_sb_mode",
+						default = "rage",
+						label = "Shield Block Mode",
+						tooltip = "How to gate Shield Block usage.",
+						options = {
+							{ value = "off", text = "Off" },
+							{ value = "rage", text = "By Rage" },
+							{ value = "threat", text = "By Threat Lead" },
+						},
+					},
+					{
+						type = "slider",
+						key = "prot_sb_rage_threshold",
+						default = 90,
+						min = 30,
+						max = 100,
+						label = "SB Rage Threshold",
+						tooltip = "Only use Shield Block above this rage (By Rage mode).",
+						format = "%d",
+					},
+					{
+						type = "slider",
+						key = "prot_sb_threat_lead",
+						default = 110,
+						min = 100,
+						max = 200,
+						label = "SB Threat Lead (%)",
+						tooltip = "Only use Shield Block when threat lead exceeds this % (By Threat Lead mode).",
+						format = "%d%%",
 					},
 				},
 			},
@@ -995,6 +1057,130 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 						default = false,
 						label = "Auto Intervene",
 						tooltip = "Intervene to friendly party members below 40% HP (Defensive Stance).",
+					},
+				},
+			},
+		},
+	},
+
+	-- Tab 7: Kebab
+	[7] = {
+		name = "Kebab",
+		sections = {
+			{
+				header = "Core Abilities",
+				settings = {
+					{
+						type = "checkbox",
+						key = "kebab_use_overpower",
+						default = true,
+						label = "Use Overpower",
+						tooltip = "Use Overpower on dodge procs when already in Battle Stance (avoids unnecessary stance dance).",
+					},
+					{
+						type = "checkbox",
+						key = "kebab_use_whirlwind",
+						default = true,
+						label = "Use Whirlwind",
+						tooltip = "Use Whirlwind on cooldown (Berserker Stance).",
+					},
+					{
+						type = "checkbox",
+						key = "kebab_use_sweeping_strikes",
+						default = true,
+						label = "Use Sweeping Strikes",
+						tooltip = "Use Sweeping Strikes on cooldown in AoE.",
+					},
+				},
+			},
+			{
+				header = "Utility",
+				settings = {
+					{
+						type = "checkbox",
+						key = "kebab_use_victory_rush",
+						default = true,
+						label = "Use Victory Rush",
+						tooltip = "Use Victory Rush (free instant attack after a killing blow, 0 rage).",
+					},
+				},
+			},
+			{
+				header = "Execute Phase",
+				settings = {
+					{
+						type = "checkbox",
+						key = "kebab_execute_phase",
+						default = true,
+						label = "Execute Phase",
+						tooltip = "Switch to Execute priority at <20% target HP.",
+					},
+					{
+						type = "checkbox",
+						key = "kebab_use_ms_execute",
+						default = true,
+						label = "MS During Execute",
+						tooltip = "Use Mortal Strike during execute phase.",
+					},
+					{
+						type = "checkbox",
+						key = "kebab_use_ww_execute",
+						default = true,
+						label = "WW During Execute",
+						tooltip = "Use Whirlwind during execute phase.",
+					},
+				},
+			},
+			{
+				header = "Rage Dump",
+				settings = {
+					{
+						type = "slider",
+						key = "kebab_hs_rage_threshold",
+						default = 40,
+						min = 25,
+						max = 80,
+						label = "HS Rage Threshold",
+						tooltip = "Queue Heroic Strike above this rage.",
+						format = "%d",
+					},
+					{
+						type = "checkbox",
+						key = "kebab_hs_during_execute",
+						default = false,
+						label = "HS During Execute",
+						tooltip = "Allow Heroic Strike during execute phase. OFF recommended (every rage point in Execute = +21 damage).",
+					},
+				},
+			},
+			{
+				header = "Cooldowns",
+				settings = {
+					{
+						type = "dropdown",
+						key = "kebab_use_death_wish",
+						default = "in_combat",
+						label = "Death Wish",
+						tooltip = "When to use Death Wish (+20% damage). Off = never, In Combat = on cooldown, Bloodlust = only during Bloodlust/Heroism.",
+						options = {
+							{ value = "off", text = "Off" },
+							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
+							{ value = "bloodlust", text = "During Bloodlust" },
+						},
+					},
+					{
+						type = "dropdown",
+						key = "kebab_use_recklessness",
+						default = "in_combat",
+						label = "Recklessness",
+						tooltip = "When to use Recklessness (+100% crit for 3 charges). Off = never, In Combat = on cooldown, Bloodlust = only during Bloodlust/Heroism.",
+						options = {
+							{ value = "off", text = "Off" },
+							{ value = "in_combat", text = "In Combat" },
+							{ value = "boss", text = "Boss Fight" },
+							{ value = "bloodlust", text = "During Bloodlust" },
+						},
 					},
 				},
 			},

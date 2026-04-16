@@ -15,6 +15,47 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.9.1 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-fix">Fix</span>
+
+      <h3>Druid</h3>
+      <ul class="features">
+        <li><strong>Smart Shift Delay Tuning</strong> &mdash; Reduced delay threshold from 1.0s to 0.725s for tighter powershift timing.</li>
+        <li><strong>Bite Trick CP Gate</strong> &mdash; Bite trick now respects the FB Min Combo Points setting instead of a hardcoded 3 CP minimum.</li>
+        <li><strong>Shift Delay CP Awareness</strong> &mdash; Smart shift delay no longer stalls waiting for bite energy when you don't have enough combo points to bite. Rake trick correctly uses its own energy cost without a CP check.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
+      <h2>v1.9.0 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-feature">Feature</span>
+
+      <h3>Warrior</h3>
+      <ul class="features">
+        <li><strong>Arms &amp; Fury DPS Improvements</strong> &mdash; Revised rotation priorities for higher sustained damage output.</li>
+        <li><strong>Kebab Spec</strong> &mdash; New warrior playstyle option.</li>
+      </ul>
+
+      <h3>Paladin</h3>
+      <ul class="features">
+        <li><strong>Holy Healing Overhaul</strong> &mdash; Reworked healing rotation with intelligent spell selection and downranking.</li>
+      </ul>
+
+      <h3>Priest</h3>
+      <ul class="features">
+        <li><strong>Shadow Rotation Improvements</strong> &mdash; Revised shadow priority logic for better DPS output.</li>
+      </ul>
+
+      <h3>Druid</h3>
+      <ul class="features">
+        <li><strong>Resto Downranking</strong> &mdash; Healing spells now correctly downrank based on HP deficit and mana efficiency.</li>
+        <li><strong>Smarter Swipe AoE Threshold</strong> &mdash; The +1 elite bump now only applies when elites are a minority in the pack. Pure elite packs cleave at your configured threshold.</li>
+        <li><strong>Tick Tracker Powershift Fix</strong> &mdash; Energy tick tracker now resets correctly on powershift instead of extrapolating from stale pre-shift timing.</li>
+        <li><strong>Rip Min TTD Floor</strong> &mdash; Slider minimum lowered from 8 to 0, allowing the TTD gate to be fully disabled.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.8.13 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-feature">Feature</span>
 

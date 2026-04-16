@@ -124,12 +124,17 @@ do
    local AOE_MIN_ENEMIES = 3
 
    -- Effective AoE threshold: respects user setting, but floors at AOE_MIN_ENEMIES for swipe_min=1
-   -- When elites/bosses are in melee, raise threshold by 1 (Lacerate on elite is higher value)
+   -- Bump threshold +1 only when elites/bosses are a MINORITY among trash — i.e. a single
+   -- high-value target in a trash pack, where Lacerate focus beats cleave. On elite-heavy
+   -- packs (pure elites, or elites >= trash), trust the user's setting and cleave for threat.
    local function get_aoe_threshold(ctx, state)
       local swipe_min = get_swipe_threshold(ctx)
       local base = swipe_min <= 1 and AOE_MIN_ENEMIES or swipe_min
-      if state and (state.nearby_bosses > 0 or state.nearby_elites > 0) then
-         return base + 1
+      if state then
+         local priority_targets = state.nearby_bosses + state.nearby_elites
+         if priority_targets > 0 and priority_targets < state.nearby_trash then
+            return base + 1
+         end
       end
       return base
    end
@@ -813,9 +818,85 @@ do
       end,
    }
 
-   -- [9] Demoralizing Roar (attack power reduction)
+   -- Bash (interrupt - 1 min CD stun)
+   -- Only fires to interrupt castable spells. Does not stun for CC purposes.
+   local Bear_BashInterrupt = {
+      requires_combat = true,
+      requires_enemy = true,
+      requires_in_range = true,
+      setting_key = "use_bash_interrupt",
+      spell = A.Bash,
+      matches = function(context)
+         local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
+         if not castLeft or castLeft <= 0 then return false end
+         if notKickAble then return false end
+         -- Need enough cast time remaining to land the GCD
+         if castLeft < 0.5 then return false end
+         if not context.has_clearcasting then
+            local bash_cost = get_spell_rage_cost(A.Bash)
+            if bash_cost > 0 and context.rage < bash_cost then return false end
+         end
+         return true
+      end,
+      execute = function(icon, context)
+         local castLeft = Unit(TARGET_UNIT):IsCastingRemains()
+         return try_cast_fmt(A.Bash, icon, TARGET_UNIT, "[P5]", "Bash", "Interrupt - Cast: %.1fs, Rage: %d", castLeft or 0, context.rage)
+      end,
+   }
+
+   -- Demoralizing Roar (attack power reduction)
+   -- Shared logic for both AoE-priority and ST-filler variants
    -- Configurable thresholds: min bosses/elites/trash within 10yd (defaults: 1/1/3)
    -- Smart: skips immune, dying (single target), warrior-shout-covered
+   local function demo_roar_matches(context)
+      -- Throttle: Demo Roar is PBAoE - one cast hits all nearby mobs.
+      if (GetTime() - bear_state.last_demo_roar_cast) < DEMO_ROAR_THROTTLE then return false end
+      if not Unit(TARGET_UNIT):IsBoss() then
+         if would_starve_maul(context, RAGE_COST_DEMO_ROAR) then return false end
+         if would_starve_mangle(context, RAGE_COST_DEMO_ROAR) then return false end
+      end
+      local demo_range = context.settings.demo_roar_range or Constants.BEAR.DEFAULT_DEMO_ROAR_RANGE
+      local elites, bosses, trash = count_nearby_enemies(demo_range, false)
+      local min_bosses = context.settings.demo_roar_min_bosses or Constants.BEAR.DEFAULT_DEMO_ROAR_MIN_BOSSES
+      local min_elites = context.settings.demo_roar_min_elites or Constants.BEAR.DEFAULT_DEMO_ROAR_MIN_ELITES
+      local min_trash = context.settings.demo_roar_min_trash or Constants.BEAR.DEFAULT_DEMO_ROAR_MIN_TRASH
+      if bosses < min_bosses and elites < min_elites and trash < min_trash then return false end
+      if context.enemy_count <= 1 and context.ttd < Constants.BEAR.DEMO_ROAR_MIN_TTD then
+         return false
+      end
+      local demo_duration = Unit(TARGET_UNIT):HasDeBuffs(DEMO_ROAR_DEBUFF_IDS) or 0
+      if demo_duration > Constants.BEAR.DEMO_ROAR_REFRESH then return false end
+      local shout_duration = Unit(TARGET_UNIT):HasDeBuffs("Demoralizing Shout") or 0
+      if shout_duration > Constants.BEAR.DEMO_ROAR_REFRESH then return false end
+      return true
+   end
+
+   local function demo_roar_execute(icon, context)
+      bear_state.last_demo_roar_cast = GetTime()
+      local demo_range = context.settings.demo_roar_range or Constants.BEAR.DEFAULT_DEMO_ROAR_RANGE
+      local elites, bosses, trash = count_nearby_enemies(demo_range, false)
+      local cc_str = context.has_clearcasting and " [CC]" or ""
+      local reason = bosses >= 1 and format("%d boss(es) + %d elite(s)", bosses, elites) or format("%d elite(s), %d trash", elites, trash)
+      return try_cast_fmt(A.DemoralizingRoar, icon, PLAYER_UNIT, "[P7]", "Demoralizing Roar",
+         "%s%s", reason, cc_str)
+   end
+
+   -- DemoRoar AoE: high priority on 3+ packs (above filler abilities)
+   local Bear_DemoRoarAoE = {
+      requires_combat = true,
+      requires_enemy = true,
+      requires_phys_immune = false,
+      setting_key = "maintain_demo_roar",
+      spell = A.DemoralizingRoar,
+      spell_target = PLAYER_UNIT,
+      matches = function(context)
+         if context.enemy_count < 3 then return false end
+         return demo_roar_matches(context)
+      end,
+      execute = demo_roar_execute,
+   }
+
+   -- DemoRoar ST: lowest GCD priority (below filler abilities)
    local Bear_DemoRoar = {
       requires_combat = true,
       requires_enemy = true,
@@ -824,43 +905,10 @@ do
       spell = A.DemoralizingRoar,
       spell_target = PLAYER_UNIT,
       matches = function(context)
-         -- Throttle: Demo Roar is PBAoE — one cast hits all nearby mobs.
-         -- Don't burn another GCD just because tab-target switched to a mob without it.
-         if (GetTime() - bear_state.last_demo_roar_cast) < DEMO_ROAR_THROTTLE then return false end
-         -- Demo Roar is cheap (10 rage) on a 30s debuff. On boss fights, rage income
-         -- from boss melee easily absorbs this — skip starvation checks.
-         if not Unit(TARGET_UNIT):IsBoss() then
-            if would_starve_maul(context, RAGE_COST_DEMO_ROAR) then return false end
-            if would_starve_mangle(context, RAGE_COST_DEMO_ROAR) then return false end
-         end
-         -- Only worth using with enough nearby enemies to justify the rage
-         local demo_range = context.settings.demo_roar_range or Constants.BEAR.DEFAULT_DEMO_ROAR_RANGE
-         local elites, bosses, trash = count_nearby_enemies(demo_range, false)
-         local min_bosses = context.settings.demo_roar_min_bosses or Constants.BEAR.DEFAULT_DEMO_ROAR_MIN_BOSSES
-         local min_elites = context.settings.demo_roar_min_elites or Constants.BEAR.DEFAULT_DEMO_ROAR_MIN_ELITES
-         local min_trash = context.settings.demo_roar_min_trash or Constants.BEAR.DEFAULT_DEMO_ROAR_MIN_TRASH
-         if bosses < min_bosses and elites < min_elites and trash < min_trash then return false end
-         -- TTD check: skip if single target dying soon (PBAoE still hits other mobs in AoE)
-         if context.enemy_count <= 1 and context.ttd < Constants.BEAR.DEMO_ROAR_MIN_TTD then
-            return false
-         end
-         -- Check for existing AP reduction debuff (Demo Roar from any druid)
-         local demo_duration = Unit(TARGET_UNIT):HasDeBuffs(DEMO_ROAR_DEBUFF_IDS) or 0
-         if demo_duration > Constants.BEAR.DEMO_ROAR_REFRESH then return false end
-         -- Warrior's Demoralizing Shout also reduces AP (doesn't stack, stronger one wins)
-         local shout_duration = Unit(TARGET_UNIT):HasDeBuffs("Demoralizing Shout") or 0
-         if shout_duration > Constants.BEAR.DEMO_ROAR_REFRESH then return false end
-         return true
+         if context.enemy_count >= 3 then return false end  -- handled by AoE variant
+         return demo_roar_matches(context)
       end,
-      execute = function(icon, context)
-         bear_state.last_demo_roar_cast = GetTime()
-         local demo_range = context.settings.demo_roar_range or Constants.BEAR.DEFAULT_DEMO_ROAR_RANGE
-         local elites, bosses, trash = count_nearby_enemies(demo_range, false)
-         local cc_str = context.has_clearcasting and " [CC]" or ""
-         local reason = bosses >= 1 and format("%d boss(es) + %d elite(s)", bosses, elites) or format("%d elite(s), %d trash", elites, trash)
-         return try_cast_fmt(A.DemoralizingRoar, icon, PLAYER_UNIT, "[P7]", "Demoralizing Roar",
-            "%s%s", reason, cc_str)
-      end,
+      execute = demo_roar_execute,
    }
 
    -- [8] Swipe AoE (fills every GCD between Mangle CDs in AoE)
@@ -914,9 +962,10 @@ do
       end
    })
 
-   -- [10] Swipe single-target filler (primary GCD filler between Mangle CDs)
-   -- WCL data: top bears Swipe ~13.5 CPM vs Lacerate ~8.4 CPM. Swipe is the default filler.
-   -- LacerateUrgent [5] handles urgent refreshes; LacerateBuild [12] handles stack building.
+   -- [12] Swipe single-target filler (conditional: toggle + Lacerate gate)
+   -- Only fires when swipe_st_filler is enabled. At level 66+, also requires
+   -- 5 Lacerate stacks with >3s remaining (sim's SwipeWithEnoughAP mode).
+   -- Default OFF: auto-attack + Maul between Mangles is higher DPS at low AP.
    local Bear_Swipe = {
       requires_combat = true,
       requires_enemy = true,
@@ -926,6 +975,15 @@ do
          -- AoE is handled by SwipeAoE above Mangle; this is single-target filler only
          local aoe_threshold = get_aoe_threshold(context, state)
          if context.enemy_count >= aoe_threshold then return false end
+
+         -- ST filler toggle: user controls whether Swipe fills single-target GCDs
+         if not context.settings.swipe_st_filler then return false end
+
+         -- Lacerate gate: if Lacerate is available, only Swipe when fully stacked with safe duration
+         if is_spell_available(A.Lacerate) then
+            if state.lacerate_stacks < Constants.BEAR.LACERATE_MAX_STACKS then return false end
+            if state.lacerate_duration <= Constants.BEAR.LACERATE_URGENT_REFRESH then return false end
+         end
 
          -- Hold for Mangle: don't waste a 1.5s GCD when Mangle is almost ready
          if should_hold_for_mangle() then return false end
@@ -946,8 +1004,8 @@ do
       end,
    }
 
-   -- [11] Lacerate Build (building/maintaining stacks) - skip if target has physical immunity
-   -- Used as lowest-priority filler (matches sim).
+   -- [11] Lacerate Build (primary GCD filler - building and maintaining stacks)
+   -- Sim priority: Lacerate is the default filler, Swipe only when conditions met.
    local Bear_LacerateBuild = {
       requires_combat = true,
       requires_enemy = true,
@@ -996,13 +1054,30 @@ do
       requires_in_range = true,
       spell = A.Maul,
       matches = function(context, state)
-         -- Confirmed queued by game → wait for CLEU to consume it
+         -- Confirmed queued by game -> wait for CLEU to consume it
          if bear_state.maul_confirmed then return false end
-         -- Still queuing (not yet confirmed) → allow re-entry to keep firing TMW:Fire
+         -- Still queuing (not yet confirmed) -> allow re-entry to keep firing TMW:Fire
          if bear_state.maul_queued then return true end
-         -- Idle: normal rage checks
+         -- Idle: normal rage threshold
          local maul_threshold = context.settings.maul_rage_threshold or Constants.BEAR.DEFAULT_MAUL_RAGE
-         return context.rage >= maul_threshold
+         if context.rage < maul_threshold then return false end
+         -- Mangle starvation: Maul consumes rage on next swing (delayed up to 2.5s).
+         -- If we can't afford both and Mangle will be ready before our swing lands,
+         -- don't queue — Mangle comes off CD with no rage to spend.
+         if not context.has_clearcasting
+            and context.rage < (RAGE_COST_MAUL + RAGE_COST_MANGLE)
+            and is_spell_available(A.MangleBear)
+         then
+            local mangle_cd = A.MangleBear:GetCooldown()
+            local swing_remaining = get_time_until_swing()
+            -- Mangle ready before swing lands = Maul would starve it
+            if mangle_cd > 0 and swing_remaining > 0 and mangle_cd < swing_remaining then
+               return false
+            end
+            -- Mangle ready NOW and we can't afford both = don't queue
+            if mangle_cd <= 0 then return false end
+         end
+         return true
       end,
       execute = function(icon, context, state)
          bear_state.maul_queued = true
@@ -1024,15 +1099,17 @@ do
       named("Enrage",           Bear_Enrage),            -- [2]  off-GCD rage gen
       named("Growl",            Bear_Growl),             -- [3]  off-GCD taunt
       named("ChallengingRoar",  Bear_ChallengingRoar),   -- [4]  off-GCD AoE taunt
-      named("LacerateUrgent",   Bear_LacerateUrgent),    -- [5]  GCD — urgent refresh
-      named("TabTarget",        Bear_TabTarget),         -- [6]  off-GCD tab targeting
-      named("FaerieFire",       Bear_FaerieFire),        -- [7]  GCD — debuff maintenance
-      named("Maul",             Bear_Maul),              -- [13] off-GCD swing queue (fires during GCD)
-      named("SwipeAoE",         Bear_SwipeAoE),          -- [8]  GCD — AoE opener (fires before Mangle on packs)
-      named("Mangle",           Bear_Mangle),            -- [9]  GCD — main ST damage/threat
-      named("DemoRoar",         Bear_DemoRoar),          -- [10] GCD — AP reduction (defensive)
-      named("LacerateBuild",    Bear_LacerateBuild),     -- [11] GCD — boss stack builder (throttled, ~1 per 4.5s)
-      named("Swipe",            Bear_Swipe),             -- [12] GCD — ST filler
+      named("BashInterrupt",    Bear_BashInterrupt),     -- [5]  GCD - interrupt (1 min CD)
+      named("LacerateUrgent",   Bear_LacerateUrgent),    -- [6]  GCD - urgent refresh
+      named("TabTarget",        Bear_TabTarget),         -- [7]  off-GCD tab targeting
+      named("FaerieFire",       Bear_FaerieFire),        -- [8]  GCD - debuff maintenance
+      named("Maul",             Bear_Maul),              -- [9]  off-GCD swing queue (fires during GCD)
+      named("SwipeAoE",         Bear_SwipeAoE),          -- [10] GCD - AoE (fires before Mangle on packs)
+      named("Mangle",           Bear_Mangle),            -- [11] GCD - main ST damage/threat
+      named("DemoRoarAoE",      Bear_DemoRoarAoE),       -- [12] GCD - AP reduction (3+ enemies, high prio)
+      named("LacerateBuild",    Bear_LacerateBuild),     -- [13] GCD - stack builder/filler
+      named("Swipe",            Bear_Swipe),             -- [14] GCD - ST filler (conditional)
+      named("DemoRoar",         Bear_DemoRoar),          -- [15] GCD - AP reduction (ST, lowest priority)
    }, {
       context_builder = get_bear_state,
       format_context_log = function(ctx, state)
@@ -1065,4 +1142,4 @@ do
 
 end  -- End Bear strategies do...end block
 
-print("|cFF00FF00[Flux AIO Bear]|r 13 Bear strategies registered.")
+print("|cFF00FF00[Flux AIO Bear]|r 15 Bear strategies registered.")
