@@ -116,8 +116,8 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "tigers_fury_energy", default = 100, min = 30, max = 100, label = "Tiger's Fury Min Energy", tooltip = "Only use above this energy.", format = "%d" },
             { type = "checkbox", key = "cat_smart_shift_delay", default = true, label = "Smart Shift Delay",
               tooltip = "Delay powershifts when an energy tick is arriving soon. Saves mana by capturing the tick before shifting." },
-            { type = "slider", key = "cat_shift_delay_threshold", default = 0.7, min = 0.5, max = 1, label = "Shift Tick Delay (sec)",
-              tooltip = "Maximum time to wait for an incoming energy tick before shifting. 0.7 = recommended.", format = "%.1f sec", step = 0.1 },
+            { type = "slider", key = "cat_shift_delay_threshold", default = 7, min = 5, max = 10, label = "Shift Tick Delay (x100ms)",
+              tooltip = "Maximum time to wait for an incoming energy tick before shifting. 7 = 0.7s (recommended).", format = "%d" },
         }},
         { header = "Advanced", settings = {
             { type = "checkbox", key = "use_bite_trick", default = true, label = "Use Bite Trick", tooltip = "Low-energy Ferocious Bite dump at 35-39 energy to avoid wasting combo points before powershift." },

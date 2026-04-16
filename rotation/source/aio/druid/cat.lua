@@ -329,7 +329,7 @@ local function get_cat_state(context)
    cat_state.rip_now = rip_now
 
    -- Smart shift delay: compute minimum useful energy threshold for tick-waiting
-   local shift_delay_threshold = settings.cat_shift_delay_threshold or DEFAULT_SHIFT_DELAY
+   local shift_delay_threshold = (settings.cat_shift_delay_threshold or 7) / 10
    if settings.cat_smart_shift_delay and shift_delay_threshold > 0 then
       -- Bite trick needs CP check; rake trick doesn't use combo points
       local min_useful_energy = ENERGY_COST_SHRED
