@@ -57,6 +57,9 @@ Action[A.PlayerClass] = {
     CircleOfHealing  = Create({ Type = "Spell", ID = 34861, useMaxRank = true }),
     BindingHeal      = Create({ Type = "Spell", ID = 32546 }),
 
+    -- Wand
+    Shoot            = Create({ Type = "Spell", ID = 5019, QueueForbidden = true, BlockForbidden = true, Click = { macrobefore = "/castsequence [exists] !Shoot,!Shoot\n" } }),
+
     -- Cooldowns
     InnerFocus       = Create({ Type = "Spell", ID = 14751, Click = { unit = "player", type = "spell", spell = 14751 } }),
     PowerInfusion    = Create({ Type = "Spell", ID = 10060, Click = { unit = "player", type = "spell", spell = 10060 } }),

@@ -411,13 +411,18 @@ local Prot_ThreatTab = {
 local Prot_ShieldBlock = {
     requires_combat = true,
     is_gcd_gated = false,
-    setting_key = "prot_use_shield_block",
 
     matches = function(context, state)
         if context.shield_block_active then return false end
-        -- Threat lead gate: don't waste off-GCD on Shield Block when threat is thin
-        if not has_threat_lead(context, context.settings.prot_threat_lead or 0) then return false end
-        -- Shield Block requires Defensive Stance — IsReady handles check
+        local mode = context.settings.prot_sb_mode or "rage"
+        if mode == "off" then return false end
+        if mode == "rage" then
+            local threshold = context.settings.prot_sb_rage_threshold or 90
+            if context.rage < threshold then return false end
+        elseif mode == "threat" then
+            local lead = context.settings.prot_sb_threat_lead or 110
+            if not has_threat_lead(context, lead) then return false end
+        end
         return A.ShieldBlock:IsReady(PLAYER_UNIT)
     end,
 
@@ -711,7 +716,7 @@ local Prot_HeroicStrike = {
                 end
             end
         end
-        local threshold = context.settings.prot_hs_rage_threshold or 60
+        local threshold = context.settings.prot_hs_rage_threshold or 35
         if context.rage < threshold then return false end
         return true
     end,
@@ -746,6 +751,8 @@ rotation_registry:register("protection", {
     -- Debuff maintenance: above fillers per guide/sim priority
     named("ThunderClap",       Prot_ThunderClap),
     named("DemoShout",         Prot_DemoShout),
+    -- Off-GCD: rage dump (above fillers — queue HS/Cleave before Devastate spam)
+    named("HeroicStrike",      Prot_HeroicStrike),
     -- Fillers
     named("Devastate",         Prot_Devastate),
     named("SunderArmor",       Prot_SunderArmor),
@@ -755,8 +762,6 @@ rotation_registry:register("protection", {
     named("Taunt",             Prot_Taunt),
     named("ChallengingShout",  Prot_ChallengingShout),
     named("MockingBlow",       Prot_MockingBlow),
-    -- Off-GCD: rage dump
-    named("HeroicStrike",      Prot_HeroicStrike),
 }, {
     context_builder = get_prot_state,
 })

@@ -33,6 +33,21 @@ local CONST = A.Const
 local LOC_FEAR_INCAP = { "FEAR", "INCAPACITATE" }
 local LOC_FEAR = { "FEAR" }
 
+-- Bloodlust/Heroism buff IDs for CD gating
+local BLOODLUST_IDS = { 2825, 32182 }
+
+-- Check if a CD mode setting allows firing
+-- mode: "off" | "in_combat" | "boss" | "bloodlust" | true (legacy boolean)
+local function cd_mode_allows(mode, context)
+    if mode == "off" or mode == false then return false end
+    if mode == "in_combat" or mode == true then return true end
+    if mode == "boss" then return context and context.is_boss end
+    if mode == "bloodlust" then
+        return (Unit(PLAYER_UNIT):HasBuffs(BLOODLUST_IDS) or 0) > 0
+    end
+    return true  -- unknown value, default to allow
+end
+
 -- Tactical Mastery: returns max rage preserved after stance swap (5 per rank, 0-25)
 local function get_tactical_mastery_cap()
     return (A.TacticalMastery:GetTalentRank() or 0) * 5
@@ -103,8 +118,8 @@ rotation_registry:register_middleware({
             end
         end
 
-        -- 3. Target entered execute phase — Execute is better DPS
-        if not should_dequeue then
+        -- 3. Target entered execute phase — Execute is better DPS (elites/bosses only)
+        if not should_dequeue and context.target_is_elite then
             local target_hp = context.target_hp or 100
             if target_hp <= 20 then
                 local playstyle = context.settings.playstyle or "fury"
@@ -576,16 +591,13 @@ rotation_registry:register_middleware({
         local preferred = Constants.PREFERRED_STANCE[spec]
         if not preferred then return false end
         if context.stance == preferred then return false end
-        -- Don't fight inline stance dances: Arms WW needs Berserker — yield while WW is ready
-        if spec == "arms" and context.stance == Constants.STANCE.BERSERKER
-            and context.settings.arms_use_whirlwind
-            and context.rage >= 25
-            and (A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true)) then
-            return false
-        end
         -- Don't fight inline stance dances: Prot TC needs Battle — yield while TC debuff needs refresh
+        -- Exception: if we lost aggro, get back to Defensive for Taunt immediately
+        local prot_lost_aggro = spec == "protection"
+            and _G.UnitExists("targettarget") and not _G.UnitIsUnit("targettarget", "player")
         if spec == "protection" and context.stance == Constants.STANCE.BATTLE
-            and context.settings.prot_use_thunder_clap then
+            and context.settings.prot_use_thunder_clap
+            and not prot_lost_aggro then
             local tc_debuff = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.THUNDER_CLAP) or 0
             if tc_debuff <= Constants.TC_REFRESH_WINDOW then
                 return false
@@ -602,10 +614,13 @@ rotation_registry:register_middleware({
                 end
             end
         end
+        -- Arms/Kebab have no TM — always swap back to Berserker (losing rage is better than wrong stance)
+        if spec == "arms" or spec == "kebab" then return true end
+        -- Prot lost aggro — get back to Defensive for Taunt regardless of rage
+        if prot_lost_aggro then return true end
         -- TM check: don't swap if we'd lose significant rage
         local tm_cap = get_tactical_mastery_cap()
-        -- Arms needs to return to Battle often (MS/Overpower) — tolerate more rage waste
-        local waste_tolerance = spec == "arms" and 20 or 5
+        local waste_tolerance = 5
         if context.rage > tm_cap + waste_tolerance then return false end
         return true
     end,
@@ -700,17 +715,18 @@ rotation_registry:register_middleware({
         local shout_type = context.settings.shout_type or "battle"
         if shout_type == "none" then return false end
 
-        -- Refresh if missing or duration < 30s (2 min buff, refresh early)
+        -- Refresh if missing or duration < 10s (2 min buff, refresh late to avoid wasting opener GCDs)
         -- Use all-rank arrays so we detect shouts from any party member at any rank
+        local refresh_threshold = 10
         if shout_type == "battle" then
             if not context.has_battle_shout then return true end
             local dur = Unit(PLAYER_UNIT):HasBuffs(Constants.BATTLE_SHOUT_IDS) or 0
-            if dur < 30 then return true end
+            if dur < refresh_threshold then return true end
         end
         if shout_type == "commanding" then
             if not context.has_commanding_shout then return true end
             local dur = Unit(PLAYER_UNIT):HasBuffs(Constants.COMMANDING_SHOUT_IDS) or 0
-            if dur < 30 then return true end
+            if dur < refresh_threshold then return true end
         end
         return false
     end,
@@ -746,9 +762,9 @@ rotation_registry:register_middleware({
         if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
 
         local ps = context.settings.playstyle or "fury"
-        if ps == "arms" and not context.settings.arms_use_death_wish then return false end
-        if ps == "fury" and not context.settings.fury_use_death_wish then return false end
         if ps == "protection" then return false end
+        local mode = context.settings[ps .. "_use_death_wish"] or "off"
+        if not cd_mode_allows(mode, context) then return false end
         -- PvP: don't waste CDs on CC'd or physically immune targets
         if context.is_pvp and context.settings.pvp_enabled and context.target_is_player then
             local cc_remain = Unit(TARGET_UNIT):InCC() or 0
@@ -781,8 +797,9 @@ rotation_registry:register_middleware({
         local min_ttd = context.settings.cd_min_ttd or 0
         if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         local ps = context.settings.playstyle or "fury"
-        if ps ~= "fury" then return false end
-        if not context.settings.fury_use_recklessness then return false end
+        if ps == "protection" then return false end
+        local mode = context.settings[ps .. "_use_recklessness"] or "off"
+        if not cd_mode_allows(mode, context) then return false end
         -- Recklessness requires Berserker Stance
         if context.stance ~= Constants.STANCE.BERSERKER then return false end
         -- PvP: don't waste CDs on CC'd or physically immune targets
@@ -1272,8 +1289,7 @@ end
 rotation_registry:register_middleware({
     name = "Warrior_AutoCharge",
     priority = 160,
-    -- NOTE: setting_key is NOT auto-checked for middleware (only strategies).
-    -- Must check manually in matches().
+    setting_key = "use_auto_charge",
 
     matches = function(context)
         if not context.settings.use_auto_charge then return false end
@@ -1288,6 +1304,9 @@ rotation_registry:register_middleware({
         local now = _G.GetTime()
         -- Charge: Battle Stance, out of combat
         if not context.in_combat then
+            -- Check Charge CD before swapping stance (avoid wasting rage on pointless swap)
+            local charge_cd = A.Charge:GetCooldown() or 0
+            if charge_cd > 1.5 then return nil end
             -- Need Battle Stance for Charge — swap first if needed
             if context.stance ~= Constants.STANCE.BATTLE and A.BattleStance:IsReady(PLAYER_UNIT) then
                 return A.BattleStance:Show(icon), "[MW] Battle Stance (for Charge)"
@@ -1301,6 +1320,9 @@ rotation_registry:register_middleware({
         -- Intercept: Berserker Stance, in combat
         -- Suppress Intercept to same target we just Charged to (travel time + landing)
         if context.in_combat and not recently_charged_same_target(now) then
+            -- Check Intercept CD before swapping stance (avoid wasting rage on pointless swap)
+            local intercept_cd = A.Intercept:GetCooldown() or 0
+            if intercept_cd > 1.5 then return nil end
             -- Need Berserker Stance for Intercept — swap first if needed
             if context.stance ~= Constants.STANCE.BERSERKER then
                 -- Check TM: Intercept costs 10 rage, don't swap if we'd lose too much

@@ -26,10 +26,8 @@ A.Data.ProfileEnabled[A.CurrentProfile] = true
 _G.FluxAIO_SETTINGS_SCHEMA = {
     -- Tab 1: General
     [1] = { name = "General", sections = {
-        { header = "Targeting", settings = {
-            { type = "checkbox", key = "mouseover", default = false, label = "Use @mouseover", tooltip = "Use mouseover targeting.", hidden = true },
-        }},
         { header = "Shared Combat", settings = {
+            { type = "checkbox", key = "mouseover", default = false, label = "Use @mouseover", tooltip = "Use mouseover targeting.", hidden = true },
             { type = "dropdown", key = "maintain_faerie_fire", default = "all", label = "Faerie Fire Targets",
               tooltip = "Which targets to maintain Faerie Fire on. All = everything, Elites+ = elites and bosses, Bosses = bosses only, Off = disabled.",
               options = {
@@ -91,7 +89,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "rip_only_elites", default = true, label = "Rip Only Elites/Bosses", tooltip = "Only Rip elite or boss targets." },
             { type = "slider", key = "rip_min_cp", default = 5, min = 4, max = 5, label = "Rip Min Combo Points", tooltip = "Minimum combo points for Rip.", format = "%d" },
             { type = "slider", key = "rip_refresh", default = 0, min = 0, max = 5, label = "Rip Refresh (sec)", tooltip = "Prepare refresh this many seconds before expiry.", format = "%d sec" },
-            { type = "slider", key = "rip_min_ttd", default = 12, min = 8, max = 30, label = "Rip Min TTD (sec)", tooltip = "Only Rip if target lives at least this long.", format = "%d sec" },
+            { type = "slider", key = "rip_min_ttd", default = 12, min = 0, max = 30, label = "Rip Min TTD (sec)", tooltip = "Only Rip if target lives at least this long. Set to 0 to always Rip.", format = "%d sec" },
             { type = "checkbox", key = "maintain_rake", default = false, label = "Maintain Rake", tooltip = "Keep Rake bleed active." },
             { type = "slider", key = "rake_refresh", default = 0, min = 0, max = 4, label = "Rake Refresh (sec)", tooltip = "Refresh Rake with this many seconds remaining.", format = "%d sec" },
         }},
@@ -146,6 +144,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "bear_no_taunt", default = false, label = "Disable Taunts (Off-Tank)",
               tooltip = "Disables Growl and Challenging Roar. Use when off-tanking." },
         }},
+        { header = "Interrupts", settings = {
+            { type = "checkbox", key = "use_bash_interrupt", default = true, label = "Bash Interrupt", tooltip = "Use Bash to interrupt enemy casts. 1 min CD stun, only fires on interruptible spells." },
+        }},
         { header = "Debuff Maintenance", settings = {
             { type = "checkbox", key = "maintain_lacerate", default = true, label = "Maintain Lacerate", tooltip = "Keep Lacerate at 5 stacks." },
             { type = "checkbox", key = "lacerate_boss_only", default = true, label = "Lacerate Boss Only", tooltip = "Only Lacerate boss targets." },
@@ -175,11 +176,12 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "tab_spread_lacerate", default = true, label = "Spread Lacerate", tooltip = "Switch targets to spread Lacerate stacks on 2-3 target packs for DPS optimization." },
         }},
         { header = "Rage Management", settings = {
-            { type = "slider", key = "maul_rage_threshold", default = 25, min = 15, max = 80, label = "Maul Rage Threshold", tooltip = "Queue Maul above this rage. Lower = more Maul casts and threat. Higher = preserve rage for GCD abilities. 25 recommended for boss fights.", format = "%d" },
+            { type = "slider", key = "maul_rage_threshold", default = 15, min = 15, max = 80, label = "Maul Rage Threshold", tooltip = "Queue Maul above this rage. Lower = more Maul casts and threat. Higher = preserve rage for GCD abilities.", format = "%d" },
             { type = "slider", key = "mangle_rage_threshold", default = 15, min = 15, max = 80, label = "Mangle Rage Threshold", tooltip = "Mangle is your highest-damage ability. 15 = on cooldown (recommended). Raise only if rage-starved.", format = "%d" },
             { type = "slider", key = "swipe_rage_threshold", default = 15, min = 15, max = 80, label = "Swipe Rage Threshold", tooltip = "Only Swipe above this rage. 15 = on cooldown (minimum cost). Raise to preserve rage for higher-priority abilities.", format = "%d" },
             { type = "slider", key = "swipe_min_targets", default = 2, min = 1, max = 4, label = "Swipe AoE Threshold", tooltip = "At this many enemies, Swipe takes priority over Mangle (AoE mode). Below this, Swipe is used as primary GCD filler between Mangle cooldowns.", format = "%d" },
             { type = "checkbox", key = "swipe_cc_check", default = true, label = "Swipe CC Safety", tooltip = "Skip Swipe when a nearby mob has breakable CC (Polymorph, Trap, Sap, etc). Prevents breaking crowd control." },
+            { type = "checkbox", key = "swipe_st_filler", default = false, label = "Swipe ST Filler", tooltip = "Use Swipe as single-target filler between Mangle cooldowns. Off = auto-attack + Maul only (recommended for low AP). On = Swipe fills every GCD." },
         }},
         { header = "Emergency Abilities", settings = {
             { type = "checkbox", key = "use_frenzied_regen", default = true, label = "Use Frenzied Regen", tooltip = "Converts rage to health when HP drops." },

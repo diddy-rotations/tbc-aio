@@ -28,7 +28,7 @@ local rotation_registry = NS.rotation_registry
 local try_cast = NS.try_cast
 local named = NS.named
 local is_spell_available = NS.is_spell_available
-local is_stance_swap_safe = NS.is_stance_swap_safe
+-- Note: is_stance_swap_safe accessed via NS at call time (middleware load order)
 local debug_print = NS.debug_print
 local PLAYER_UNIT = NS.PLAYER_UNIT or "player"
 local TARGET_UNIT = NS.TARGET_UNIT or "target"
@@ -56,7 +56,7 @@ local function get_arms_state(context)
 
     arms_state.rend_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.REND) or 0
     arms_state.rend_active = arms_state.rend_duration > 0
-    arms_state.target_below_20 = context.target_hp < 20
+    arms_state.target_below_20 = context.target_hp < 20 and context.target_is_elite
     arms_state.sunder_stacks = Unit(TARGET_UNIT):HasDeBuffsStacks(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     arms_state.sunder_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.SUNDER_ARMOR) or 0
     arms_state.thunder_clap_duration = Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.THUNDER_CLAP) or 0
@@ -68,12 +68,12 @@ local function get_arms_state(context)
 end
 
 -- ============================================================================
--- RESOURCE POOLING (matches wowsims slamMSWWDelay = 2000ms)
+-- RESOURCE POOLING
 -- ============================================================================
--- Don't waste GCD + rage on Slam when core abilities are imminent.
--- If MS or WW comes off CD within 2s, hold the filler unless we can
--- afford both the filler AND the core ability's rage cost.
-local FILLER_HOLD_WINDOW = 2.0  -- seconds
+-- Hold Slam when MS is imminent and we can't afford both.
+-- Don't pool for WW — Slam is higher priority than WW in Arms,
+-- and WW requires a Berserker stance dance that may not happen.
+local FILLER_HOLD_WINDOW = 1.5  -- seconds (tighter window to reduce dead GCDs)
 local RAGE_COST_MS = 30
 local RAGE_COST_WW = 25
 local RAGE_COST_SLAM = 15
@@ -81,14 +81,49 @@ local RAGE_COST_PUMMEL = 10
 local SLAM_MIN_WINDOW = 1.1   -- Improved Slam 1.0s cast + 0.1s latency; only Slam if swing is further away
 
 local function should_pool_for_core_arms(context, state)
+    -- Don't pool if we can't even afford Slam (nothing to hold back)
+    if context.rage < RAGE_COST_SLAM then return false end
     -- MS imminent: hold if spending Slam cost would starve MS
     if state.ms_cd > 0 and state.ms_cd <= FILLER_HOLD_WINDOW then
         if (context.rage - RAGE_COST_SLAM) < RAGE_COST_MS then return true end
     end
-    -- WW imminent: hold if spending Slam cost would starve WW
-    if context.settings.arms_use_whirlwind
-        and state.ww_cd > 0 and state.ww_cd <= FILLER_HOLD_WINDOW then
-        if (context.rage - RAGE_COST_SLAM) < RAGE_COST_WW then return true end
+    return false
+end
+
+-- ============================================================================
+-- SWEEPING STRIKES RAGE POOLING
+-- ============================================================================
+-- When SS is coming off CD in AoE, hold WW and fillers so we can afford SS+WW.
+-- SS (30) + WW (25) = 55 rage. Reserve floor of 60 gives a small buffer.
+local SS_RESERVE_FLOOR = 60
+local SS_POOL_WINDOW = 2.0  -- seconds
+
+local function should_reserve_for_sweeping(context)
+    if context.enemy_count < 2 then return false end
+    if not context.settings.arms_use_sweeping_strikes then return false end
+    if not is_spell_available(A.SweepingStrikes) then return false end
+    if context.sweeping_strikes_active then return false end
+    local ss_cd = A.SweepingStrikes:GetCooldown() or 0
+    -- SS ready or coming off CD soon — reserve rage
+    if ss_cd <= SS_POOL_WINDOW and context.rage < SS_RESERVE_FLOOR then return true end
+    return false
+end
+
+-- ============================================================================
+-- HS/CLEAVE CORE ABILITY STARVATION CHECK
+-- ============================================================================
+-- Don't queue HS/Cleave if it would starve an imminent core ability (MS or WW).
+local function would_starve_core_arms(context, state, cost)
+    cost = cost or 15  -- HS base cost
+    -- MS imminent and spending cost would starve it
+    if state.ms_cd >= 0 and state.ms_cd <= 1.5 and context.in_melee_range then
+        if (context.rage - cost) < RAGE_COST_MS then return true end
+    end
+    -- WW imminent and spending cost would starve it
+    if context.settings.arms_use_whirlwind then
+        if state.ww_cd >= 0 and state.ww_cd <= 1.5 and context.in_melee_range then
+            if (context.rage - cost) < RAGE_COST_WW then return true end
+        end
     end
     return false
 end
@@ -174,7 +209,7 @@ local Arms_Overpower = {
         local op_remaining = A.Overpower:GetCooldown() or 0
         if op_remaining > 0 and op_remaining <= 1.5 then
             -- Proc expiring — still need basic affordability
-            return is_stance_swap_safe(context.rage, 5)
+            return NS.is_stance_swap_safe(context.rage, 5)
         end
 
         -- Smart rage protection: check MS/WW/Execute starvation
@@ -204,6 +239,12 @@ local Arms_MortalStrike = {
         if state.target_below_20 and context.settings.arms_execute_phase then
             if not context.settings.arms_use_ms_execute then return false end
         end
+        -- AoE: yield to WW when 2+ enemies (WW hits 4 targets, higher priority)
+        if context.enemy_count >= 2 and context.rage >= 25
+            and context.settings.arms_use_whirlwind
+            and A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true) then
+            return false
+        end
         return A.MortalStrike:IsReady(TARGET_UNIT)
     end,
 
@@ -227,15 +268,15 @@ local Arms_Whirlwind = {
         end
         -- 25 rage cost — check explicitly since skipUsable bypasses resource checks
         if context.rage < 25 then return false end
+        -- Hold WW if Sweeping Strikes is imminent and we need to pool rage
+        if should_reserve_for_sweeping(context) then return false end
         -- skipRange=true (PB AoE), skipUsable=true (bypass stance check) — matches old rotation pattern
         return A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true)
     end,
 
     execute = function(icon, context, state)
-        -- Swap to Berserker Stance if needed (inline stance dance)
         if context.stance ~= Constants.STANCE.BERSERKER then
-            -- TM check: WW costs 25 rage, don't dance if we'd waste too much
-            if not is_stance_swap_safe(context.rage, 25) then return nil end
+            -- No TM — accept rage loss to access WW (home stance is Berserker)
             if A.BerserkerStance:IsReady(PLAYER_UNIT) then
                 return A.BerserkerStance:Show(icon), "[ARMS] → Berserker (for WW)"
             end
@@ -276,8 +317,9 @@ local Arms_Execute = {
 
     matches = function(context, state)
         if not state.target_below_20 then return false end
-        -- Pool extra rage for bigger Executes (+21 dmg per extra rage point)
-        if context.rage < 25 then return false end
+        -- Fire Execute at base cost — every rage point above cost adds +21 damage
+        local exec_cost = A.Execute:GetSpellPowerCostCache() or 15
+        if context.rage < exec_cost then return false end
         return A.Execute:IsReady(TARGET_UNIT)
     end,
 
@@ -371,10 +413,25 @@ local Arms_Slam = {
         if context.is_moving then return false end
         -- Don't Slam in execute phase (Execute is better use of rage)
         if state.target_below_20 and context.settings.arms_execute_phase then return false end
-        -- Resource pooling: hold GCD for MS/WW if imminent and rage is tight
+        -- AoE: yield to WW when 2+ enemies (WW hits 4 targets, worth the stance dance)
+        if context.enemy_count >= 2 and context.rage >= 25
+            and context.settings.arms_use_whirlwind
+            and A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true) then
+            return false
+        end
+        -- AoE: yield to WW when 2+ enemies (WW hits 4 targets, higher AoE priority)
+        if context.enemy_count >= 2 and context.rage >= 25
+            and context.settings.arms_use_whirlwind
+            and A.Whirlwind:IsReady(TARGET_UNIT, true, nil, nil, true) then
+            return false
+        end
+        -- Resource pooling: hold GCD for MS if imminent and rage is tight
         if should_pool_for_core_arms(context, state) then return false end
+        -- Hold filler if Sweeping Strikes is imminent in AoE
+        if should_reserve_for_sweeping(context) then return false end
         -- Slam weaving: only Slam if the cast fits before next auto-attack
-        if NS.get_time_until_swing() < SLAM_MIN_WINDOW then return false end
+        local swing_remain = NS.get_time_until_swing()
+        if swing_remain < SLAM_MIN_WINDOW then return false end
         return A.Slam:IsReady(TARGET_UNIT)
     end,
 
@@ -406,8 +463,10 @@ local Arms_HeroicStrike = {
                 end
             end
         end
-        local threshold = context.settings.arms_hs_rage_threshold or 55
+        local threshold = context.settings.arms_hs_rage_threshold or 60
         if context.rage < threshold then return false end
+        -- Don't queue HS/Cleave if it would starve an imminent core ability
+        if would_starve_core_arms(context, state, 15) then return false end
         -- Smart rage hold: don't dump into HS when an interrupt may be needed soon
         if context.settings.use_interrupt then
             local castLeft, _, _, _, notKickAble = Unit(TARGET_UNIT):IsCastingRemains()
@@ -452,16 +511,16 @@ local Arms_VictoryRush = {
 -- ============================================================================
 rotation_registry:register("arms", {
     named("MaintainRend",    Arms_MaintainRend),
-    named("MortalStrike",    Arms_MortalStrike),     -- #1 damage ability, always on CD
     named("SweepingStrikes", Arms_SweepingStrikes),   -- before WW to double hits in AoE
+    named("Slam",            Arms_Slam),              -- #1 filler per sim (above MS for 2H Arms)
+    named("MortalStrike",    Arms_MortalStrike),
     named("Whirlwind",       Arms_Whirlwind),
-    named("Overpower",       Arms_Overpower),         -- reactive dodge proc (5s window) — below WW per wowsims APL
     named("Execute",         Arms_Execute),
+    named("Overpower",       Arms_Overpower),         -- reactive dodge proc — off by default for 2H
     named("VictoryRush",     Arms_VictoryRush),
     named("SunderMaintain",  Arms_SunderMaintain),
     named("ThunderClap",     Arms_ThunderClap),
     named("DemoShout",       Arms_DemoShout),
-    named("Slam",            Arms_Slam),
     named("HeroicStrike",    Arms_HeroicStrike),
 }, {
     context_builder = get_arms_state,
