@@ -131,6 +131,9 @@ local energy_tick = {
 -- Expose to NS so the dashboard can prefer this frame-level tracker over its own 10Hz one
 NS.energy_tick_tracker = energy_tick
 
+-- Diagnostic tick logging (toggle via /fticks). Off by default.
+local tick_logging_enabled = false
+
 --- Update tick tracker each frame
 --- @param current_energy number Current player energy
 --- @param stance number Current stance ID
@@ -149,11 +152,32 @@ function energy_tick:update(current_energy, stance)
    -- Ticks are 20 energy; filter out Furor (40) + Wolfshead (20) by checking shift window
    if delta > 0 and delta <= 25 and
       (now - energy_tick.last_shift_time) > SHIFT_ENERGY_IGNORE_WINDOW then
+      if tick_logging_enabled then
+         local interval = (self.last_tick_time > 0) and (now - self.last_tick_time) or 0
+         print(string.format(
+            "|cffffd100[Flux Ticks]|r +%d energy  interval=%.3fs  now=%d/100  confident=%s",
+            delta, interval, current_energy, tostring(self.confident)))
+      end
       self.last_tick_time = now
       self.confident = true
    end
 
    self.last_energy = current_energy
+end
+
+-- /fticks slash command — toggle tick logging
+SLASH_FLUXTICKS1 = "/fticks"
+SlashCmdList["FLUXTICKS"] = function(msg)
+   msg = (msg or ""):lower():match("^%s*(.-)%s*$")
+   if msg == "on" then
+      tick_logging_enabled = true
+   elseif msg == "off" then
+      tick_logging_enabled = false
+   else
+      tick_logging_enabled = not tick_logging_enabled
+   end
+   print(string.format("|cffffd100[Flux Ticks]|r logging %s",
+      tick_logging_enabled and "|cff00ff00ON|r" or "|cffff0000OFF|r"))
 end
 
 --- Get time until next energy tick (seconds)
