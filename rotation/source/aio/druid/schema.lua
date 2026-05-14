@@ -126,8 +126,8 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "Advanced", settings = {
             { type = "checkbox", key = "use_bite_trick", default = true, label = "Use Bite Trick", tooltip = "Low-energy Ferocious Bite dump at 35-39 energy to avoid wasting combo points before powershift." },
             { type = "checkbox", key = "use_rake_trick", default = false, label = "Use Rake Trick", tooltip = "Low-energy Rake filler below Mangle cost to squeeze in damage before powershift." },
-            { type = "checkbox", key = "cat_tick_optimization", default = false, label = "Mangle Over Shred (Tick Opt)",
-              tooltip = "When enabled, uses Mangle instead of Shred at 60-61 energy if an energy tick is imminent. Two Mangles can fit where one Shred + dead GCD would. Off = always Shred when behind." },
+            { type = "checkbox", key = "use_mangle_trick", default = false, label = "Use Mangle Trick",
+              tooltip = "Sim-matched: when energy is in the narrow [2*MangleCost-20, 22+MangleCost) window AND a tick is <=1s away, cast Mangle (Cat) instead of Shred. Lets you fit 2 Mangles in the time you'd otherwise spend waiting for a Shred-eligible tick. Skipped automatically when Rake Trick is on and Mangle isn't fully discounted. Off by default - enable and measure." },
             { type = "checkbox", key = "use_mangle_builder", default = true, label = "Mangle as Builder",
               tooltip = "Use Mangle as a fallback CP builder when not behind target. When disabled, the rotation pauses if you're not behind — reposition and resume." },
             { type = "checkbox", key = "cat_energy_pooling", default = true, label = "Energy Pooling",
@@ -139,8 +139,6 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "cat_shift_delay_threshold", default = 0.85, min = 0.5, max = 1.5, step = 0.05,
               label = "Shift Delay Window (sec)", format = "%.2fs",
               tooltip = "Max time the rotation will wait for an upcoming energy tick before powershifting. Sim-aligned (WoWsims TBC caps at 1.0s); default 0.85s shaves 0.15s for client-server lag headroom. Raise toward 1.0 if you find the rotation shifting when ticks are close. Energy ticks every 2.0s." },
-            { type = "checkbox", key = "use_mangle_trick", default = false, label = "Use Mangle Trick",
-              tooltip = "Sim-matched: when energy is in the narrow [2*MangleCost-20, 22+MangleCost) window AND a tick is <=1s away, cast Mangle (Cat) instead of Shred. Lets you fit 2 Mangles in the time you'd otherwise spend waiting for a Shred-eligible tick. Skipped automatically when Rake Trick is on and Mangle isn't fully discounted. Off by default - enable and measure." },
         }},
     }},
 

@@ -438,7 +438,11 @@ local function get_cat_state(context)
       min_useful_energy = ENERGY_COST_RIP
    elseif cat_state.mangle_now then
       min_useful_energy = ENERGY_COST_MANGLE
-   elseif settings.use_bite_trick and context.cp >= min_cp then
+   elseif context.cp >= min_cp then
+      -- Regular Ferocious Bite finisher is a real next-action when we have CP;
+      -- not gated on use_bite_trick (the trick is a separate strategy). Without
+      -- this, energy 15-19 + 5 CP would default min_useful_energy to Shred (42)
+      -- and miss the fact that a tick lands us at 35-39 (Bite-eligible).
       min_useful_energy = ENERGY_COST_BITE
    elseif settings.use_rake_trick then
       min_useful_energy = ENERGY_COST_RAKE
@@ -452,12 +456,16 @@ local function get_cat_state(context)
       and not context.target_phys_immune and ttd >= rip_min_ttd
       and cat_state.rip_duration > 0 and cat_state.rip_duration < settings.rip_min_cp * 1.5
 
-   -- Tick optimization: prefer Mangle over Shred when energy is in the dead zone
-   -- and a tick arrives within 1s (avoids a dead GCD after Shred + tick)
-   -- Note: no is_behind gate — when not behind, MangleBuilder fires anyway via its own check
-   cat_state.prefer_mangle_for_tick = settings.cat_tick_optimization
+   -- Mangle Trick (sim-matched, wowsims TBC sim/druid/feral/rotation.go):
+   --   energy in [2*MangleCost-20, 22+MangleCost) AND tick <=1s AND UseMangleTrick
+   --   AND (NOT UseRakeTrick OR MangleCost == 35).
+   -- Last clause: when Rake Trick is on and Mangle isn't fully discounted by 2pT6
+   -- (so Mangle > 35 energy), the cheap-filler slot belongs to Rake — skip the
+   -- Mangle Trick to avoid stepping on it.
+   cat_state.prefer_mangle_for_tick = settings.use_mangle_trick
       and energy >= TICK_OPT_MANGLE_LOW and energy <= TICK_OPT_MANGLE_HIGH
       and energy_tick.confident and energy_tick:time_until_next_tick() < TICK_OPT_THRESHOLD
+      and (not settings.use_rake_trick or ENERGY_COST_MANGLE == 35)
 
    if cat_state.tf_queued then
       if (Unit(PLAYER_UNIT):HasBuffs(TIGERS_FURY_BUFF_IDS, nil, true) or 0) > 0 then
