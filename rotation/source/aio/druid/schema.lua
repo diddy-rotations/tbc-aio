@@ -28,6 +28,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
     [1] = { name = "General", sections = {
         { header = "Shared Combat", settings = {
             { type = "checkbox", key = "mouseover", default = false, label = "Use @mouseover", tooltip = "Use mouseover targeting.", hidden = true },
+            { type = "checkbox", key = "use_target_focus_behind", default = false, label = "Target Focus Behind Check", tooltip = "Treat 'behind' as 'target isn't targeting me' instead of geometric position. Bypasses the positional debounce." },
             { type = "dropdown", key = "maintain_faerie_fire", default = "all", label = "Faerie Fire Targets",
               tooltip = "Which targets to maintain Faerie Fire on. All = everything, Elites+ = elites and bosses, Bosses = bosses only, Off = disabled.",
               options = {
@@ -89,7 +90,7 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "rip_only_elites", default = true, label = "Rip Only Elites/Bosses", tooltip = "Only Rip elite or boss targets." },
             { type = "slider", key = "rip_min_cp", default = 5, min = 4, max = 5, label = "Rip Min Combo Points", tooltip = "Minimum combo points for Rip.", format = "%d" },
             { type = "slider", key = "rip_refresh", default = 0, min = 0, max = 5, label = "Rip Refresh (sec)", tooltip = "Prepare refresh this many seconds before expiry.", format = "%d sec" },
-            { type = "slider", key = "rip_min_ttd", default = 12, min = 0, max = 30, label = "Rip Min TTD (sec)", tooltip = "Only Rip if target lives at least this long. Set to 0 to always Rip.", format = "%d sec" },
+            { type = "slider", key = "rip_min_ttd", default = 14, min = 0, max = 30, label = "Rip Min TTD (sec)", tooltip = "Only Rip if target lives at least this long. At 14s Rip's 7 expected ticks (~4900 dmg) start losing to a Bite (~5000 dmg) — below this threshold, Bite wins. Raise for more Rip uptime, lower for more Bite usage. Set to 0 to always Rip.", format = "%d sec" },
             { type = "checkbox", key = "maintain_rake", default = false, label = "Maintain Rake", tooltip = "Keep Rake bleed active." },
             { type = "slider", key = "rake_refresh", default = 0, min = 0, max = 4, label = "Rake Refresh (sec)", tooltip = "Refresh Rake with this many seconds remaining.", format = "%d sec" },
         }},
@@ -125,8 +126,8 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
         { header = "Advanced", settings = {
             { type = "checkbox", key = "use_bite_trick", default = true, label = "Use Bite Trick", tooltip = "Low-energy Ferocious Bite dump at 35-39 energy to avoid wasting combo points before powershift." },
             { type = "checkbox", key = "use_rake_trick", default = false, label = "Use Rake Trick", tooltip = "Low-energy Rake filler below Mangle cost to squeeze in damage before powershift." },
-            { type = "checkbox", key = "cat_tick_optimization", default = false, label = "Mangle Over Shred (Tick Opt)",
-              tooltip = "When enabled, uses Mangle instead of Shred at 60-61 energy if an energy tick is imminent. Two Mangles can fit where one Shred + dead GCD would. Off = always Shred when behind." },
+            { type = "checkbox", key = "use_mangle_trick", default = false, label = "Use Mangle Trick",
+              tooltip = "Sim-matched: when energy is in the narrow [2*MangleCost-20, 22+MangleCost) window AND a tick is <=1s away, cast Mangle (Cat) instead of Shred. Lets you fit 2 Mangles in the time you'd otherwise spend waiting for a Shred-eligible tick. Skipped automatically when Rake Trick is on and Mangle isn't fully discounted. Off by default - enable and measure." },
             { type = "checkbox", key = "use_mangle_builder", default = true, label = "Mangle as Builder",
               tooltip = "Use Mangle as a fallback CP builder when not behind target. When disabled, the rotation pauses if you're not behind — reposition and resume." },
             { type = "checkbox", key = "cat_energy_pooling", default = true, label = "Energy Pooling",
@@ -134,7 +135,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "checkbox", key = "cat_swing_delay", default = false, label = "Swing Timer Delay",
               tooltip = "Delay ability casts when a melee swing is about to land (within 0.15s). Prevents clipping auto-attacks. Disable if you experience hesitation in the rotation." },
             { type = "checkbox", key = "cat_smart_shift_delay", default = true, label = "Smart Shift Delay",
-              tooltip = "Delay powershifts when an energy tick is arriving within 1 second. Saves mana by avoiding unnecessary shifts. Disable if you experience idle time at low energy." },
+              tooltip = "Delay powershifts when an energy tick is arriving soon. Saves mana by avoiding unnecessary shifts. Disable if you experience idle time at low energy." },
+            { type = "slider", key = "cat_shift_delay_threshold", default = 0.85, min = 0.5, max = 1.5, step = 0.05,
+              label = "Shift Delay Window (sec)", format = "%.2fs",
+              tooltip = "Max time the rotation will wait for an upcoming energy tick before powershifting. Sim-aligned (WoWsims TBC caps at 1.0s); default 0.85s shaves 0.15s for client-server lag headroom. Raise toward 1.0 if you find the rotation shifting when ticks are close. Energy ticks every 2.0s." },
         }},
     }},
 
@@ -215,8 +219,15 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
     -- Tab 5: Balance (Moonkin)
     [5] = { name = "Balance", sections = {
         { header = "DoT Maintenance", settings = {
-            { type = "checkbox", key = "maintain_moonfire", default = true, label = "Maintain Moonfire", tooltip = "Keep Moonfire DoT active." },
-            { type = "checkbox", key = "maintain_insect_swarm", default = true, label = "Maintain Insect Swarm", tooltip = "Keep Insect Swarm active." },
+            { type = "checkbox", key = "maintain_moonfire", default = true, label = "Maintain Moonfire", tooltip = "Keep Moonfire DoT active. Auto-dropped at lowest mana tier (mirrors WoWsims)." },
+            { type = "dropdown", key = "maintain_insect_swarm", default = "all", label = "Insect Swarm Targets",
+              tooltip = "Which targets to maintain Insect Swarm on. All = everything, Elites+ = elites and bosses, Bosses = bosses only, Off = disabled. Auto-forced on at lowest mana tier when wearing 4p T5 (Nordrassil Regalia).",
+              options = {
+                  { value = "all", text = "All" },
+                  { value = "elites", text = "Elites+" },
+                  { value = "bosses", text = "Bosses Only" },
+                  { value = "off", text = "Off" },
+              }},
             { type = "slider", key = "balance_dot_refresh", default = 0, min = 0, max = 5, label = "DoT Refresh (sec)", tooltip = "Refresh DoTs with this many seconds remaining. 0 = only reapply when fallen off (WoWsims default).", format = "%d sec" },
         }},
         { header = "Force of Nature", settings = {
@@ -235,8 +246,9 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
             { type = "slider", key = "balance_innervate_mana", default = 20, min = 10, max = 50, label = "Innervate Mana (%)", tooltip = "Use Innervate below this mana %.", format = "%d%%" },
         }},
         { header = "Mana Tiers", settings = {
-            { type = "slider", key = "balance_tier1_mana", default = 20, min = 10, max = 60, label = "Full Rotation Mana (%)", tooltip = "Above this: full rotation (Starfire + Moonfire + IS).", format = "%d%%" },
-            { type = "slider", key = "balance_tier2_mana", default = 10, min = 5, max = 35, label = "Conserve Mana (%)", tooltip = "Below this: drop Moonfire, only IS + Starfire.", format = "%d%%" },
+            { type = "slider", key = "balance_tier1_mana", default = 20, min = 10, max = 60, label = "Full Rotation Mana (%)", tooltip = "Above this: SF rank 8 + MF + IS (highest DPS).", format = "%d%%" },
+            { type = "slider", key = "balance_tier2_mana", default = 10, min = 5, max = 35, label = "Conserve Mana (%)", tooltip = "Below this: SF rank 6 + IS, drop MF (mana-conservation tier).", format = "%d%%" },
+            { type = "checkbox", key = "balance_downrank_starfire", default = true, label = "Auto-downrank Starfire", tooltip = "Below the Full Rotation threshold, switch Starfire to rank 6 (more mana-efficient, mirrors WoWsims adaptive hierarchy). Disable to always cast max rank." },
         }},
     }},
 
