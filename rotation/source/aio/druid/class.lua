@@ -622,7 +622,7 @@ local STANCE_PLAYSTYLE = {
 
 rotation_registry:register_class({
    name = "Druid",
-   version = "v1.9.1",
+   version = "v1.10.0",
    playstyles = {"caster", "cat", "bear", "balance", "resto"},
    idle_playstyle_name = "caster",
 

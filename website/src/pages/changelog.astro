@@ -15,6 +15,34 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.10.0 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-feature">Feature</span>
+
+      <h3>Druid &mdash; Cat</h3>
+      <ul class="features">
+        <li><strong>Target Focus Behind Check</strong> &mdash; New General toggle that treats "behind" as "target isn't targeting me" (`targettarget ~= player`) instead of the geometric position check. Useful in groups where the tank holds threat.</li>
+        <li><strong>Powershift &amp; Tick Optimization</strong> &mdash; Powershift logic and energy-tick tracking aligned to wowsims TBC feral sim. New <code>Shift Delay Window</code> slider (0.5&ndash;1.5s, step 0.05).</li>
+        <li><strong>Mangle Trick Wired Up</strong> &mdash; The <code>use_mangle_trick</code> setting is now actually read by the code (previously dead). Includes the sim's skip clause: skipped when Rake Trick is on and Mangle isn't fully discounted by 2pT6. Also gated on Mangle being off cooldown so it doesn't block Shred while waiting on Mangle CD.</li>
+        <li><strong>Bite-Aware Shift Delay</strong> &mdash; The "is a tick worth waiting for?" calculation now counts regular Ferocious Bite as a valid next action at max CP (energy 15&ndash;19 + 5 CP correctly delays the shift since the tick lands at 35&ndash;39, Bite-eligible).</li>
+        <li><strong>WolfsheadShred Restored</strong> &mdash; Position-agnostic Wolfshead powershift back in the priority list; respects the <code>!rip_next</code> gate to avoid burning a shift when a tick will reach Rip cost.</li>
+        <li><strong>/fticks Default Off</strong> &mdash; Energy-tick debug printing no longer spams chat on load. Toggle on with <code>/fticks</code>.</li>
+      </ul>
+
+      <h3>Druid &mdash; Balance</h3>
+      <ul class="features">
+        <li><strong>Arcane-Immune Handling</strong> &mdash; Skip Starfire/Moonfire vs arcane-immune targets, route to Wrath/Insect Swarm. Shared <code>NS.ARCANE_IMMUNE</code> table in core.</li>
+        <li><strong>Starfire Downranking</strong> &mdash; Auto-downrank Starfire to rank 6 in mana-conservation tier (mirrors wowsims).</li>
+        <li><strong>Insect Swarm Target Filter</strong> &mdash; Always-on with target classification dropdown (all/elites+/bosses/off). 4p T5 (Nordrassil Regalia) forces IS at lowest mana tier.</li>
+        <li><strong>Caster Stance Guard</strong> &mdash; Emergency/proactive heals and dispels now gated on caster stance so they don't fire in Bear/Cat/Moonkin.</li>
+      </ul>
+
+      <h3>UI / Settings</h3>
+      <ul class="features">
+        <li><strong>Fractional Slider Step Fix</strong> &mdash; Settings sliders with non-integer <code>step</code> now snap to multiples of step instead of rounding to nearest integer.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.9.1 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-fix">Fix</span>
 
