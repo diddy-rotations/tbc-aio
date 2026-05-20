@@ -31,8 +31,12 @@ Action[A.PlayerClass] = {
     HeroicStrike       = Create({ Type = "Spell", ID = 78, useMaxRank = true }),
     Cleave             = Create({ Type = "Spell", ID = 845, useMaxRank = true }),
     MortalStrike       = Create({ Type = "Spell", ID = 12294, useMaxRank = true }),
-    Bloodthirst        = Create({ Type = "Spell", ID = 23881, useMaxRank = true }),
-    Execute            = Create({ Type = "Spell", ID = 5308, useMaxRank = true }),
+    -- Explicit Click.autounit = "harm" overrides framework auto-detect, which can
+    -- fall back to "both" on TBC clients when IsHarmfulSpell/IsAttackSpell metadata
+    -- is incomplete. Without "harm" the macro skips the target filter and WoW
+    -- throws "Target is not valid" when target is mid-transition.
+    Bloodthirst        = Create({ Type = "Spell", ID = 23881, useMaxRank = true, Click = { autounit = "harm", type = "spell" } }),
+    Execute            = Create({ Type = "Spell", ID = 5308, useMaxRank = true, Click = { autounit = "harm", type = "spell" } }),
     Overpower          = Create({ Type = "Spell", ID = 7384, useMaxRank = true }),
     Slam               = Create({ Type = "Spell", ID = 1464, useMaxRank = true }),
     Revenge            = Create({ Type = "Spell", ID = 6572, useMaxRank = true }),
@@ -45,7 +49,7 @@ Action[A.PlayerClass] = {
 
     -- Single-rank spells
     Whirlwind          = Create({ Type = "Spell", ID = 1680 }),
-    VictoryRush        = Create({ Type = "Spell", ID = 34428 }),
+    VictoryRush        = Create({ Type = "Spell", ID = 34428, Click = { autounit = "harm", type = "spell", spell = 34428 } }),
     Taunt              = Create({ Type = "Spell", ID = 355 }),
     MockingBlow        = Create({ Type = "Spell", ID = 694, useMaxRank = true }),
     ChallengingShout   = Create({ Type = "Spell", ID = 1161, Click = { unit = "player", type = "spell", spell = 1161 } }),
