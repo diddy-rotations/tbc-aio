@@ -15,6 +15,16 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.10.1 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-fix">Fix</span>
+
+      <h3>Warrior</h3>
+      <ul class="features">
+        <li><strong>Explicit Click Targeting</strong> &mdash; Bloodthirst, Execute, and Victory Rush now ship with explicit <code>Click.autounit = "harm"</code> so they don't fall back to the framework's "both" auto-detect on TBC clients with incomplete <code>IsHarmfulSpell</code> metadata. Eliminates spurious "Target is not valid" errors during target transitions.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.10.0 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-feature">Feature</span>
 
