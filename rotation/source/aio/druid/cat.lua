@@ -649,6 +649,16 @@ local Cat_FerociousBite = {
       local bite_reason = ""
       local fb_max_energy = settings.fb_max_energy or 39
 
+      -- CP-cap dump: when we're at max CP and Rip is comfortably up, the
+      -- fb_max_energy cap (which exists to "save energy for Shred") is
+      -- counterproductive — Shred at 5 CP can't gain another CP. Letting Bite
+      -- fire at higher energy here fills the structural 40-41 gap where
+      -- Shred is too expensive AND Mangle is on CD AND Bite is normally capped,
+      -- which otherwise produces a blank-icon stall for a tick or two.
+      local cp_capped_dump = context.cp >= 5
+         and settings.maintain_rip and state.target_qualifies_for_rip
+         and state.rip_duration > settings.fb_min_rip_duration
+
       -- Not maintaining Rip on this target: Bite freely
       local not_maintaining_rip = not settings.maintain_rip or not state.target_qualifies_for_rip
       if not_maintaining_rip and energy >= ENERGY_COST_BITE and energy <= fb_max_energy then
@@ -656,9 +666,10 @@ local Cat_FerociousBite = {
          bite_reason = "No Rip target"
       end
 
-      if state.rip_duration > settings.fb_min_rip_duration and energy >= settings.fb_min_energy and energy <= fb_max_energy then
+      if state.rip_duration > settings.fb_min_rip_duration and energy >= settings.fb_min_energy
+         and (energy <= fb_max_energy or cp_capped_dump) then
          bite_now = true
-         bite_reason = "Excess energy"
+         bite_reason = (cp_capped_dump and energy > fb_max_energy) and "CP-cap dump" or "Excess energy"
       end
 
       -- Execute/Short fight (configurable thresholds) — ignore max energy cap, bite freely
