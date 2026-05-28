@@ -178,6 +178,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 
     -- Tab 3: Enhancement
     [3] = { name = "Enhancement", sections = {
+        { header = "Swing Sync", settings = {
+            { type = "checkbox", key = "enh_auto_resync", default = false, label = "Auto Swing Resync",
+              tooltip = "EXPERIMENTAL. Auto-fires the resync macro (/cleartarget + /targetlasttarget + /startattack) when MH/OH stagger drifts outside the Flurry 0.5s window. Convergence works but visual fire rate during drift can be noisy (3-8 fires per drift episode before settling). Sync state is shown on the combat dashboard regardless of this toggle — many players prefer to leave this OFF and press the macro manually when they see the dashboard go red. Logic source: enhanceshaman.com/pages/guide/sync_stagger" },
+        }},
         { header = "Rotation", settings = {
             { type = "checkbox", key = "enh_use_stormstrike", default = true, label = "Use Stormstrike",
               tooltip = "Stormstrike on cooldown (10s CD, applies +20%% nature dmg debuff)." },

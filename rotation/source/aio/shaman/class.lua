@@ -87,6 +87,18 @@ Action[A.PlayerClass] = {
     Bloodlust          = Create({ Type = "Spell", ID = 2825 }),
     Heroism            = Create({ Type = "Spell", ID = 32182 }),
 
+    -- Enhancement: swing sync resync macro. Auto-attack toggle (ID 6603) is
+    -- the natural icon identity for a swing-related action. We use macroAFTER
+    -- (not before) so /startattack is the LAST command in the assembled macro
+    -- -- guarantees auto-attack ends ON regardless of whether the framework
+    -- appends /cast Auto Attack (which would otherwise toggle it off).
+    -- The trailing /run callback into FluxAIO_ResyncFired (defined in
+    -- enhancement.lua) lets us confirm via debug log that the macro actually
+    -- executed in-game — not just that we recommended it on the icon.
+    -- Logic source: enhanceshaman.com/pages/guide/sync_stagger
+    SwingResync = Create({ Type = "Spell", ID = 6603, Desc = "Swing Resync",
+        Click = { macroafter = "/cleartarget\n/targetlasttarget\n/startattack\n/run if FluxAIO_ResyncFired then FluxAIO_ResyncFired() end\n" } }),
+
     -- Utility
     Purge       = Create({ Type = "Spell", ID = 370, useMaxRank = true }),
     CurePoison  = Create({ Type = "Spell", ID = 526, Click = { unit = "player", type = "spell", spell = 526 } }),
@@ -370,6 +382,29 @@ rotation_registry:register_class({
             },
         },
         swing_label = { enhancement = "Shoot" },
+
+        -- Enhancement-only swing sync indicator. NS.swing_sync is populated
+        -- by enhancement.lua's CLEU tracker; this line reads and renders it.
+        -- Returns (nil, nil) outside enhancement / when no swing data yet,
+        -- which tells the dashboard to hide the line.
+        custom_lines = {
+            function(ctx)
+                if (ctx.settings.playstyle or "elemental") ~= "enhancement" then return nil, nil end
+                local ss = NS.swing_sync
+                if not ss then return nil, nil end
+                local d = ss.delta
+                if d == 0 then return nil, nil end  -- no data / out of combat
+
+                local ms = math.floor(math.abs(d) * 1000)
+                if d < 0 then
+                    return "Sync", string.format("|cffff4040OH lead %dms|r", ms)
+                elseif d < 0.5 then
+                    return "Sync", string.format("|cff40ff40OK %dms|r", ms)
+                else
+                    return "Sync", string.format("|cffff8040Drift %dms|r", ms)
+                end
+            end,
+        },
     },
 })
 
