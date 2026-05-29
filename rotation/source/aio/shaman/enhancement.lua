@@ -581,50 +581,49 @@ local Enh_TotemManagement = {
 local Enh_WindfuryTwist = {
     requires_combat = true,
 
+    -- State-driven: reads the actual air slot via GetTotemInfo each frame instead
+    -- of tracking what Show()n. Show() only recommends a spell — the macro fires
+    -- it when the player presses their rotation keybind. If a recommendation is
+    -- missed, the old intent-based state machine desynced (phase advanced as if
+    -- the totem dropped, future swaps fell out of order). Driving off the real
+    -- totem slot makes the cycle self-correcting: regardless of which side of
+    -- the cycle the slot is currently on, we know the right next action.
     matches = function(context, state)
-        -- Group-only check for air totems
         if not NS.totem_allowed(context.settings.totem_air_condition, context.in_group) then return false end
 
         if not context.settings.enh_twist_windfury then
-            -- Not twisting: just ensure air totem is up if needed
             if not context.totem_air_active or context.totem_air_remaining < Constants.TOTEM_REFRESH_THRESHOLD then
                 return true
             end
             return false
         end
 
-        -- OOM protection: skip twist below threshold
+        -- OOM protection
         if context.mana_pct < Constants.TWIST.OOM_THRESHOLD * 100 then
-            -- Just keep whatever air totem is up
             if not context.totem_air_active then return true end
             return false
         end
 
-        local now = GetTime()
+        -- Read the actual air slot — single source of truth.
+        local have_totem, totem_name, start_time = GetTotemInfo(Constants.TOTEM_SLOT.AIR)
 
-        -- First time entering combat: drop WF immediately
-        if not wf_twist.initialized then
-            return true
+        -- No air totem up → drop WF (start/restart the cycle).
+        if not have_totem then return true end
+
+        local is_wf = totem_name and totem_name:find("Windfury") ~= nil
+        local elapsed = GetTime() - (start_time or 0)
+
+        if is_wf then
+            -- WF active: swap to default after one GCD so the buff (10s) carries.
+            return elapsed >= Constants.TWIST.WF_PHASE_DURATION
+        else
+            -- Default (Grace/etc.) active: refresh WF before the carried buff expires.
+            return elapsed >= Constants.TWIST.DEFAULT_PHASE_DURATION
         end
-
-        -- Phase-specific durations so the full cycle is ~10s (matches WF buff
-        -- duration), not 20s. WF holds for one GCD just to apply the buff,
-        -- then Grace runs for the rest of the buff window before we refresh.
-        if wf_twist.phase == "windfury" then
-            local elapsed = now - wf_twist.last_wf_time
-            if elapsed >= Constants.TWIST.WF_PHASE_DURATION then return true end
-        elseif wf_twist.phase == "default" then
-            local elapsed = now - wf_twist.last_default_time
-            if elapsed >= Constants.TWIST.DEFAULT_PHASE_DURATION then return true end
-        end
-
-        return false
     end,
 
     execute = function(icon, context, state)
-        local now = GetTime()
-
-        -- If not twisting, just drop configured air totem
+        -- Not twisting: just drop configured air totem
         if not context.settings.enh_twist_windfury then
             local spell = resolve_totem_spell(context.settings.enh_air_totem or "windfury", NS.AIR_TOTEM_SPELLS)
             if spell and spell:IsReady(PLAYER_UNIT) then
@@ -633,36 +632,22 @@ local Enh_WindfuryTwist = {
             return nil
         end
 
-        -- Initialize: start with WF
-        if not wf_twist.initialized then
-            if A.WindfuryTotem:IsReady(PLAYER_UNIT) then
-                wf_twist.initialized = true
-                wf_twist.phase = "windfury"
-                wf_twist.last_wf_time = now
-                return A.WindfuryTotem:Show(icon), "[ENH] Windfury Totem (twist init)"
-            end
-            return nil
-        end
+        -- Decide based on what's actually in the air slot, not on tracked intent.
+        local have_totem, totem_name = GetTotemInfo(Constants.TOTEM_SLOT.AIR)
+        local is_wf = have_totem and totem_name and totem_name:find("Windfury") ~= nil
 
-        -- Phase transitions
-        if wf_twist.phase == "windfury" then
-            -- Switch to default air totem (Grace of Air typically)
-            -- The WF buff will persist on party members for ~10s
+        if is_wf then
+            -- WF up → swap to default (Grace by default).
             local default_key = context.settings.enh_air_totem or "grace_of_air"
-            -- When twisting, the "default" air totem should be Grace of Air (not WF again)
             if default_key == "windfury" then default_key = "grace_of_air" end
             local spell = resolve_totem_spell(default_key, NS.AIR_TOTEM_SPELLS)
             if spell and spell:IsReady(PLAYER_UNIT) then
-                wf_twist.phase = "default"
-                wf_twist.last_default_time = now
-                return spell:Show(icon), format("[ENH] %s (twist phase 2)", default_key)
+                return spell:Show(icon), format("[ENH] %s (twist swap)", default_key)
             end
-        elseif wf_twist.phase == "default" then
-            -- Switch back to WF before the buff expires on party
+        else
+            -- No totem or non-WF totem up → drop WF.
             if A.WindfuryTotem:IsReady(PLAYER_UNIT) then
-                wf_twist.phase = "windfury"
-                wf_twist.last_wf_time = now
-                return A.WindfuryTotem:Show(icon), "[ENH] Windfury Totem (twist refresh)"
+                return A.WindfuryTotem:Show(icon), "[ENH] Windfury Totem (twist)"
             end
         end
 
@@ -670,25 +655,28 @@ local Enh_WindfuryTwist = {
     end,
 }
 
--- [6] Fire Nova Totem Twist — cycle FNT (AoE burst) with default fire totem
+-- [6] Fire Nova Totem Twist — cycle FNT with post-FNT totem (default Magma)
+-- State-driven from GetTotemInfo + FNT cooldown, same as the WF twist refactor.
+-- Priorities:
+--   1. FNT off CD and fire slot is not FNT → drop FNT (overwrites Magma is fine)
+--   2. FNT on CD and fire slot is empty (post-explosion) → drop post-FNT totem
 local Enh_FireNovaTotemTwist = {
     requires_combat = true,
     setting_key = "enh_twist_fire_nova",
 
     matches = function(context, state)
-        -- Don't overwrite Fire Elemental Totem
         if context.fire_elemental_active then return false end
-        -- Group-only check for fire totems
         if not NS.totem_allowed(context.settings.totem_fire_condition, context.in_group) then return false end
-        -- OOM protection
         if context.mana_pct < Constants.TWIST.OOM_THRESHOLD * 100 then return false end
 
-        local now = GetTime()
+        -- Read the actual fire slot.
+        local have_totem, totem_name = GetTotemInfo(Constants.TOTEM_SLOT.FIRE)
+        local is_fnt = have_totem and totem_name and totem_name:find("Fire Nova") ~= nil
 
-        if fnt_twist.phase == "idle" then
-            -- Don't start a new FNT cycle on a dead target
+        -- Priority 1: FNT off CD and slot isn't already FNT → drop FNT.
+        if A.FireNovaTotem:IsReady(PLAYER_UNIT) and not is_fnt then
             if context.target_dead then return false end
-            -- Respect AoE threshold — allow single-target bypass based on setting
+            -- AoE threshold gate (with single-target bypass dropdown).
             local threshold = context.settings.aoe_threshold or 0
             if threshold > 0 and (context.enemy_count or 1) < threshold then
                 local bypass = context.settings.enh_fnt_single_target or "boss"
@@ -702,41 +690,27 @@ local Enh_FireNovaTotemTwist = {
                     end
                 end
             end
-            -- Ready to drop FNT
             return true
-        elseif fnt_twist.phase == "waiting" then
-            -- FNT fuse is ~4s, then it explodes and disappears
-            local elapsed = now - fnt_twist.last_drop_time
-            if elapsed >= 5 then
-                -- FNT has exploded, drop default fire totem
-                fnt_twist.phase = "default"
-                return true
-            end
-        elseif fnt_twist.phase == "default" then
-            -- FNT has a 15s CD; check if it's ready again
-            if A.FireNovaTotem:IsReady(PLAYER_UNIT) then
-                fnt_twist.phase = "idle"
-                return true
-            end
         end
+
+        -- Priority 2: FNT just exploded (slot empty) and we're waiting for the
+        -- CD → drop the post-FNT totem (Magma) to fill the gap.
+        if not have_totem then return true end
 
         return false
     end,
 
     execute = function(icon, context, state)
-        local now = GetTime()
+        local have_totem, totem_name = GetTotemInfo(Constants.TOTEM_SLOT.FIRE)
+        local is_fnt = have_totem and totem_name and totem_name:find("Fire Nova") ~= nil
 
-        if fnt_twist.phase == "idle" then
-            -- Drop Fire Nova Totem
-            if A.FireNovaTotem:IsReady(PLAYER_UNIT) then
-                fnt_twist.phase = "waiting"
-                fnt_twist.last_drop_time = now
-                return A.FireNovaTotem:Show(icon), "[ENH] Fire Nova Totem (twist)"
-            end
-        elseif fnt_twist.phase == "default" then
-            -- Drop the configured post-FNT totem (default Magma) during the gap
-            -- between FNT explosion and the next FNT off CD. Falls back to the
-            -- default fire totem setting if the post-FNT slot is left blank.
+        -- FNT off CD → drop it (will overwrite Magma if needed).
+        if A.FireNovaTotem:IsReady(PLAYER_UNIT) and not is_fnt then
+            return A.FireNovaTotem:Show(icon), "[ENH] Fire Nova Totem (twist)"
+        end
+
+        -- Otherwise fill the post-explosion gap with the post-FNT totem.
+        if not have_totem then
             local post_key = context.settings.enh_fnt_post_totem
                 or context.settings.enh_fire_totem
                 or "magma"
