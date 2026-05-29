@@ -41,40 +41,6 @@ local C_Timer = _G.C_Timer
 local AUTO_ATTACK_SPELL_ID = 6603
 
 -- ============================================================================
--- TOTEM TWIST STATE (module-level, persists across frames)
--- Must be declared before context_builder so check_combat_reset is available
--- ============================================================================
--- Windfury + Grace of Air twist timing
-local wf_twist = {
-    last_wf_time = 0,       -- GetTime() when WF totem was last dropped
-    last_default_time = 0,  -- GetTime() when default air totem was last dropped
-    phase = "windfury",     -- "windfury" = WF is down, "default" = GoA/other is down
-    initialized = false,
-}
-
--- Fire Nova Totem twist timing
-local fnt_twist = {
-    last_drop_time = 0,     -- GetTime() when FNT was last dropped
-    phase = "idle",         -- "idle" = ready for FNT, "waiting" = FNT fuse ticking, "default" = default fire totem phase
-}
-
--- Reset twist state on combat exit
-local last_combat_state = false
-
-local function check_combat_reset(in_combat)
-    if last_combat_state and not in_combat then
-        -- Exiting combat: reset twist state
-        wf_twist.initialized = false
-        wf_twist.phase = "windfury"
-        wf_twist.last_wf_time = 0
-        wf_twist.last_default_time = 0
-        fnt_twist.phase = "idle"
-        fnt_twist.last_drop_time = 0
-    end
-    last_combat_state = in_combat
-end
-
--- ============================================================================
 -- SWING SYNC TRACKER (Enhancement)
 -- ============================================================================
 -- Tracks MH/OH swing timestamps to detect when the player has drifted out of
@@ -277,10 +243,6 @@ local enh_state = {
 local function get_enh_state(context)
     if context._enh_valid then return enh_state end
     context._enh_valid = true
-
-    -- Reset twist state on combat exit (must be in context_builder, not in
-    -- requires_combat strategies which never see in_combat=false)
-    check_combat_reset(context.in_combat)
 
     enh_state.stormstrike_debuff_duration = context.stormstrike_debuff
     enh_state.flame_shock_duration = context.flame_shock_duration
