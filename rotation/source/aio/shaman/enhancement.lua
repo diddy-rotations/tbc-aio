@@ -601,22 +601,21 @@ local Enh_WindfuryTwist = {
         end
 
         local now = GetTime()
-        local cycle = Constants.TWIST.CYCLE_TIME
 
         -- First time entering combat: drop WF immediately
         if not wf_twist.initialized then
             return true
         end
 
-        -- Check if it's time to switch phases
+        -- Phase-specific durations so the full cycle is ~10s (matches WF buff
+        -- duration), not 20s. WF holds for one GCD just to apply the buff,
+        -- then Grace runs for the rest of the buff window before we refresh.
         if wf_twist.phase == "windfury" then
-            -- WF is down, time to swap to default air totem?
             local elapsed = now - wf_twist.last_wf_time
-            if elapsed >= cycle then return true end
+            if elapsed >= Constants.TWIST.WF_PHASE_DURATION then return true end
         elseif wf_twist.phase == "default" then
-            -- Default air totem is down, time to swap back to WF?
             local elapsed = now - wf_twist.last_default_time
-            if elapsed >= cycle then return true end
+            if elapsed >= Constants.TWIST.DEFAULT_PHASE_DURATION then return true end
         end
 
         return false
@@ -735,10 +734,15 @@ local Enh_FireNovaTotemTwist = {
                 return A.FireNovaTotem:Show(icon), "[ENH] Fire Nova Totem (twist)"
             end
         elseif fnt_twist.phase == "default" then
-            -- Drop default fire totem after FNT exploded
-            local spell = resolve_totem_spell(context.settings.enh_fire_totem or "searing", NS.FIRE_TOTEM_SPELLS)
+            -- Drop the configured post-FNT totem (default Magma) during the gap
+            -- between FNT explosion and the next FNT off CD. Falls back to the
+            -- default fire totem setting if the post-FNT slot is left blank.
+            local post_key = context.settings.enh_fnt_post_totem
+                or context.settings.enh_fire_totem
+                or "magma"
+            local spell = resolve_totem_spell(post_key, NS.FIRE_TOTEM_SPELLS)
             if spell and spell:IsReady(PLAYER_UNIT) then
-                return spell:Show(icon), "[ENH] Fire Totem (post-FNT)"
+                return spell:Show(icon), format("[ENH] %s (post-FNT)", post_key)
             end
         end
 
@@ -766,6 +770,10 @@ local Enh_Shock = {
     matches = function(context, state)
         local s = context.settings
         local primary = s.enh_primary_shock or "earth_shock"
+
+        -- Hold-shocks: rotation skips shocks entirely; the interrupt middleware
+        -- (priority 510) still fires shocks on enemy casts independently.
+        if s.enh_shock_interrupt_only then return false end
 
         -- Mana conservation gate (bypassed when SR active or SR ready)
         local mana_stop = s.enh_mana_stop_shocks or 0

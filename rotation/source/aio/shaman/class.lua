@@ -162,10 +162,15 @@ local Constants = {
     TOTEM_REFRESH_THRESHOLD = 10,
 
     -- WF totem twist timing
+    -- WF buff persists ~10s on melee after the totem is replaced. To keep
+    -- continuous uptime we re-drop WF *before* the carried buff expires.
+    -- Old behavior used a single CYCLE_TIME (10s) for both phases, which
+    -- made the full WF→Grace→WF loop 20s — half the rate it should be.
     TWIST = {
-        WF_BUFF_DURATION = 10,  -- WF buff persists ~10s on players after totem replaced
-        CYCLE_TIME = 10,         -- seconds between twist phases
-        OOM_THRESHOLD = 0.20,    -- skip twist below 20% mana
+        WF_BUFF_DURATION = 10,        -- WF buff persists ~10s on players after totem replaced
+        WF_PHASE_DURATION = 1.5,      -- hold WF active for one GCD before swapping to Grace
+        DEFAULT_PHASE_DURATION = 7.5, -- swap back to WF ~1.5s before the carried buff expires
+        OOM_THRESHOLD = 0.20,         -- skip twist below 20% mana
     },
 }
 
@@ -215,6 +220,7 @@ local FIRE_TOTEM_SPELLS = {
 local EARTH_TOTEM_SPELLS = {
     strength_of_earth = function() return A.StrengthOfEarth end,
     stoneskin         = function() return A.StoneskinTotem end,
+    tremor            = function() return A.TremorTotem end,
 }
 
 local WATER_TOTEM_SPELLS = {
@@ -227,6 +233,7 @@ local AIR_TOTEM_SPELLS = {
     windfury      = function() return A.WindfuryTotem end,
     grace_of_air  = function() return A.GraceOfAirTotem end,
     tranquil_air  = function() return A.TranquilAirTotem end,
+    grounding     = function() return A.GroundingTotem end,
 }
 
 NS.FIRE_TOTEM_SPELLS = FIRE_TOTEM_SPELLS
