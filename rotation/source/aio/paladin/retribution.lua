@@ -299,10 +299,13 @@ local Ret_CrusaderStrike = {
         if not context.settings.ret_use_crusader_strike then return false end
         -- Don't waste GCD on CS without a seal active — let MaintainSealFallback re-seal first
         if not context.has_any_seal then return false end
-        -- When twisting: don't CS if in twist window or swing imminent
-        if state.should_twist and state.seal_command_active then
-            if state.in_twist_window then return false end
-            if state.time_to_swing > 0 and state.time_to_swing < 1.5 then return false end
+        -- Only protect the actual 0.4s twist window so the SoB twist cast isn't clipped.
+        -- We intentionally do NOT block the whole last ~1.5s before a swing: that pinned
+        -- CS to one slot per swing cycle and stretched its real interval to 9-11s instead
+        -- of firing near its 6s cooldown. CS damage + the Judgement-of-the-Crusader refresh
+        -- (which keeps the +3% raid crit up) outrank the occasional skipped twist.
+        if state.should_twist and state.seal_command_active and state.in_twist_window then
+            return false
         end
         return true
     end,
