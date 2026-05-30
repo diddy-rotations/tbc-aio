@@ -321,6 +321,34 @@ Do NOT implement these — they are Wrath of the Lich King (3.0+) or later:
 
 ## 2. Retribution Paladin Rotation & Strategies
 
+### ⚠️ API Caveat: `Player:GetSwing()` returns REMAINING time, not duration
+**This bug silently broke seal twisting (only ~18 SoB hits vs ~113 in a clean log).**
+
+`Player:GetSwing(slot)` returns the time **remaining** until the next swing — NOT the
+swing's total duration. `Player:GetSwingStart(slot)` returns the timestamp the current
+swing cycle started. Therefore:
+- **time until next swing = `Player:GetSwing(slot)` directly** (guard for 0/nil).
+- total cycle length, if needed = `(GetTime() - swingStart) + GetSwing(slot)`.
+
+The broken pattern (treating `GetSwing` as duration):
+```lua
+-- WRONG: evaluates to (remaining - elapsed) = total - 2*elapsed
+local t = (swingStart + GetSwing(1)) - GetTime()
+```
+This bottoms out near the swing's **midpoint** (~1.8s too early on a 3.6s weapon), so
+the twist window opened mid-cycle: Seal of Blood/Martyr was cast far too soon and then
+overwritten by the Prep-SoC step before the swing landed. The surrounding twist guards
+were correct — they were just fed a garbage timer.
+
+Confirmed empirically via the Shaman swing-sync work — see the authoritative comment and
+`swing_state()` in `rotation/source/aio/shaman/enhancement.lua` (~line 266). The Ret fix
+lives in `rotation/source/aio/paladin/class.lua` `extend_context` (`time_to_swing`).
+
+**Still buggy elsewhere:** the shared helpers `get_time_until_swing` / `is_swing_landing_soon`
+in `rotation/source/aio/core.lua` use the same wrong formula and are consumed by Warrior
+(fury/arms/middleware) and Druid (cat/bear). Their thresholds may be tuned around the
+wrong behavior, so re-verify each class before "fixing" the shared helpers.
+
 ### Core Mechanic: Seal Twisting
 Seal twisting is THE defining mechanic of TBC Ret Paladin. It exploits the ~0.4s server batching window to proc two seals on a single auto-attack swing.
 
