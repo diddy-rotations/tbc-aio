@@ -291,13 +291,18 @@ local Ret_JudgeSeal = {
         else
             if not context.has_any_seal then return false end
         end
-        -- When twisting, only judge Blood during its resident phase — not once we're in
-        -- the pre-twist lead (where we prep Command then twist into Blood). Judgement
-        -- consumes the seal; judging inside the lead would fight the prep/twist sequence.
-        if state.should_twist and judge == "blood"
-           and state.time_to_swing > 0
-           and state.time_to_swing <= (Constants.TWIST.WINDOW + state.spell_gcd) then
-            return false
+        -- When twisting, judge Blood RIGHT BEFORE prepping Command (the standard rule:
+        -- "cast Judgement right before you prep Command"). We drop Blood for the prep
+        -- anyway, so judging at that moment gets Judgement of Blood essentially for free
+        -- and avoids a wasted re-seal. JudgeSeal is off-GCD and outranks PrepCommand, so
+        -- it consumes Blood one frame and PrepCommand casts Command the next. Only judge
+        -- inside the prep lead band; in the resident phase an early judge would force a
+        -- re-seal whose GCD can eat the prep window (missed twist).
+        if state.should_twist and judge == "blood" and state.time_to_swing > 0 then
+            local lead = Constants.TWIST.WINDOW + state.spell_gcd
+            if state.time_to_swing < lead or state.time_to_swing > lead + PREP_LEAD_BUFFER then
+                return false
+            end
         end
         return true
     end,
