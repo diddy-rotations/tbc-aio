@@ -38,6 +38,11 @@ local UnitCreatureType = _G.UnitCreatureType
 local GetSpellCooldown = _G.GetSpellCooldown
 local GetTime = _G.GetTime
 
+-- Pull window (seconds) during which the Seal of the Crusader opener may fire.
+-- Crusader Strike refreshes the Judgement debuff afterward, so the opener only
+-- needs to land it once at the start of the fight.
+local OPENER_COMBAT_WINDOW = 8
+
 -- ============================================================================
 -- RETRIBUTION STATE (context_builder)
 -- ============================================================================
@@ -104,16 +109,33 @@ do
 local Ret_AvengingWrath = {
     requires_combat = true,
     is_gcd_gated = false,
-    is_burst = true,
     spell = A.AvengingWrath,
     spell_target = PLAYER_UNIT,
-    setting_key = "use_avenging_wrath",
 
+    -- Firing mode is driven by the "Avenging Wrath" dropdown (ret_avenging_wrath):
+    --   never    — disabled (manual /flux burst won't fire it either)
+    --   cooldown — fire whenever it's off cooldown
+    --   bosses   — fire on cooldown, but only against boss targets
+    --   burst    — fire only while bursting: the /flux burst window OR a configured
+    --              auto-burst condition (should_auto_burst == true)
+    -- Note: not is_burst-tagged. We handle the /flux burst case explicitly here so
+    -- the dispatcher's auto-burst gate doesn't suppress the cooldown/bosses modes.
     matches = function(context, state)
+        local mode = context.settings.ret_avenging_wrath or "burst"
+        if mode == "never" then return false end
+        -- Common guards for any firing mode
         local min_ttd = context.settings.cd_min_ttd or 0
         if min_ttd > 0 and context.ttd and context.ttd > 0 and context.ttd < min_ttd then return false end
         if context.forbearance_active then return false end
-        return true
+
+        if mode == "cooldown" then
+            return true
+        elseif mode == "bosses" then
+            return context.is_boss == true
+        elseif mode == "burst" then
+            return NS.is_force_active("force_burst") or NS.should_auto_burst(context) == true
+        end
+        return false
     end,
 
     execute = function(icon, context, state)
@@ -140,6 +162,57 @@ local Ret_Racial = {
         end
         if context.hp < 60 and A.GiftOfTheNaaru and A.GiftOfTheNaaru:IsReady(PLAYER_UNIT) then
             return A.GiftOfTheNaaru:Show(icon), "[RET] Gift of the Naaru"
+        end
+        return nil
+    end,
+}
+
+-- [3] Opener: Seal of the Crusader → Judgement (Heart of the Crusader, +3% raid crit)
+-- Fires only in the first few seconds of combat and stops permanently once the
+-- Judgement of the Crusader debuff is on the target. Crusader Strike (Ret talent)
+-- refreshes all Judgements on hit, so this one application is maintained all fight.
+-- is_gcd_gated = false so the off-GCD Judgement step lands immediately once the
+-- seal is up (the on-GCD Seal cast is naturally skipped while on GCD via IsReady).
+local Ret_Opener = {
+    requires_combat = true,
+    requires_enemy = true,
+    is_gcd_gated = false,
+    setting_key = "ret_opener_crusader",
+
+    matches = function(context, state)
+        -- Pull-only: skip once we're past the opener window.
+        if context.combat_time <= 0 or context.combat_time > OPENER_COMBAT_WINDOW then return false end
+        -- Within ~10yd: lets Seal of the Crusader (a self-buff) go up while closing,
+        -- so it's ready by the time we're in Judgement range. The Judgement step
+        -- self-gates on its own 10yd range via IsReady().
+        if context.target_range and context.target_range > 10 then return false end
+        -- Skip if Judgement of the Crusader is already on the target — including when
+        -- ANOTHER paladin applied it. HasDeBuffs with no caster arg matches any source
+        -- (framework uses the "HARMFUL PLAYER" filter only when a caster is passed).
+        -- Crusader Strike refreshes the debuff for the rest of the fight.
+        if (Unit(TARGET_UNIT):HasDeBuffs(Constants.DEBUFF_ID.JUDGEMENT_CRUSADER) or 0) > 0 then
+            return false
+        end
+        -- Don't start the opener unless Judgement is off cooldown, so the
+        -- Seal of the Crusader -> Judge pair completes immediately. Otherwise we'd
+        -- cast the seal, fail to judge it, get it overwritten by Prep-SoC, and
+        -- re-cast it in a loop — i.e. get stuck on the opener.
+        if state.judgement_cd_remaining and state.judgement_cd_remaining > 0 then return false end
+        return true
+    end,
+
+    execute = function(icon, context, state)
+        -- Step 1 (on-GCD): get Seal of the Crusader up. Skipped while on GCD since
+        -- IsReady() is false for a GCD spell mid-GCD.
+        if not context.seal_crusader_active then
+            if A.SealOfCrusader:IsReady(PLAYER_UNIT) then
+                return A.SealOfCrusader:Show(icon), "[RET] Opener: Seal of the Crusader"
+            end
+            return nil
+        end
+        -- Step 2 (off-GCD): Judge to apply Judgement of the Crusader (+3% raid crit).
+        if A.Judgement:IsReady(TARGET_UNIT) then
+            return A.Judgement:Show(icon), "[RET] Opener: Judge Crusader (+3% raid crit)"
         end
         return nil
     end,
@@ -386,6 +459,7 @@ local Ret_MaintainSealFallback = {
 rotation_registry:register("retribution", {
     named("AvengingWrath",       Ret_AvengingWrath),
     named("Racial",              Ret_Racial),
+    named("Opener",              Ret_Opener),
     named("CompleteSealTwist",   Ret_CompleteSealTwist),
     named("JudgeSeal",           Ret_JudgeSeal),
     named("CrusaderStrike",      Ret_CrusaderStrike),

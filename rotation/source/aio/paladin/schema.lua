@@ -66,6 +66,10 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
 
     -- Tab 2: Retribution
     [2] = { name = "Retribution", sections = {
+        { header = "Opener", settings = {
+            { type = "checkbox", key = "ret_opener_crusader", default = true, label = "Heart of the Crusader Opener",
+              tooltip = "On pull, cast Seal of the Crusader then Judge it to apply the +3% crit debuff (Heart of the Crusader) for the raid. Crusader Strike refreshes it for the rest of the fight." },
+        }},
         { header = "Seal Twisting", settings = {
             { type = "checkbox", key = "ret_seal_twist", default = true, label = "Seal Twist",
               tooltip = "Enable Command -> Blood seal twisting for max DPS. Requires swing timer. Disable for simpler rotation." },
@@ -91,6 +95,16 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
               tooltip = "Use Exorcism on Undead/Demon targets (only when mana > 40%)." },
             { type = "checkbox", key = "ret_use_consecration", default = false, label = "Consecration",
               tooltip = "Use Consecration as filler (heavy mana cost, only when mana > 60%). Off by default." },
+        }},
+        { header = "Cooldowns", settings = {
+            { type = "dropdown", key = "ret_avenging_wrath", default = "burst", label = "Avenging Wrath",
+              tooltip = "When to use Avenging Wrath (+30% damage, 20s; causes Forbearance).",
+              options = {
+                  { value = "never", text = "Never" },
+                  { value = "cooldown", text = "On Cooldown" },
+                  { value = "bosses", text = "On Bosses" },
+                  { value = "burst", text = "During Burst" },
+              }},
         }},
         { header = "AoE", settings = {
             { type = "slider", key = "ret_aoe_threshold", default = 0, min = 0, max = 8, label = "AoE Threshold",
@@ -187,8 +201,8 @@ _G.FluxAIO_SETTINGS_SCHEMA = {
     -- Tab 5: Cooldowns & Mana
     [5] = { name = "CDs & Mana", sections = {
         { header = "Offensive Cooldowns", settings = {
-            { type = "checkbox", key = "use_avenging_wrath", default = true, label = "Avenging Wrath",
-              tooltip = "Use Avenging Wrath on cooldown (+30% damage, 20s). Note: causes Forbearance." },
+            { type = "checkbox", key = "use_avenging_wrath", default = true, label = "Avenging Wrath (Protection)",
+              tooltip = "Protection: use Avenging Wrath on cooldown (+30% damage/threat, 20s; causes Forbearance). Retribution has its own Avenging Wrath mode on the Retribution tab." },
         }},
         S.trinkets("Use racial ability (Stoneform, Gift of the Naaru, etc.) during combat."),
         { header = "Mana Recovery", settings = {

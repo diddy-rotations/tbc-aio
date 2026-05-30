@@ -344,11 +344,18 @@ rotation_registry:register_class({
         ctx.enemy_count = MultiUnits:GetByRangeInCombat(8)
 
         -- Swing timer data (for Ret seal twisting)
+        -- API caveat (confirmed via Shaman swing-sync work, see enhancement.lua):
+        -- Player:GetSwing(slot) returns the time REMAINING until the next swing,
+        -- NOT the swing's total duration. So time_to_swing IS that value directly.
+        -- The previous (swing_start + GetSwing) - now formula treated it as a
+        -- duration, which made in_twist_window open near the swing's MIDPOINT
+        -- (~1.8s too early): Seal of Blood/Martyr was cast far too soon and then
+        -- overwritten by Prep SoC before the swing landed — the missed-twist /
+        -- mana-waste bug (only ~18 SoB hits vs ~113 in a clean log).
         local swing_start = Player:GetSwingStart(1) or 0
-        local swing_duration = Player:GetSwing(1) or 0
-        if swing_start > 0 and swing_duration > 0 then
-            local remaining = (swing_start + swing_duration) - GetTime()
-            ctx.time_to_swing = remaining > 0 and remaining or 0
+        local swing_remaining = Player:GetSwing(1) or 0
+        if swing_start > 0 and swing_remaining > 0 then
+            ctx.time_to_swing = swing_remaining
         else
             ctx.time_to_swing = 0
         end
