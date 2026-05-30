@@ -37,6 +37,8 @@ local format = string.format
 local UnitCreatureType = _G.UnitCreatureType
 local GetSpellCooldown = _G.GetSpellCooldown
 local GetTime = _G.GetTime
+local IsSpellKnown = _G.IsSpellKnown
+local get_spell_mana_cost = NS.get_spell_mana_cost
 
 -- Pull window (seconds) during which the Seal of the Crusader opener may fire.
 -- Crusader Strike refreshes the Judgement debuff afterward, so the opener only
@@ -98,6 +100,21 @@ local function get_ret_state(context)
     ret_state.spell_gcd = (A.GetGCD and A.GetGCD()) or 1.5
 
     return ret_state
+end
+
+-- Rank-safe Seal of Command cast for twisting.
+-- The rank is chosen by ret_twist_seal_rank; Rank 1 is the mana-efficient default
+-- because Seal of Command's proc damage is rank-independent (65 vs 280 mana).
+-- isRank-tagged actions make IsReady() unreliable (it fails for non-max ranks), so
+-- we gate on IsSpellKnown + mana and Show() directly — the same pattern Holy uses
+-- for its ranked heal casts.
+local function show_twist_soc(icon, context, log_message)
+    local soc = (context.settings.ret_twist_seal_rank == "max")
+        and A.SealOfCommandMax or A.SealOfCommandR1
+    if not IsSpellKnown(soc.ID) then return nil end
+    local cost = get_spell_mana_cost(soc)
+    if cost and cost > 0 and context.mana < cost then return nil end
+    return soc:Show(icon), log_message
 end
 
 -- ============================================================================
@@ -333,11 +350,8 @@ local Ret_PrepSealTwist = {
     end,
 
     execute = function(icon, context, state)
-        if A.SealOfCommandR1:IsReady(PLAYER_UNIT) then
-            return A.SealOfCommandR1:Show(icon),
-                format("[RET] Prep SoC R1 (swing in %.2fs)", state.time_to_swing)
-        end
-        return nil
+        return show_twist_soc(icon, context,
+            format("[RET] Prep SoC (swing in %.2fs)", state.time_to_swing))
     end,
 }
 
