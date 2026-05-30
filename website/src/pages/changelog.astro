@@ -15,6 +15,17 @@ import { url } from '../config';
     </section>
 
     <section class="section changelog-entry">
+      <h2>v1.13.1 <span class="changelog-date">2026</span></h2>
+      <span class="changelog-tag tag-fix">Fix</span>
+
+      <h3>Paladin &mdash; Retribution</h3>
+      <ul class="features">
+        <li><strong>Correct Twist Direction</strong> &mdash; TBC seal twisting is one-way: you can only twist <em>from</em> Seal of Command <em>into</em> Seal of Blood / Seal of the Martyr. v1.13.0 had it backwards (flashing Command in while Blood was resident, which doesn't twist). Now Blood/Martyr is the resident seal that rides through Crusader Strike, fillers and Judgement, and Seal of Command is briefly prepped before each swing so you twist into Blood &mdash; matching how a strong ret parses (Martyr-dominant uptime).</li>
+        <li><strong>Smarter Judgement Timing</strong> &mdash; Judgement of Blood is now cast right before prepping Command for the twist, instead of mid-cycle. Since Judgement consumes the seal, the old timing forced an extra Seal of Blood re-cast that could clip the next twist; judging at the prep point uses up the seal you were about to drop anyway.</li>
+      </ul>
+    </section>
+
+    <section class="section changelog-entry">
       <h2>v1.13.0 <span class="changelog-date">2026</span></h2>
       <span class="changelog-tag tag-fix">Fix</span>
       <span class="changelog-tag tag-feature">Feature</span>
