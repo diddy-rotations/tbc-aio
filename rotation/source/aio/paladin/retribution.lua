@@ -68,6 +68,7 @@ local ret_state = {
     target_undead_or_demon = false,
     judgement_cd_remaining = 0,
     spell_gcd = 1.5,
+    twist_window = 0.4,
 }
 
 local function get_ret_state(context)
@@ -79,6 +80,9 @@ local function get_ret_state(context)
     ret_state.seal_command_active = context.seal_command_active
     ret_state.in_twist_window = context.in_twist_window
     ret_state.time_to_swing = context.time_to_swing
+    -- Configurable twist lead (seconds before the swing). Default 0.40s (~server batch
+    -- window); raise for latency. Drives both the twist window and the prep lead.
+    ret_state.twist_window = context.settings.ret_twist_window or Constants.TWIST.WINDOW
 
     -- Mana thresholds (from wowsims)
     ret_state.low_mana = context.mana <= Constants.TWIST.LOW_MANA
@@ -299,7 +303,7 @@ local Ret_JudgeSeal = {
         -- inside the prep lead band; in the resident phase an early judge would force a
         -- re-seal whose GCD can eat the prep window (missed twist).
         if state.should_twist and judge == "blood" and state.time_to_swing > 0 then
-            local lead = Constants.TWIST.WINDOW + state.spell_gcd
+            local lead = state.twist_window + state.spell_gcd
             if state.time_to_swing < lead or state.time_to_swing > lead + PREP_LEAD_BUFFER then
                 return false
             end
@@ -357,7 +361,7 @@ local Ret_PrepCommand = {
         -- Prep lead band: [window+gcd, window+gcd+PREP_LEAD_BUFFER]. Below the band it's
         -- too late to prep AND twist (skip this swing, Blood just rides); above it we'd
         -- hold Command too long and steal Blood's uptime.
-        local lead = Constants.TWIST.WINDOW + state.spell_gcd
+        local lead = state.twist_window + state.spell_gcd
         if state.time_to_swing < lead or state.time_to_swing > lead + PREP_LEAD_BUFFER then
             return false
         end
@@ -388,7 +392,7 @@ local Ret_MaintainBlood = {
         if state.seal_blood_active then return false end
         -- In the pre-twist lead/window, let PrepCommand + TwistBlood drive the seal.
         if state.should_twist and state.time_to_swing > 0 then
-            local lead = Constants.TWIST.WINDOW + state.spell_gcd
+            local lead = state.twist_window + state.spell_gcd
             if state.time_to_swing <= lead + PREP_LEAD_BUFFER then return false end
         end
         -- Don't override Seal of Wisdom during mana recovery.
